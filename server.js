@@ -6,6 +6,9 @@ import { randomUUID } from "crypto";
 import { TECHNIQUES, CATALOG, listSubjects, getBoard, getTopic } from "./curriculum.js";
 import { getBankQuestions, putBankQuestion, bankSize, getExamQuestions } from "./data/questionBank.js";
 import { pickVisual } from "./diagrams.js";
+import { aiK2Json } from "./k2Client.js";
+import { CLASSROOM_PERSONAS, TEACHER_AGENT, findPersona } from "./classroomPersonas.js";
+import { buildTopicKeywordSet, classifyStudentMessage, selectResponders } from "./classroomClassifier.js";
 
 
 
@@ -1503,6 +1506,152 @@ app.post("/api/chat", async (req, res) => {
       peer,
       reward,
       focus: liveFocus,
+      student: publicStudent(s),
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+// ── Classroom simulation: student explains a topic to AI peers + a teacher ──
+
+app.post("/api/classroom/start", (req, res) => {
+  try {
+    const s = getStudent(req.body?.studentId);
+    if (!s) return res.status(404).json({ error: "Student not found" });
+    const { subjectId, boardId } = req.body || {};
+    if (!subjectId || !boardId) return res.status(400).json({ error: "subjectId and boardId required" });
+    const pack = getBoard(subjectId, boardId);
+    if (!pack) return res.status(400).json({ error: "Unknown course" });
+    const progress = ensureCourse(s, subjectId, boardId);
+    const focus = normalizeStudyFocus(req.body || {}, pack);
+    const target = pickTeachTarget(progress, pack, focus.topicId, focus.subskillId);
+    if (!target?.sub) return res.status(400).json({ error: "No topic available" });
+
+    const keywordSet = buildTopicKeywordSet(
+      target.topic.name,
+      target.sub.name,
+      target.topic.subskills.map((ss) => ss.name)
+    );
+
+    s.classroom = {
+      subjectId,
+      boardId,
+      topicId: target.topic.id,
+      subskillId: target.sub.id,
+      topicName: target.topic.name,
+      subskillName: target.sub.name,
+      keywords: [...keywordSet],
+      history: [],
+      rewardGiven: false,
+    };
+    putStudent(s);
+
+    res.json({
+      classroom: {
+        topicName: target.topic.name,
+        subskillName: target.sub.name,
+        personas: [...CLASSROOM_PERSONAS, TEACHER_AGENT].map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
+      },
+      opener: `Alright ${s.name}, go ahead and explain ${target.sub.name} to the class — take your time.`,
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+app.post("/api/classroom/message", async (req, res) => {
+  try {
+    const s = getStudent(req.body?.studentId);
+    if (!s) return res.status(404).json({ error: "Student not found" });
+    if (!s.classroom) return res.status(400).json({ error: "No active classroom session — call /api/classroom/start first" });
+
+    const text = cleanStudentText(req.body?.text || "");
+    if (!text) return res.status(400).json({ error: "Message required" });
+
+    const classroom = s.classroom;
+    const keywordSet = new Set(classroom.keywords || []);
+    const recentStudentMessages = classroom.history
+      .filter((m) => m.role === "student")
+      .slice(-3)
+      .map((m) => m.text);
+
+    const signals = classifyStudentMessage(text, { keywordSet, recentStudentMessages });
+    const responderIds = selectResponders(signals);
+
+    const personas = responderIds.map((id) => findPersona(id)).filter(Boolean);
+    if (!personas.length) return res.status(500).json({ error: "Could not select a responder" });
+
+    const recentTurns = classroom.history.slice(-8).map((m) => {
+      const who = m.role === "student" ? "Student" : (findPersona(m.personaId)?.name || m.personaId);
+      return `${who}: ${m.text}`;
+    });
+
+    const system =
+      "You are running a small classroom role-play. Multiple distinct classmates (and sometimes the teacher) " +
+      "respond to a student who is explaining a topic out loud. Stay strictly in character for each persona listed " +
+      "below — do not blend their voices together. Keep every reply short (1-3 sentences), plain text, no markdown.\n\n" +
+      `Topic: ${classroom.topicName}. Sub-topic being explained: ${classroom.subskillName}.\n` +
+      (recentTurns.length ? `Recent conversation:\n${recentTurns.join("\n")}\n\n` : "\n") +
+      "Personas responding this turn:\n" +
+      personas.map((p) => `- ${p.name} (id: "${p.id}"): ${p.systemPrompt}`).join("\n") +
+      "\n\nRespond with JSON only: " +
+      '{"replies":[{"personaId":"...","reply":"...","understood":false}]} ' +
+      "one entry per persona above, in the same order. Set understood=true only for the quick-learner or teacher persona, " +
+      "and only when the student's explanation clearly and correctly landed.";
+
+    // K2-Think-V2 is a reasoning model: it spends tokens on a hidden
+    // `reasoning` field before emitting `content`, and Task 1's smoke test
+    // found even a one-word reply consumed ~120+ tokens on reasoning alone.
+    // Budget generously so replies aren't silently truncated.
+    let parsed;
+    try {
+      parsed = await aiK2Json({
+        system,
+        user: text,
+        max_tokens: 400 * personas.length + 600,
+      });
+    } catch (e) {
+      console.error("[ai] classroom message generation failed:", e.message || e);
+      return res.status(503).json({ error: "Couldn't reach the classroom right now — please try again." });
+    }
+
+    const repliesById = new Map((parsed.replies || []).map((r) => [r.personaId, r]));
+    const responses = personas.map((p) => {
+      const r = repliesById.get(p.id) || {};
+      return {
+        personaId: p.id,
+        name: p.name,
+        reply: cleanStudentText(r.reply || "..."),
+        understood: Boolean(r.understood),
+      };
+    });
+
+    classroom.history.push({ role: "student", text });
+    for (const r of responses) {
+      classroom.history.push({ role: "agent", personaId: r.personaId, text: r.reply });
+    }
+    classroom.history = classroom.history.slice(-40);
+
+    let reward = null;
+    const quickLearnerResponded = responderIds.includes("quick_learner");
+    const understoodSignal = responses.some((r) => r.understood);
+    if (!classroom.rewardGiven && (quickLearnerResponded || understoodSignal)) {
+      const rewardProgress = ensureCourse(s, classroom.subjectId, classroom.boardId);
+      const cur = rewardProgress.mastery[classroom.subskillId] ?? 0;
+      rewardProgress.mastery[classroom.subskillId] = cur === 0 ? 0.35 : clamp(cur + 0.1, 0, 1);
+      classroom.rewardGiven = true;
+      reward = {
+        masteryBoost: true,
+        subskillName: classroom.subskillName,
+        message: `The class gets it. +mastery on ${classroom.subskillName}.`,
+      };
+    }
+
+    putStudent(s);
+    res.json({
+      responses: responses.map(({ personaId, name, reply }) => ({ personaId, name, reply })),
+      reward,
       student: publicStudent(s),
     });
   } catch (e) {
