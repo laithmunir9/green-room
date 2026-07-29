@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Classroom Simulation — Test Harness</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  select, input, button { font: inherit; padding: 6px 8px; }
+  #log { border: 1px solid #ccc; padding: 10px; height: 360px; overflow-y: auto; margin: 12px 0; }
+  .msg { margin: 6px 0; }
+  .msg b { display: inline-block; min-width: 90px; }
+  .msg.student { color: #144; }
+  .msg.sys { color: #888; font-style: italic; }
+  #composer { display: flex; gap: 8px; }
+  #composer input { flex: 1; }
+  label { display: block; margin: 8px 0 2px; font-size: 13px; color: #555; }
+  fieldset { margin: 10px 0; }
+</style>
+</head>
+<body>
+<h2>Classroom Simulation — Test Harness</h2>
+<p style="color:#888">Throwaway test page, no shared state with the main app.</p>
+
+<fieldset id="step1">
+  <legend>1. Enroll</legend>
+  <label>Student name</label>
+  <input id="name" value="ClassroomTester" />
+  <label>Subject</label>
+  <select id="subject"></select>
+  <label>Board</label>
+  <select id="board"></select>
+  <button id="enrollBtn">Enroll</button>
+</fieldset>
+
+<fieldset id="step2" style="display:none">
+  <legend>2. Pick a topic and start</legend>
+  <label>Topic (blank = weakest, chosen automatically)</label>
+  <select id="topic"><option value="">(pick weakest automatically)</option></select>
+  <button id="startBtn">Start classroom</button>
+</fieldset>
+
+<div id="session" style="display:none">
+  <div id="log"></div>
+  <div id="composer">
+    <input id="text" placeholder="Explain the topic to the class..." />
+    <button id="sendBtn">Send</button>
+  </div>
+</div>
+
+<script>
+let token = null;
+let catalog = null;
+let courseTopics = [];
+
+function el(id) { return document.getElementById(id); }
+
+function logMsg(who, text, cls) {
+  const log = el("log");
+  const div = document.createElement("div");
+  div.className = "msg " + (cls || "");
+  div.innerHTML = "<b>" + who + ":</b> " + String(text).replace(/</g, "&lt;");
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body ? "POST" : "GET",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || res.statusText);
+  return j;
+}
+
+function fillBoards() {
+  const subject = catalog.subjects.find((s) => s.id === el("subject").value);
+  el("board").innerHTML = (subject?.boards || [])
+    .map((b) => `<option value="${b.id}">${b.name}</option>`)
+    .join("");
+}
+
+async function init() {
+  catalog = await api("/api/catalog");
+  el("subject").innerHTML = catalog.subjects
+    .map((s) => `<option value="${s.id}">${s.name} (${s.level})</option>`)
+    .join("");
+  fillBoards();
+  el("subject").onchange = fillBoards;
+}
+
+el("enrollBtn").onclick = async () => {
+  try {
+    const name = (el("name").value.trim() || "ClassroomTester") + "_" + Date.now();
+    const reg = await api("/api/auth/register", { name });
+    token = reg.token;
+    const subjectId = el("subject").value;
+    const boardId = el("board").value;
+    const enrolled = await api(`/api/student/${token}/courses`, { courses: [{ subjectId, boardId }] });
+    courseTopics = enrolled.student.courses[0]?.topics || [];
+    el("topic").innerHTML =
+      '<option value="">(pick weakest automatically)</option>' +
+      courseTopics.map((t) => `<option value="${t.id}">${t.name}</option>`).join("");
+    el("step2").style.display = "block";
+  } catch (e) {
+    alert("Enroll failed: " + e.message);
+  }
+};
+
+el("startBtn").onclick = async () => {
+  try {
+    const subjectId = el("subject").value;
+    const boardId = el("board").value;
+    const topicId = el("topic").value || undefined;
+    const started = await api("/api/classroom/start", { studentId: token, subjectId, boardId, topicId });
+    el("step1").style.display = "none";
+    el("step2").style.display = "none";
+    el("session").style.display = "block";
+    logMsg("System", `Topic: ${started.classroom.topicName} — ${started.classroom.subskillName}`, "sys");
+    logMsg("System", "Roster: " + started.classroom.personas.map((p) => `${p.name} (${p.trait})`).join(", "), "sys");
+    logMsg("Teacher", started.opener);
+  } catch (e) {
+    alert("Start failed: " + e.message);
+  }
+};
+
+el("sendBtn").onclick = async () => {
+  const input = el("text");
+  const text = input.value.trim();
+  if (!text || !token) return;
+  input.value = "";
+  logMsg("You", text, "student");
+  try {
+    const j = await api("/api/classroom/message", { studentId: token, text });
+    for (const r of j.responses) logMsg(r.name, r.reply);
+    if (j.reward) logMsg("System", j.reward.message, "sys");
+  } catch (e) {
+    logMsg("System", "Error: " + e.message, "sys");
+  }
+};
+el("text").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") el("sendBtn").click();
+});
+
+init();
+</script>
+</body>
+</html>
