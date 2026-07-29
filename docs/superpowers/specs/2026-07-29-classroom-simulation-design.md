@@ -16,17 +16,19 @@ throwaway test page is enough to judge whether agent selection *feels* right.
 - `K2THINK_API_KEY`
 - `K2THINK_BASE_URL=https://api.k2think.ai/v1`
 
-Add a new wrapper in server.js, `aiK2Messages()`, next to the existing
-`aiMessages()` (OpenRouter). Same shape: OpenAI-compatible
+Add a new wrapper in a separate `k2Client.js` module (not inside server.js
+itself), exporting `aiK2Messages()`, alongside the existing `aiMessages()` in
+server.js (OpenRouter). Same shape: OpenAI-compatible
 `POST {base}/chat/completions`, `Authorization: Bearer <key>`, same
 `AbortController` timeout pattern already added to `aiMessages`. A parallel
 `aiK2Json()` reuses the same fence-stripping/JSON-extraction logic as the
 existing `aiJson()`.
 
 Model id: the K2-Think-V2 model card's own example
-(`LLM360/K2-Think-V2`, self-hosted vLLM) may not match what the hosted
-`api.k2think.ai` endpoint expects. Default to `LLM360/K2-Think-V2`, override
-via a new `K2THINK_MODEL` env var if the first real test call says otherwise.
+(`LLM360/K2-Think-V2`, self-hosted vLLM) does not match what the hosted
+`api.k2think.ai` endpoint expects — `GET /v1/models` on that host returns
+exactly one model, `MBZUAI-IFM/K2-Think-v2`, which is the real default.
+Override via a new `K2THINK_MODEL` env var if a different host is ever used.
 
 **Before building anything else**: one throwaway script/route makes a single
 real `aiK2Messages()` call and prints the raw response. Implementation does
@@ -124,6 +126,7 @@ linear `s.session` queue machine used by assess/learn/exam):
 s.classroom = {
   subjectId, boardId, topicId, subskillId,
   topicName, subskillName,
+  keywords: string[],  // plain array, not a Set — must stay JSON-serializable
   history: [ { role: "student"|"agent", personaId, text } ],  // capped, like sanitizeChatHistory
   rewardGiven: false,
 };
@@ -135,12 +138,16 @@ already used by `/api/chat/peer/start`, so the eventual frontend just reuses
 
 ## F. Mastery tie-in
 
-Exact reuse of the peer-teach reward block (server.js:1443-1461): one-time
-`rewardGiven` flag on `s.classroom`, same bump formula (`0.35` on first
-contact, else `clamp(cur + 0.1, 0, 1)`) on the focused subskill. Fires when
-`quick_learner` is among the responders, or any responder (teacher included)
-returns `understood: true`. No new scoring mechanism, no technique-weight
-side effects (that's peer-chat-specific, not part of this ask).
+Reuses the peer-teach reward block's bump formula (`0.35` on first contact,
+else `clamp(cur + 0.1, 0, 1)`) and one-time `rewardGiven` flag on
+`s.classroom`. Fires when any responder (teacher included) returns
+`understood: true`, or when `quick_learner` responds as a genuine signal —
+which requires at least 2 student turns in the session so far and the
+classifier not simultaneously detecting the student as stuck or vague on this
+turn, since `quick_learner` is also the classifier's no-signal fallback and a
+bare fallback shouldn't by itself grant mastery. No new scoring mechanism, no
+technique-weight side effects (that's peer-chat-specific, not part of this
+ask).
 
 ## G. Endpoints
 
@@ -164,8 +171,10 @@ to history → respond:
 ## H. Test harness
 
 `public/classroom-test.html` — standalone, no shared state with the main
-SPA's `S` object. Reuses the existing `tutorToken` in `localStorage` if
-present (register inline if not). Populates subject/board/topic/subskill
+SPA's `S` object. Registers a fresh throwaway test student on every use, held
+in an in-memory variable only — does not read or write the `tutorToken`
+`localStorage` key `index.html` uses, keeping this page fully standalone.
+Populates subject/board/topic/subskill
 `<select>`s from `/api/catalog` + `/api/student/:id`. A "Start classroom"
 button, then a text input and a scrolling log tagged by persona name —
 enough to run a real back-and-forth and judge whether selection feels right.

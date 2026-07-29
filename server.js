@@ -573,6 +573,7 @@ function resolveSubskillTag(pack, item, requestedSub) {
 
 async function ensureQuestion({ subjectId, boardId, topicId, subskill, level, purpose }) {
   const pack = getTopic(subjectId, boardId, topicId);
+  if (!pack) throw new Error("Unknown topic");
   const cached = getBankQuestions({
     subjectId,
     boardId,
@@ -1534,6 +1535,8 @@ app.post("/api/classroom/start", (req, res) => {
       target.topic.subskills.map((ss) => ss.name)
     );
 
+    const opener = `Alright ${s.name}, go ahead and explain ${target.sub.name} to the class — take your time.`;
+
     s.classroom = {
       subjectId,
       boardId,
@@ -1542,7 +1545,7 @@ app.post("/api/classroom/start", (req, res) => {
       topicName: target.topic.name,
       subskillName: target.sub.name,
       keywords: [...keywordSet],
-      history: [],
+      history: [{ role: "agent", personaId: "teacher", text: opener }],
       rewardGiven: false,
     };
     putStudent(s);
@@ -1553,7 +1556,7 @@ app.post("/api/classroom/start", (req, res) => {
         subskillName: target.sub.name,
         personas: [...CLASSROOM_PERSONAS, TEACHER_AGENT].map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
       },
-      opener: `Alright ${s.name}, go ahead and explain ${target.sub.name} to the class — take your time.`,
+      opener,
     });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
@@ -1566,7 +1569,7 @@ app.post("/api/classroom/message", async (req, res) => {
     if (!s) return res.status(404).json({ error: "Student not found" });
     if (!s.classroom) return res.status(400).json({ error: "No active classroom session — call /api/classroom/start first" });
 
-    const text = cleanStudentText(req.body?.text || "");
+    const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
     if (!text) return res.status(400).json({ error: "Message required" });
 
     const classroom = s.classroom;
@@ -1636,7 +1639,10 @@ app.post("/api/classroom/message", async (req, res) => {
     let reward = null;
     const quickLearnerResponded = responderIds.includes("quick_learner");
     const understoodSignal = responses.some((r) => r.understood);
-    if (!classroom.rewardGiven && (quickLearnerResponded || understoodSignal)) {
+    const studentTurnCount = classroom.history.filter((m) => m.role === "student").length;
+    const genuineQuickLearnerSignal =
+      quickLearnerResponded && studentTurnCount >= 2 && !signals.stuckPhrase && !signals.vague;
+    if (!classroom.rewardGiven && (understoodSignal || genuineQuickLearnerSignal)) {
       const rewardProgress = ensureCourse(s, classroom.subjectId, classroom.boardId);
       const cur = rewardProgress.mastery[classroom.subskillId] ?? 0;
       rewardProgress.mastery[classroom.subskillId] = cur === 0 ? 0.35 : clamp(cur + 0.1, 0, 1);
