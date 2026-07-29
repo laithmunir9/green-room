@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adaptive Tutor</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #070b14;
+      --panel: #10182a;
+      --panel2: #141e33;
+      --line: rgba(255,255,255,.08);
+      --text: #f2f5ff;
+      --muted: #93a0b8;
+      --acc: #6ea8ff;
+      --acc2: #3dd6a5;
+      --bad: #ff6b8a;
+      --warn: #f0c45a;
+      --r: 20px;
+      --shadow: 0 24px 60px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 8% -8%, rgba(110,168,255,.18), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(61,214,165,.1), transparent 50%),
+        radial-gradient(800px 500px at 50% 100%, rgba(110,168,255,.06), transparent 45%),
+        var(--bg);
+    }
+    .shell { min-height: 100%; display: flex; flex-direction: column; }
+    header {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 16px 32px; border-bottom: 1px solid var(--line);
+      background: rgba(10,14,24,.85); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--acc), var(--acc2));
+      display: grid; place-items: center; font-weight: 800; color: #061018; box-shadow: 0 8px 24px rgba(110,168,255,.3);
+    }
+    .brand h1 { margin: 0; font-family: Fraunces, Georgia, serif; font-size: 20px; letter-spacing: -.02em; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+    .pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .pill {
+      font-size: 11px; padding: 6px 11px; border-radius: 999px; border: 1px solid var(--line);
+      color: var(--muted); background: rgba(255,255,255,.03);
+    }
+    main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .dash { flex: 1; padding: 28px 32px 40px; display: flex; flex-direction: column; gap: 20px; width: 100%; }
+    .page { flex: 1; padding: 28px 32px 40px; width: 100%; }
+    .card {
+      background: rgba(16,24,42,.92); border: 1px solid var(--line); border-radius: var(--r);
+      padding: 24px; box-shadow: var(--shadow);
+    }
+    h2 { font-family: Fraunces, Georgia, serif; margin: 0 0 8px; font-size: 30px; letter-spacing: -.03em; }
+    h3 { margin: 0 0 10px; font-size: 16px; }
+    .sub { color: var(--muted); line-height: 1.55; margin: 0 0 18px; font-size: 14.5px; }
+    label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    input, select {
+      width: 100%; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line);
+      background: #0c1220; color: var(--text); font: inherit; font-size: 15px;
+    }
+    .btn {
+      appearance: none; border: none; cursor: pointer; font: inherit; font-weight: 600;
+      border-radius: 999px; padding: 12px 18px; font-size: 14px; transition: .15s transform, .15s filter;
+    }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.05); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .primary { background: linear-gradient(135deg, #9bc2ff, #6ea8ff); color: #071018; }
+    .secondary { background: #1a243a; color: var(--text); border: 1px solid var(--line); }
+    .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .dash-top { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; align-items: flex-end; }
+    .dash-stat { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat-box {
+      min-width: 148px; padding: 16px 18px; border-radius: 16px; border: 1px solid var(--line);
+      background: linear-gradient(160deg, rgba(22,32,56,.95), rgba(12,18,34,.95));
+    }
+    .stat-box .big { font-family: Fraunces, Georgia, serif; font-size: 34px; letter-spacing: -.03em; line-height: 1; }
+    .stat-box .lbl { color: var(--muted); font-size: 12px; margin-top: 6px; }
+    .course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; flex: 1; align-content: start; }
+    .course-card {
+      text-align: left; padding: 22px; border-radius: 22px; border: 1px solid var(--line);
+      background: linear-gradient(165deg, rgba(22,32,56,.98), rgba(11,17,30,.98));
+      color: var(--text); font: inherit; cursor: pointer; min-height: 230px;
+      display: flex; flex-direction: column; gap: 14px; transition: .15s border-color, .15s transform;
+    }
+    .course-card:hover { border-color: rgba(110,168,255,.45); transform: translateY(-2px); }
+    .course-card .top { display: flex; justify-content: space-between; gap: 12px; }
+    .course-card .ico { font-size: 28px; }
+    .pct-ring {
+      width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; position: relative;
+      background: conic-gradient(var(--acc) calc(var(--p) * 1%), rgba(255,255,255,.08) 0); flex-shrink: 0;
+    }
+    .pct-ring::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: #0d1424; }
+    .pct-ring span { position: relative; z-index: 1; font-weight: 700; font-size: 14px; }
+    .course-meta { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+    .bar, .course-bar { height: 10px; background: rgba(255,255,255,.06); border-radius: 99px; overflow: hidden; }
+    .bar > i, .course-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #6ea8ff, #3dd6a5); border-radius: 99px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+    .tile {
+      text-align: left; padding: 18px; border-radius: 18px; border: 1px solid var(--line);
+      background: var(--panel2); color: var(--text); font: inherit; cursor: pointer;
+    }
+    .tile.on { border-color: rgba(110,168,255,.5); background: rgba(110,168,255,.1); }
+    .tile .ico { font-size: 24px; margin-bottom: 8px; }
+    .boards { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+    .chip {
+      font-size: 11px; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--line);
+      background: #0c1220; color: var(--muted); cursor: pointer;
+    }
+    .chip.on { color: #e8f0ff; border-color: rgba(110,168,255,.5); background: rgba(110,168,255,.16); }
+    .level-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .level-tabs button {
+      border: 1px solid var(--line); background: #10192c; color: var(--muted); border-radius: 999px;
+      padding: 8px 14px; font: inherit; font-size: 13px; cursor: pointer;
+    }
+    .level-tabs button.on { color: #fff; border-color: rgba(110,168,255,.5); background: rgba(110,168,255,.15); }
+    .two { display: grid; grid-template-columns: 1.35fr .85fr; gap: 16px; align-items: start; }
+    @media (max-width: 980px) { .two { grid-template-columns: 1fr; } header, .dash, .page, .session { padding-left: 16px; padding-right: 16px; } }
+    .topic {
+      display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px; align-items: center;
+      padding: 16px 0; border-bottom: 1px solid var(--line);
+    }
+    .topic:last-child { border-bottom: none; }
+    .topic.expanded { background: rgba(110,168,255,.06); margin: 0 -12px; padding-left: 12px; padding-right: 12px; border-radius: 12px; }
+    .topic .topic-main { flex: 1; min-width: 0; cursor: pointer; }
+    .subskill-list {
+      width: 100%; margin: 4px 0 2px; padding: 10px 12px 4px;
+      border-top: 1px solid var(--line); display: grid; gap: 6px;
+    }
+    .subskill-list .subskill-row {
+      display: flex; justify-content: space-between; gap: 12px; align-items: center;
+      font-size: 13px; color: var(--muted); padding: 4px 0;
+    }
+    .subskill-list .subskill-row b { color: var(--text); font-weight: 500; }
+    .session {
+      flex: 1; display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(300px, .8fr);
+      gap: 16px; padding: 24px 32px 32px; min-height: calc(100vh - 74px);
+    }
+    @media (max-width: 980px) { .session { grid-template-columns: 1fr; } }
+    .session-main, .session-side {
+      background: rgba(16,24,42,.94); border: 1px solid var(--line); border-radius: 22px;
+      padding: 26px; box-shadow: var(--shadow); min-height: 100%;
+    }
+    .session-main { display: flex; flex-direction: column; }
+    .session-side { background: linear-gradient(165deg, rgba(20,30,52,.98), rgba(10,15,28,.98)); }
+    .side-block {
+      padding: 14px; border: 1px solid var(--line); border-radius: 14px;
+      background: rgba(255,255,255,.025); margin-bottom: 12px;
+    }
+    .side-block h4 {
+      margin: 0 0 8px; font-size: 11px; color: #b7c6e6; text-transform: uppercase; letter-spacing: .06em;
+    }
+    .navpath { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+    .navpath a { color: #c9dbff; cursor: pointer; text-decoration: none; }
+    .tag {
+      display: inline-block; font-size: 11px; padding: 5px 10px; border-radius: 999px;
+      background: rgba(240,196,90,.12); color: #ffe6a0; border: 1px solid rgba(240,196,90,.28); margin-bottom: 10px;
+    }
+    .lesson {
+      flex: 1; background: #0c1322; border: 1px solid var(--line); border-radius: 16px;
+      padding: 20px; margin: 12px 0; line-height: 1.7; font-size: 15.5px; white-space: pre-wrap;
+    }
+    .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+    @media (max-width: 720px) { .choices { grid-template-columns: 1fr; } }
+    .choice {
+      text-align: left; padding: 16px; border-radius: 16px; border: 1px solid var(--line);
+      background: #10192b; color: var(--text); font: inherit; font-size: 15px; cursor: pointer; min-height: 64px;
+    }
+    .choice:hover { border-color: rgba(110,168,255,.4); }
+    .choice.selected { border-color: var(--acc); background: rgba(110,168,255,.12); }
+    .choice.good { border-color: rgba(61,214,165,.5); background: rgba(61,214,165,.1); }
+    .choice.bad { border-color: rgba(255,107,138,.5); background: rgba(255,107,138,.1); }
+    .fb { margin-top: 14px; padding: 14px 16px; border-radius: 14px; font-size: 14.5px; line-height: 1.55; }
+    .fb.ok { background: rgba(61,214,165,.1); border: 1px solid rgba(61,214,165,.3); }
+    .fb.no { background: rgba(255,107,138,.1); border: 1px solid rgba(255,107,138,.3); }
+    .err {
+      color: var(--bad); background: rgba(255,107,138,.08); border: 1px solid rgba(255,107,138,.3);
+      padding: 12px 14px; border-radius: 12px; font-size: 13px; margin-top: 12px;
+    }
+    .skel {
+      border-radius: 12px;
+      background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.09), rgba(255,255,255,.04));
+      background-size: 200% 100%; animation: shimmer 1.15s infinite; margin: 10px 0;
+    }
+    .skel.h1 { height: 36px; width: 48%; }
+    .skel.h2 { height: 18px; width: 72%; }
+    .skel.p { height: 12px; }
+    .skel.box { height: 140px; }
+    .skel.choice { height: 58px; border-radius: 14px; }
+    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    .fill-gate {
+      flex: 1; display: grid; place-items: center; padding: 32px;
+      min-height: calc(100vh - 74px);
+      background:
+        radial-gradient(800px 420px at 18% 20%, rgba(110,168,255,.12), transparent 55%),
+        radial-gradient(700px 380px at 82% 75%, rgba(61,214,165,.08), transparent 50%);
+    }
+    .gate-card { width: min(520px, 100%); }
+    .steps { display: grid; gap: 10px; margin: 8px 0 18px; }
+    .step {
+      display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 14px;
+      border: 1px solid var(--line); background: rgba(255,255,255,.02);
+    }
+    .step n {
+      width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center;
+      background: rgba(110,168,255,.15); color: #d7e7ff; font-weight: 700; font-size: 13px; flex-shrink: 0;
+    }
+    .tech-item {
+      padding: 14px; border: 1px solid var(--line); border-radius: 14px; margin-bottom: 10px;
+      background: rgba(255,255,255,.02);
+    }
+    .tech-item b { display: block; margin-bottom: 4px; }
+    .visuals { display: grid; gap: 12px; margin: 14px 0; }
+    .visual-card {
+      border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+      background: #0c1322;
+    }
+    .visual-card img, .visual-card svg { width: 100%; display: block; max-height: 320px; object-fit: contain; background: #0b1220; }
+    .visual-cap {
+      padding: 10px 12px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line);
+    }
+    /* Compact study chat dock — available while learning */
+    .chat-fab {
+      position: fixed; right: 18px; bottom: 18px; z-index: 60;
+      display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+    }
+    .chat-fab button {
+      border: 1px solid var(--line); background: #152038; color: var(--text);
+      border-radius: 999px; padding: 10px 14px; font: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; box-shadow: var(--shadow);
+    }
+    .chat-fab button.main {
+      background: linear-gradient(135deg, #9bc2ff, #6ea8ff); color: #071018; border: none;
+    }
+    .chat-fab .ctx-pill {
+      max-width: 240px; font-size: 11px; color: var(--muted); background: rgba(10,14,24,.92);
+      border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; line-height: 1.35;
+      text-align: right;
+    }
+    .chat-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; width: min(360px, 100vw);
+      z-index: 70; display: flex; flex-direction: column;
+      background: #0d1424; border-left: 1px solid var(--line);
+      box-shadow: -18px 0 50px rgba(0,0,0,.45); transform: translateX(105%);
+      transition: transform .18s ease;
+    }
+    .chat-drawer.open { transform: translateX(0); }
+    .chat-drawer .hd {
+      display: flex; justify-content: space-between; gap: 8px; align-items: flex-start;
+      padding: 12px 12px 10px; border-bottom: 1px solid var(--line);
+      background: linear-gradient(165deg, rgba(22,32,56,.98), rgba(12,18,34,.98));
+    }
+    .chat-drawer .hd b { font-size: 14px; }
+    .chat-drawer .hd .x {
+      border: 1px solid var(--line); background: transparent; color: var(--muted);
+      border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 16px;
+    }
+    .chat-tabs { display: flex; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+    .chat-tabs button {
+      flex: 1; border: 1px solid var(--line); background: #10192c; color: var(--muted);
+      border-radius: 10px; padding: 7px 8px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .chat-tabs button.on { color: #fff; border-color: rgba(110,168,255,.5); background: rgba(110,168,255,.15); }
+    .chat-focus {
+      margin: 8px 12px 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line);
+      background: rgba(110,168,255,.08); font-size: 11.5px; color: #c9dbff; line-height: 1.4;
+    }
+    .chat-focus strong { color: var(--text); font-weight: 600; }
+    .chat-log {
+      flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px;
+    }
+    .bubble {
+      max-width: 92%; padding: 8px 10px; border-radius: 12px; line-height: 1.45;
+      font-size: 13px; white-space: pre-wrap; border: 1px solid var(--line);
+    }
+    .bubble.me { align-self: flex-end; background: rgba(110,168,255,.14); border-color: rgba(110,168,255,.3); }
+    .bubble.them { align-self: flex-start; background: #0c1322; }
+    .bubble .who { display: block; font-size: 10px; color: var(--muted); margin-bottom: 2px; letter-spacing: .03em; }
+    .bubble.sys {
+      align-self: center; max-width: 100%; background: transparent; border-style: dashed;
+      color: var(--muted); font-size: 11.5px; text-align: center;
+    }
+    .chat-compose {
+      display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid var(--line); background: rgba(0,0,0,.2);
+    }
+    .chat-compose textarea {
+      flex: 1; min-height: 38px; max-height: 88px; resize: none; padding: 8px 10px;
+      border-radius: 10px; border: 1px solid var(--line); background: #0c1220; color: var(--text);
+      font: inherit; font-size: 13px;
+    }
+    .chat-compose .btn { padding: 8px 12px; font-size: 12px; }
+    .peer-meter {
+      height: 5px; border-radius: 99px; background: rgba(255,255,255,.06); overflow: hidden; margin-top: 6px;
+    }
+    .peer-meter > i { display: block; height: 100%; background: linear-gradient(90deg, #3dd6a5, #6ea8ff); border-radius: 99px; }
+    body.chat-open main { margin-right: min(360px, 100vw); }
+    @media (max-width: 720px) {
+      body.chat-open main { margin-right: 0; }
+      .chat-drawer { width: 100vw; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand">
+        <div class="logo">A</div>
+        <div>
+          <h1>Adaptive Tutor</h1>
+          <p>Personal pathways across exam subjects</p>
+        </div>
+      </div>
+      <div class="pills" id="pills"></div>
+    </header>
+    <main id="main"></main>
+  </div>
+  <div id="chatRoot"></div>
+
+<script>
+const S = {
+  token: localStorage.getItem("tutorToken") || "",
+  student: null,
+  catalog: null,
+  screen: "gate",
+  picks: {},
+  levelFilter: "all",
+  course: null,
+  topic: null,
+  q: null,
+  lesson: null,
+  selected: null,
+  fb: null,
+  report: null,
+  summary: null,
+  authMode: "register",
+  chat: {
+    open: false,
+    mode: "teacher",
+    messages: [],
+    peer: null,
+    reward: null,
+    confusion: 0.7,
+    sending: false,
+    draft: "",
+    lastFocusKey: "",
+    bootstrapped: false,
+  },
+  study: null,
+};
+
+const main = document.getElementById("main");
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+function esc(s) {
+  return String(s ?? "")
+    .replaceAll("&", "&" + "amp;")
+    .replaceAll("<", "&" + "lt;")
+    .replaceAll(">", "&" + "gt;")
+    .replaceAll('"', "&" + "quot;");
+}
+
+/** Student-facing rich text: never show raw markdown stars */
+function pretty(s) {
+  let t = String(s ?? "");
+  t = t.replace(/\*\*([^*]+)\*\*/g, "$1");
+  t = t.replace(/(^|[^\w*])\*([^*\n]+)\*(?!\*)/g, "$1$2");
+  t = t.replace(/__([^_]+)__/g, "$1");
+  t = t.replace(/`+/g, "");
+  t = t.replace(/\$\$([\s\S]*?)\$\$/g, "$1");
+  t = t.replace(/\$([^$\n]+)\$/g, "$1");
+  t = t.replace(/#{1,6}\s*/g, "");
+  t = t.replace(/\*(?=\s|$)/g, "");
+  return esc(t.trim());
+}
+
+function renderVisuals(visuals) {
+  if (!visuals || !visuals.length) return "";
+  var html = '<div class="visuals">';
+  for (var n = 0; n < visuals.length; n += 1) {
+    var v = visuals[n];
+    if (v.type === "photo" && v.url) {
+      html += '<figure class="visual-card"><img src="' + esc(v.url) + '" alt="' + esc(v.caption || "") + '" loading="lazy"/>';
+      html += '<figcaption class="visual-cap">' + pretty(v.caption || "") + (v.credit ? (" · " + pretty(v.credit)) : "") + "</figcaption></figure>";
+    } else {
+      html += '<figure class="visual-card">' + diagramSvg(v.key);
+      html += '<figcaption class="visual-cap">' + pretty(v.caption || "") + "</figcaption></figure>";
+    }
+  }
+  return html + "</div>";
+}
+
+function diagramSvg(key) {
+  var bg = "#0b1220";
+  var c = "#6ea8ff";
+  var g = "#3dd6a5";
+  var y = "#f0c45a";
+  var m = "#93a0b8";
+  var t = "#d7e3ff";
+  var map = {
+    suvat:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 230" width="100%" role="img" aria-label="suvat motion">' +
+      '<rect width="420" height="230" fill="' + bg + '"/>' +
+      '<line x1="50" y1="100" x2="370" y2="100" stroke="' + c + '" stroke-width="2"/>' +
+      '<circle cx="90" cy="100" r="7" fill="' + g + '"/>' +
+      '<circle cx="330" cy="100" r="7" fill="' + y + '"/>' +
+      '<text x="90" y="128" fill="' + t + '" font-size="12" text-anchor="middle" font-family="sans-serif">start</text>' +
+      '<text x="330" y="128" fill="' + t + '" font-size="12" text-anchor="middle" font-family="sans-serif">end</text>' +
+      '<defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="' + g + '"/></marker></defs>' +
+      '<line x1="110" y1="78" x2="310" y2="78" stroke="' + g + '" stroke-width="2" marker-end="url(#ah)"/>' +
+      '<text x="210" y="70" fill="' + g + '" font-size="14" text-anchor="middle" font-family="sans-serif">s</text>' +
+      '<text x="90" y="55" fill="' + c + '" font-size="14" text-anchor="middle" font-family="sans-serif">u</text>' +
+      '<path d="M70,48 h28" stroke="' + c + '" stroke-width="1.5" marker-end="url(#ah)"/>' +
+      '<text x="330" y="55" fill="' + y + '" font-size="14" text-anchor="middle" font-family="sans-serif">v</text>' +
+      '<path d="M310,48 h28" stroke="' + y + '" stroke-width="1.5" marker-end="url(#ah)"/>' +
+      '<text x="210" y="165" fill="' + m + '" font-size="12" text-anchor="middle" font-family="sans-serif">v = u + at</text>' +
+      '<text x="210" y="185" fill="' + m + '" font-size="12" text-anchor="middle" font-family="sans-serif">s = ut + 1/2 at^2</text>' +
+      '<text x="210" y="205" fill="' + m + '" font-size="12" text-anchor="middle" font-family="sans-serif">v^2 = u^2 + 2as</text>' +
+      "</svg>",
+    vt:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="velocity-time">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<line x1="70" y1="200" x2="380" y2="200" stroke="' + m + '" stroke-width="1.5"/>' +
+      '<line x1="70" y1="200" x2="70" y2="30" stroke="' + m + '" stroke-width="1.5"/>' +
+      '<text x="390" y="204" fill="' + t + '" font-size="13" font-family="sans-serif">t</text>' +
+      '<text x="58" y="28" fill="' + t + '" font-size="13" font-family="sans-serif">v</text>' +
+      '<polygon points="70,200 70,140 320,60 320,200" fill="' + c + '" fill-opacity="0.18"/>' +
+      '<line x1="70" y1="140" x2="320" y2="60" stroke="' + c + '" stroke-width="2.5"/>' +
+      '<text x="200" y="150" fill="' + g + '" font-size="12" text-anchor="middle" font-family="sans-serif">area = s</text>' +
+      '<text x="330" y="90" fill="' + y + '" font-size="12" font-family="sans-serif">gradient = a</text>' +
+      "</svg>",
+    projectile:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="projectile">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<line x1="30" y1="200" x2="390" y2="200" stroke="' + m + '" stroke-width="2"/>' +
+      '<path d="M60,200 Q210,20 360,200" fill="none" stroke="' + c + '" stroke-width="2.5"/>' +
+      '<circle cx="60" cy="200" r="5" fill="' + g + '"/>' +
+      '<circle cx="360" cy="200" r="5" fill="' + y + '"/>' +
+      '<defs><marker id="ap" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="' + g + '"/></marker></defs>' +
+      '<line x1="60" y1="200" x2="120" y2="150" stroke="' + g + '" stroke-width="2" marker-end="url(#ap)"/>' +
+      '<line x1="60" y1="200" x2="130" y2="200" stroke="' + y + '" stroke-width="1.5" stroke-dasharray="4 3"/>' +
+      '<line x1="60" y1="200" x2="60" y2="140" stroke="' + y + '" stroke-width="1.5" stroke-dasharray="4 3"/>' +
+      '<text x="145" y="198" fill="' + y + '" font-size="12" font-family="sans-serif">ux</text>' +
+      '<text x="48" y="130" fill="' + y + '" font-size="12" font-family="sans-serif">uy</text>' +
+      '<text x="150" y="165" fill="' + g + '" font-size="12" font-family="sans-serif">u</text>' +
+      "</svg>",
+    forces:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="forces">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<rect x="160" y="90" width="100" height="70" rx="8" fill="#141e33" stroke="' + c + '" stroke-width="2"/>' +
+      '<text x="210" y="132" fill="' + t + '" font-size="18" text-anchor="middle" font-family="sans-serif">m</text>' +
+      '<defs><marker id="af" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="' + c + '"/></marker>' +
+      '<marker id="afg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="' + g + '"/></marker>' +
+      '<marker id="afy" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="' + y + '"/></marker></defs>' +
+      '<line x1="210" y1="90" x2="210" y2="40" stroke="' + c + '" stroke-width="2.5" marker-end="url(#af)"/>' +
+      '<text x="222" y="50" fill="' + c + '" font-size="13" font-family="sans-serif">N</text>' +
+      '<line x1="210" y1="160" x2="210" y2="210" stroke="' + y + '" stroke-width="2.5" marker-end="url(#afy)"/>' +
+      '<text x="222" y="205" fill="' + y + '" font-size="13" font-family="sans-serif">mg</text>' +
+      '<line x1="260" y1="125" x2="340" y2="125" stroke="' + g + '" stroke-width="2.5" marker-end="url(#afg)"/>' +
+      '<text x="345" y="120" fill="' + g + '" font-size="13" font-family="sans-serif">F</text>' +
+      '<line x1="160" y1="125" x2="80" y2="125" stroke="' + m + '" stroke-width="2.5" marker-end="url(#af)"/>' +
+      '<text x="60" y="120" fill="' + m + '" font-size="13" font-family="sans-serif">f</text>' +
+      "</svg>",
+    circuit:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="circuit">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<path d="M80,120 H150 M150,100 V140 M165,90 V150 M165,120 H230" fill="none" stroke="' + c + '" stroke-width="2"/>' +
+      '<path d="M230,120 l12,-18 12,36 12,-36 12,36 12,-36 12,18 H350 V180 H80 V120" fill="none" stroke="' + c + '" stroke-width="2"/>' +
+      '<text x="130" y="80" fill="' + y + '" font-size="12" font-family="sans-serif">cell</text>' +
+      '<text x="270" y="80" fill="' + g + '" font-size="12" font-family="sans-serif">resistor</text>' +
+      '<circle cx="80" cy="120" r="3" fill="' + g + '"/>' +
+      "</svg>",
+    waves:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="waves">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<line x1="40" y1="120" x2="390" y2="120" stroke="' + m + '" stroke-width="1" stroke-dasharray="4 4"/>' +
+      '<path d="M40,120 C70,40 100,40 130,120 S190,200 220,120 S280,40 310,120 S370,200 400,120" fill="none" stroke="' + c + '" stroke-width="2.5"/>' +
+      '<line x1="130" y1="200" x2="310" y2="200" stroke="' + g + '" stroke-width="1.5"/>' +
+      '<line x1="130" y1="195" x2="130" y2="205" stroke="' + g + '"/>' +
+      '<line x1="310" y1="195" x2="310" y2="205" stroke="' + g + '"/>' +
+      '<text x="220" y="220" fill="' + g + '" font-size="12" text-anchor="middle" font-family="sans-serif">wavelength</text>' +
+      '<line x1="220" y1="120" x2="220" y2="50" stroke="' + y + '" stroke-width="1.5"/>' +
+      '<text x="232" y="80" fill="' + y + '" font-size="12" font-family="sans-serif">amplitude</text>' +
+      "</svg>",
+    triangle:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="triangle">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<path d="M90,190 L330,190 L330,60 Z" fill="' + c + '" fill-opacity="0.12" stroke="' + c + '" stroke-width="2"/>' +
+      '<rect x="310" y="170" width="20" height="20" fill="none" stroke="' + m + '" stroke-width="1.5"/>' +
+      '<text x="210" y="210" fill="' + g + '" font-size="12" text-anchor="middle" font-family="sans-serif">adjacent</text>' +
+      '<text x="350" y="130" fill="' + y + '" font-size="12" font-family="sans-serif">opposite</text>' +
+      '<text x="180" y="110" fill="' + c + '" font-size="12" font-family="sans-serif">hypotenuse</text>' +
+      '<text x="115" y="175" fill="' + t + '" font-size="14" font-family="sans-serif">theta</text>' +
+      '<path d="M120,190 A28,28 0 0,1 145,165" fill="none" stroke="' + t + '" stroke-width="1.5"/>' +
+      "</svg>",
+    molecule:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="molecule">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<line x1="210" y1="120" x2="110" y2="55" stroke="' + m + '" stroke-width="3"/>' +
+      '<line x1="210" y1="120" x2="310" y2="55" stroke="' + m + '" stroke-width="3"/>' +
+      '<line x1="210" y1="120" x2="100" y2="185" stroke="' + m + '" stroke-width="3"/>' +
+      '<line x1="210" y1="120" x2="320" y2="185" stroke="' + m + '" stroke-width="3"/>' +
+      '<circle cx="210" cy="120" r="28" fill="#1a3a5c" stroke="' + c + '" stroke-width="2"/>' +
+      '<text x="210" y="126" fill="' + t + '" font-size="16" text-anchor="middle" font-family="sans-serif">C</text>' +
+      '<circle cx="110" cy="55" r="20" fill="#1a4030" stroke="' + g + '" stroke-width="2"/>' +
+      '<circle cx="310" cy="55" r="20" fill="#1a4030" stroke="' + g + '" stroke-width="2"/>' +
+      '<circle cx="100" cy="185" r="20" fill="#1a4030" stroke="' + g + '" stroke-width="2"/>' +
+      '<circle cx="320" cy="185" r="20" fill="#1a4030" stroke="' + g + '" stroke-width="2"/>' +
+      '<text x="110" y="60" fill="' + t + '" font-size="13" text-anchor="middle" font-family="sans-serif">H</text>' +
+      '<text x="310" y="60" fill="' + t + '" font-size="13" text-anchor="middle" font-family="sans-serif">H</text>' +
+      '<text x="100" y="190" fill="' + t + '" font-size="13" text-anchor="middle" font-family="sans-serif">H</text>' +
+      '<text x="320" y="190" fill="' + t + '" font-size="13" text-anchor="middle" font-family="sans-serif">H</text>' +
+      "</svg>",
+    cell:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="cell">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<ellipse cx="210" cy="120" rx="150" ry="90" fill="#122030" stroke="' + c + '" stroke-width="2.5"/>' +
+      '<ellipse cx="210" cy="120" rx="140" ry="80" fill="none" stroke="' + c + '" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>' +
+      '<circle cx="200" cy="115" r="32" fill="#1a3550" stroke="' + y + '" stroke-width="2"/>' +
+      '<circle cx="200" cy="115" r="12" fill="' + y + '" opacity="0.5"/>' +
+      '<text x="200" y="160" fill="' + y + '" font-size="11" text-anchor="middle" font-family="sans-serif">nucleus</text>' +
+      '<circle cx="120" cy="90" r="6" fill="' + g + '"/>' +
+      '<circle cx="290" cy="100" r="5" fill="' + g + '"/>' +
+      '<circle cx="300" cy="150" r="7" fill="' + g + '"/>' +
+      '<circle cx="130" cy="155" r="5" fill="' + g + '"/>' +
+      '<circle cx="160" cy="70" r="4" fill="' + g + '"/>' +
+      '<text x="320" y="50" fill="' + c + '" font-size="11" font-family="sans-serif">membrane</text>' +
+      "</svg>",
+    axes:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="axes">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<line x1="60" y1="200" x2="380" y2="200" stroke="' + m + '" stroke-width="1.5"/>' +
+      '<line x1="80" y1="220" x2="80" y2="30" stroke="' + m + '" stroke-width="1.5"/>' +
+      '<text x="390" y="205" fill="' + t + '" font-size="14" font-family="sans-serif">x</text>' +
+      '<text x="68" y="28" fill="' + t + '" font-size="14" font-family="sans-serif">y</text>' +
+      '<circle cx="250" cy="90" r="6" fill="' + g + '"/>' +
+      '<line x1="250" y1="90" x2="250" y2="200" stroke="' + c + '" stroke-width="1" stroke-dasharray="4 3"/>' +
+      '<line x1="80" y1="90" x2="250" y2="90" stroke="' + c + '" stroke-width="1" stroke-dasharray="4 3"/>' +
+      '<text x="262" y="85" fill="' + y + '" font-size="13" font-family="sans-serif">(x, y)</text>' +
+      "</svg>",
+    concept:
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 240" width="100%" role="img" aria-label="concept">' +
+      '<rect width="420" height="240" fill="' + bg + '"/>' +
+      '<circle cx="210" cy="110" r="48" fill="#143050" stroke="' + c + '" stroke-width="2.5"/>' +
+      '<text x="210" y="106" fill="' + t + '" font-size="13" text-anchor="middle" font-family="sans-serif">core</text>' +
+      '<text x="210" y="124" fill="' + t + '" font-size="13" text-anchor="middle" font-family="sans-serif">idea</text>' +
+      '<circle cx="90" cy="180" r="32" fill="#123028" stroke="' + g + '" stroke-width="2"/>' +
+      '<text x="90" y="185" fill="' + g + '" font-size="12" text-anchor="middle" font-family="sans-serif">define</text>' +
+      '<circle cx="330" cy="180" r="32" fill="#302810" stroke="' + y + '" stroke-width="2"/>' +
+      '<text x="330" y="185" fill="' + y + '" font-size="12" text-anchor="middle" font-family="sans-serif">apply</text>' +
+      '<line x1="175" y1="145" x2="115" y2="160" stroke="' + m + '" stroke-width="1.5"/>' +
+      '<line x1="245" y1="145" x2="305" y2="160" stroke="' + m + '" stroke-width="1.5"/>' +
+      "</svg>"
+  };
+  return map[key] || map.concept;
+}
+
+async function api(path, body, method) {
+
+  const res = await fetch(path, {
+    method: method || (body ? "POST" : "GET"),
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || res.statusText);
+  return j;
+}
+
+function err(e) {
+  const el = $("#err");
+  if (el) el.innerHTML = `<div class="err">${pretty(e.message || e)}</div>`;
+}
+function status(msg) {
+  const el = $("#status");
+  if (el) el.textContent = msg || "";
+}
+
+function findCourse(sid, bid) {
+  return (S.student?.courses || []).find((c) => c.subjectId === sid && c.boardId === bid);
+}
+
+function render() {
+  if (S.screen === "gate") renderGate();
+  else if (S.screen === "enroll") renderEnroll();
+  else if (S.screen === "home") renderHome();
+  else if (S.screen === "topics") renderTopics();
+  else if (S.screen === "assess") renderAssess();
+  else if (S.screen === "lesson") renderLesson();
+  else if (S.screen === "check") renderCheck();
+  else if (S.screen === "summary") renderSummary();
+  else if (S.screen === "report") renderReport();
+  else renderHome();
+  trackStudyContext();
+  paintChat();
+}
+
+function renderGate() {
+  main.innerHTML = `
+    <div class="fill-gate">
+      <div class="card gate-card">
+        <h2>${S.authMode === "register" ? "Create your account" : "Welcome back"}</h2>
+        <p class="sub">Build an exam pathway that adapts to how you learn across A Level, AS, GCSE and SAT subjects.</p>
+        <div class="steps">
+          <div class="step"><n>1</n><div><b>Choose subjects & boards</b><div class="muted">Physics, Maths, Chemistry and more</div></div></div>
+          <div class="step"><n>2</n><div><b>Diagnose a topic</b><div class="muted">See strengths and gaps quickly</div></div></div>
+          <div class="step"><n>3</n><div><b>Learn adaptively</b><div class="muted">Teaching style adjusts to your results</div></div></div>
+        </div>
+        <label>Name <input id="name" placeholder="Your name" autocomplete="username" /></label>
+        <label>Password (optional) <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password" /></label>
+        <div class="actions">
+          <button class="btn primary" id="go">${S.authMode === "register" ? "Get started" : "Log in"}</button>
+          <button class="btn ghost" id="sw">${S.authMode === "register" ? "I have an account" : "Create account"}</button>
+        </div>
+        <p class="muted" id="status" style="margin-top:12px"></p>
+        <div id="err"></div>
+      </div>
+    </div>`;
+  $("#sw").onclick = () => { S.authMode = S.authMode === "register" ? "login" : "register"; render(); };
+  $("#go").onclick = async () => {
+    try {
+      status("Signing you in…");
+      const name = $("#name").value.trim();
+      const password = $("#pass").value;
+      if (!name) throw new Error("Please enter your name");
+      const path = S.authMode === "register" ? "/api/auth/register" : "/api/auth/login";
+      const j = await api(path, { name, password });
+      S.token = j.token;
+      localStorage.setItem("tutorToken", j.token);
+      S.student = j.student;
+      S.picks = {};
+      for (const c of S.student.courses || []) S.picks[c.subjectId] = c.boardId;
+      S.screen = S.student.courses?.length ? "home" : "enroll";
+      render();
+    } catch (e) { err(e); }
+  };
+}
+
+function renderEnroll() {
+  const all = S.catalog?.subjects || [];
+  const levels = ["all", ...new Set(all.map((s) => s.level))];
+  const subjects = S.levelFilter === "all" ? all : all.filter((s) => s.level === S.levelFilter);
+  main.innerHTML = `
+    <div class="page">
+      <div class="card">
+        <div class="navpath"><a data-nav="home">Home</a> / Subjects</div>
+        <h2>Choose your subjects</h2>
+        <p class="sub">Select each course and exam board. You can update this anytime.</p>
+        <div class="level-tabs">
+          ${levels.map((lv) => `<button type="button" class="${S.levelFilter === lv ? "on" : ""}" data-lv="${esc(lv)}">${esc(lv === "all" ? "All" : lv)}</button>`).join("")}
+        </div>
+        <div class="grid" id="subGrid"></div>
+        <div class="actions">
+          <button class="btn primary" id="saveEnroll">Save and continue</button>
+          <button class="btn ghost" id="cancelEnr">Cancel</button>
+        </div>
+        <p class="muted" id="status" style="margin-top:12px"></p>
+        <div id="err"></div>
+      </div>
+    </div>`;
+  $("#subGrid").innerHTML = subjects.map((s) => {
+    const picked = S.picks[s.id];
+    return `<div class="tile ${picked ? "on" : ""}">
+      <div class="ico">${esc(s.icon || "📘")}</div>
+      <b>${esc(s.name)}</b>
+      <div class="muted">${esc(s.level)}</div>
+      <div class="boards">
+        ${s.boards.map((b) => `<span class="chip ${picked === b.id ? "on" : ""}" data-sid="${esc(s.id)}" data-bid="${esc(b.id)}">${esc(b.name)}</span>`).join("")}
+      </div>
+    </div>`;
+  }).join("") || `<p class="muted">No subjects in this filter.</p>`;
+  $$(".chip").forEach((ch) => {
+    ch.onclick = () => {
+      const sid = ch.dataset.sid, bid = ch.dataset.bid;
+      if (S.picks[sid] === bid) delete S.picks[sid];
+      else S.picks[sid] = bid;
+      renderEnroll();
+    };
+  });
+  $$("[data-lv]").forEach((b) => b.onclick = () => { S.levelFilter = b.dataset.lv; renderEnroll(); });
+  $("#saveEnroll").onclick = async () => {
+    try {
+      status("Saving…");
+      const courses = Object.entries(S.picks).map(([subjectId, boardId]) => ({ subjectId, boardId }));
+      if (!courses.length) throw new Error("Select at least one subject and exam board");
+      const j = await api(`/api/student/${S.token}/courses`, { courses });
+      S.student = j.student;
+      S.screen = "home";
+      render();
+    } catch (e) { err(e); }
+  };
+  $("#cancelEnr").onclick = () => { S.screen = S.student?.courses?.length ? "home" : "gate"; render(); };
+  wireNav();
+}
+
+function renderHome() {
+  const courses = S.student?.courses || [];
+  const overall = S.student?.overallCompletion ?? 0;
+  const totalTopics = courses.reduce((a, c) => a + (c.completion?.topicCount || c.topics?.length || 0), 0);
+  const assessed = courses.reduce((a, c) => a + (c.completion?.assessedCount || 0), 0);
+  main.innerHTML = `
+    <div class="dash">
+      <div class="dash-top">
+        <div>
+          <h2>Hello, ${pretty(S.student?.name || "")}</h2>
+          <p class="sub">Your learning dashboard · completion rises as you diagnose topics and master them</p>
+        </div>
+        <div class="dash-stat">
+          <div class="stat-box"><div class="big">${overall}%</div><div class="lbl">Overall completion</div></div>
+          <div class="stat-box"><div class="big">${courses.length}</div><div class="lbl">Courses</div></div>
+          <div class="stat-box"><div class="big">${assessed}/${totalTopics}</div><div class="lbl">Topics diagnosed</div></div>
+        </div>
+      </div>
+      <div class="course-grid">
+        ${courses.length ? courses.map((c) => {
+          const p = c.completion?.percent ?? 0;
+          return `<button class="course-card" data-open="${esc(c.subjectId)}||${esc(c.boardId)}">
+            <div class="top">
+              <div>
+                <div class="ico">${esc(c.icon || "📘")}</div>
+                <b style="font-size:18px">${esc(c.subjectName)}</b>
+                <div class="course-meta">${esc(c.level)} · ${esc(c.boardName)}</div>
+              </div>
+              <div class="pct-ring" style="--p:${p}"><span>${p}%</span></div>
+            </div>
+            <div>
+              <div class="course-bar"><i style="width:${p}%"></i></div>
+              <div class="course-meta" style="margin-top:8px">
+                ${c.completion?.assessedCount || 0} of ${c.completion?.topicCount || c.topics.length} topics diagnosed
+                · average mastery ${c.completion?.avgMastery ?? 0}%
+              </div>
+            </div>
+            <div class="course-meta">Open course</div>
+          </button>`;
+        }).join("") : `<div class="card" style="grid-column:1/-1"><p class="sub" style="margin:0">No courses yet. Add the subjects you’re studying to begin.</p>
+          <div class="actions"><button class="btn primary" id="editCourses">Add subjects</button></div></div>`}
+      </div>
+      <div class="actions">
+        <button class="btn primary" id="editCourses2">Manage subjects</button>
+        <button class="btn ghost" id="logout">Log out</button>
+      </div>
+    </div>`;
+
+  const openEdit = () => {
+    S.picks = {};
+    for (const c of courses) S.picks[c.subjectId] = c.boardId;
+    S.screen = "enroll";
+    render();
+  };
+  $$("[data-open]").forEach((b) => b.onclick = () => {
+    const [subjectId, boardId] = b.dataset.open.split("||");
+    S.course = findCourse(subjectId, boardId);
+    S.screen = "topics";
+    render();
+  });
+  $("#editCourses")?.addEventListener("click", openEdit);
+  $("#editCourses2")?.addEventListener("click", openEdit);
+  $("#logout").onclick = () => {
+    localStorage.removeItem("tutorToken");
+    S.token = ""; S.student = null; S.screen = "gate";
+    S.chat.open = false;
+    render();
+  };
+}
+
+
+function renderTopics() {
+  const c = S.course;
+  if (!c) { S.screen = "home"; return render(); }
+  S.openTopicId = S.openTopicId || null;
+  const tech = (c.techniques || []).slice(0, 6);
+  const p = c.completion?.percent ?? 0;
+  const weights = tech.map((t) => Number(t.weight || 1));
+  const maxW = Math.max(...weights, 1);
+  const minW = Math.min(...weights, 1);
+  const allEqual = maxW - minW < 0.05;
+
+  main.innerHTML = `
+    <div class="dash">
+      <div class="two">
+        <div class="card">
+          <div class="navpath"><a data-nav="home">Home</a> / ${esc(c.subjectName)}</div>
+          <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap">
+            <div>
+              <h2>${esc(c.icon || "")} ${esc(c.subjectName)}</h2>
+              <p class="sub">${esc(c.level)} · ${esc(c.boardName)}</p>
+            </div>
+            <div class="pct-ring" style="--p:${p}"><span>${p}%</span></div>
+          </div>
+          <div class="course-bar" style="margin-bottom:8px"><i style="width:${p}%"></i></div>
+          <div class="muted" style="margin-bottom:8px">${c.completion?.assessedCount || 0} of ${c.completion?.topicCount || 0} topics diagnosed · average mastery ${c.completion?.avgMastery ?? 0}%</div>
+          ${(c.topics || []).map((t) => {
+            const open = S.openTopicId === t.id;
+            const subs = t.subskills || [];
+            return `
+            <div class="topic${open ? " expanded" : ""}" data-topic-id="${esc(t.id)}">
+              <div class="topic-main" data-toggle-topic="${esc(t.id)}">
+                <b>${esc(t.name)}</b>
+                <div class="bar" style="margin-top:8px"><i style="width:${t.assessed ? Math.round((t.mastery || 0) * 100) : 0}%"></i></div>
+                <div class="muted" style="margin-top:5px">${t.assessed ? `${Math.round((t.mastery || 0) * 100)}% mastery` : "Not started"}${subs.length ? ` · ${subs.length} subskills` : ""}</div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn secondary" data-assess="${esc(t.id)}">Diagnose</button>
+                <button class="btn primary" data-learn="${esc(t.id)}">Learn</button>
+                <button class="btn ghost" data-exam="${esc(t.id)}">Exam practice</button>
+              </div>
+              ${open ? `<div class="subskill-list">${subs.length ? subs.map((s) => {
+                const m = Math.round(((s.mastery != null ? s.mastery : 0) <= 1 ? (s.mastery || 0) * 100 : (s.mastery || 0)));
+                return `<div class="subskill-row"><b>${esc(s.name)}</b><span>${m}%</span></div>`;
+              }).join("") : `<div class="muted">No subskills listed</div>`}</div>` : ""}
+            </div>`;
+          }).join("")}
+        </div>
+        <div class="card" style="position:sticky;top:90px">
+          <h3>How you learn</h3>
+          ${allEqual
+            ? tech.map((t) => `
+              <div class="tech-item">
+                <b>${esc(t.name)}</b>
+                <div class="muted">${esc(t.blurb)}</div>
+                <div class="bar" style="margin-top:10px"><i style="width:16%"></i></div>
+              </div>`).join("")
+            : tech.map((t) => {
+                const rel = Math.round(((t.weight || 1) / maxW) * 100);
+                return `<div class="tech-item">
+                  <b>${esc(t.name)}</b>
+                  <div class="muted">${esc(t.blurb)}</div>
+                  <div class="bar" style="margin-top:10px"><i style="width:${rel}%"></i></div>
+                </div>`;
+              }).join("")}
+          <div class="actions"><button class="btn ghost" data-nav="home">Home</button></div>
+        </div>
+      </div>
+    </div>`;
+  $$("[data-toggle-topic]").forEach((el) => {
+    el.onclick = () => {
+      const id = el.dataset.toggleTopic;
+      S.openTopicId = S.openTopicId === id ? null : id;
+      renderTopics();
+    };
+  });
+  $$("[data-assess]").forEach((b) => b.onclick = () => startAssess(b.dataset.assess));
+  $$("[data-learn]").forEach((b) => b.onclick = () => startLearn(b.dataset.learn));
+  $$("[data-exam]").forEach((b) => b.onclick = () => startExam(b.dataset.exam));
+  wireNav();
+}
+
+function sidePanel({ title, lines = [] }) {
+  const c = S.course;
+  return `
+    <aside class="session-side">
+      <h3 style="margin-top:0">${esc(title || "Overview")}</h3>
+      <div class="side-block">
+        <h4>Course</h4>
+        <div><b>${esc(c?.icon || "")} ${esc(c?.subjectName || "—")}</b></div>
+        <div class="muted">${esc(c?.level || "")} · ${esc(c?.boardName || "")}</div>
+        ${c?.completion ? `<div class="bar" style="margin-top:12px"><i style="width:${c.completion.percent || 0}%"></i></div>
+        <div class="muted" style="margin-top:8px">${c.completion.percent || 0}% complete</div>` : ""}
+      </div>
+      ${lines.length ? `<div class="side-block"><h4>This session</h4>${lines.map((l) => `<div class="muted" style="margin:6px 0">• ${pretty(l)}</div>`).join("")}</div>` : ""}
+      <div class="side-block">
+        <h4>Help</h4>
+        <div class="muted" style="line-height:1.5;margin-bottom:10px">Open Help anytime — grounded on your current topic, sub-topic, and question.</div>
+        <div class="actions" style="margin:0">
+          <button type="button" class="btn secondary" data-open-chat="teacher" style="padding:8px 12px;font-size:12px">Ask teacher</button>
+          <button type="button" class="btn primary" data-open-chat="peer" style="padding:8px 12px;font-size:12px">Teach peer</button>
+        </div>
+      </div>
+    </aside>`;
+}
+
+function skeleton() {
+  return `
+    <div class="skel h1"></div>
+    <div class="skel h2"></div>
+    <div class="skel p" style="width:94%"></div>
+    <div class="skel p" style="width:88%"></div>
+    <div class="skel p" style="width:80%"></div>
+    <div class="skel box"></div>
+    <div class="skel choice"></div>
+    <div class="skel choice"></div>
+    <p class="muted" id="status" style="margin-top:8px">Preparing…</p>`;
+}
+
+function quizShell({ title, sub, step, target, skillLabel, prompt, choices, sideTitle, sideLines }) {
+  const pct = target ? Math.round(((step - (S.fb ? 0 : 1)) / target) * 100) : 0;
+  const loading = !prompt && !S.fb;
+  return `
+    <div class="session">
+      <section class="session-main">
+        <div class="navpath"><a data-nav="topics">Topics</a> / ${esc(title)}</div>
+        <h2>${esc(title)}</h2>
+        <p class="sub">${esc(sub || "")}</p>
+        ${target ? `<div class="bar"><i style="width:${Math.max(0, pct)}%"></i></div><div class="muted" style="margin:10px 0 14px">Question ${step} of ${target}</div>` : ""}
+        ${skillLabel ? `<span class="tag">${pretty(skillLabel)}</span>` : ""}
+        ${typeof renderVisuals === "function" ? renderVisuals(S.q && S.q.visuals) : ""}
+        ${loading ? skeleton() : `
+          <h3 style="font-size:18px;line-height:1.55;font-weight:600;margin:6px 0 2px;white-space:pre-wrap">${pretty(prompt)}</h3>
+          <div class="choices">
+            ${(choices || []).map((c, i) => {
+              let cls = S.selected === i ? "selected" : "";
+              if (S.fb && i === S.selected) cls = S.fb.correct ? "good" : "bad";
+              return `<button class="choice ${cls}" data-i="${i}" ${S.fb ? "disabled" : ""}>${pretty(c)}</button>`;
+            }).join("")}
+          </div>
+          ${S.fb ? `<div class="fb ${S.fb.correct ? "ok" : "no"}">${S.fb.correct ? "Correct." : "Not quite."} ${pretty(S.fb.explanation || "")}</div>
+            <div class="actions"><button class="btn primary" id="next">${S.fb.finished ? "Continue" : "Next"}</button></div>`
+            : `<div class="actions">
+                <button class="btn primary" id="check" ${S.selected == null ? "disabled" : ""}>Check</button>
+                <button class="btn ghost" data-nav="topics">Exit</button>
+              </div>`}
+          <p class="muted" id="status" style="margin-top:12px"></p>
+          <div id="err"></div>
+        `}
+      </section>
+      ${sidePanel({ title: sideTitle || "Session", lines: sideLines || [] })}
+    </div>`;
+}
+
+async function startExam(topicId) {
+  try {
+    S.topic = { id: topicId };
+    S.fb = null; S.selected = null; S.q = null; S.report = null; S.summary = null;
+    S.screen = "assess"; // reuse quiz UI shell
+    S.examMode = true;
+    renderAssess();
+    status("Loading exam-style questions…");
+    const started = await api("/api/topic/exam/start", {
+      studentId: S.token,
+      subjectId: S.course.subjectId,
+      boardId: S.course.boardId,
+      topicId,
+    });
+    if (started.firstQuestion) {
+      S.q = started.firstQuestion;
+      S.student = started.student || S.student;
+      renderAssess();
+      return;
+    }
+    throw new Error("No exam questions ready");
+  } catch (e) {
+    S.examMode = false;
+    S.screen = "topics";
+    render();
+    setTimeout(() => err(e), 0);
+  }
+}
+
+function renderAssess() {
+  const exam = Boolean(S.examMode);
+  main.innerHTML = quizShell({
+    title: exam ? "Exam practice" : "Topic check",
+    sub: exam
+      ? "PMT-style past paper practice · longer stems and higher challenge"
+      : "A short diagnostic to map strengths and gaps",
+    step: S.q?.step || 1,
+    target: S.q?.target || 5,
+    skillLabel: S.q?.subskill?.name,
+    prompt: S.q?.question?.prompt,
+    choices: S.q?.question?.choices,
+    sideTitle: exam ? "Exam practice" : "Diagnostic",
+    sideLines: exam
+      ? ["Past-paper style wording", "Harder multi-step items", "Built for top grades too"]
+      : ["Questions ready from your topic bank", "Difficulty adapts to your answers"],
+  });
+  bindQuiz(exam ? answerExam : answerAssess, async () => {
+    if (S.fb.finished) {
+      if (exam) {
+        S.summary = S.fb.summary;
+        S.fb = null; S.q = null; S.examMode = false;
+        await refreshStudent();
+        S.course = findCourse(S.course.subjectId, S.course.boardId);
+        S.screen = "summary";
+        render();
+      } else {
+        S.report = S.fb.report; S.fb = null; S.q = null; S.examMode = false;
+        S.screen = "report";
+        await refreshStudent();
+        S.course = findCourse(S.course.subjectId, S.course.boardId);
+        render();
+      }
+    } else if (S.fb.nextQuestion) {
+      S.q = S.fb.nextQuestion; S.fb = null; S.selected = null; renderAssess();
+    } else if (!exam) {
+      S.fb = null; S.selected = null; await nextAssess();
+    }
+  });
+}
+
+async function answerExam() {
+  try {
+    status("Checking…");
+    const j = await api("/api/topic/exam/answer", {
+      studentId: S.token,
+      choiceIndex: S.selected,
+    });
+    S.student = j.student;
+    S.fb = {
+      correct: j.correct,
+      explanation: j.explanation,
+      finished: j.finished,
+      summary: j.summary,
+      nextQuestion: j.nextQuestion || null,
+    };
+    renderAssess();
+  } catch (e) { err(e); }
+}
+
+async function startAssess(topicId) {
+  try {
+    S.examMode = false;
+    S.topic = { id: topicId };
+    S.fb = null; S.selected = null; S.q = null; S.report = null;
+    S.screen = "assess";
+    renderAssess();
+    status("Loading questions…");
+    const started = await api("/api/topic/assess/start", {
+      studentId: S.token,
+      subjectId: S.course.subjectId,
+      boardId: S.course.boardId,
+      topicId,
+    });
+    if (started.firstQuestion) {
+      S.q = started.firstQuestion;
+      S.student = started.student || S.student;
+      renderAssess();
+      return;
+    }
+    await nextAssess();
+  } catch (e) {
+    S.screen = "topics";
+    render();
+    setTimeout(() => err(e), 0);
+  }
+}
+
+
+function renderLesson() {
+  const L = S.lesson;
+  const loading = !L?.lesson?.body;
+  main.innerHTML = `
+    <div class="session">
+      <section class="session-main">
+        <div class="navpath"><a data-nav="topics">Topics</a> / Lesson</div>
+        ${loading ? `
+          <h2>Building your lesson</h2>
+          <p class="sub">Tailoring an explanation for this topic…</p>
+          ${skeleton()}
+        ` : `
+          <h2>${pretty(L.lesson.title || "Lesson")}</h2>
+          <p class="sub">${pretty(L.topic?.name || "")}${L.skill?.name ? " · " + pretty(L.skill.name) : ""}</p>
+          <span class="tag">${pretty(L.technique?.name || L.lesson.techniqueName || "Lesson")}</span>
+          ${renderVisuals(L?.lesson?.visuals || [])}
+          <div class="lesson">${pretty(L.lesson.body)}</div>
+          ${L.lesson.worked ? `<div class="lesson"><b>Example</b>\n${pretty(L.lesson.worked)}</div>` : ""}
+          ${(L.lesson.focusPoints || []).length ? `<div class="side-block"><h4>Key points</h4>${L.lesson.focusPoints.map((f) => `<div class="muted">• ${pretty(f)}</div>`).join("")}</div>` : ""}
+          <div class="actions">
+            <button class="btn primary" id="ready">Continue to questions</button>
+            <button class="btn ghost" data-nav="topics">Back</button>
+          </div>
+        `}
+        <p class="muted" id="status" style="margin-top:12px"></p>
+        <div id="err"></div>
+      </section>
+      ${sidePanel({
+        title: "Lesson",
+        lines: [
+          loading ? "Preparing explanation" : `Focus: ${L?.skill?.name || "topic skill"}`,
+          loading ? "Selecting practice style" : `Style: ${L?.technique?.name || L?.lesson?.techniqueName || "adaptive"}`,
+        ],
+      })}
+    </div>`;
+  if (!loading) $("#ready").onclick = nextCheck;
+  wireNav();
+}
+
+function renderCheck() {
+  main.innerHTML = quizShell({
+    title: "Practice check",
+    sub: "A few questions on what you just studied",
+    step: S.q?.index || 1,
+    target: S.q?.total || 3,
+    prompt: S.q?.question?.prompt,
+    choices: S.q?.question?.choices,
+    sideTitle: "Practice",
+    sideLines: ["Your results shape future teaching styles for this course"],
+  });
+  bindQuiz(answerCheck, async () => {
+    if (S.fb.finished) {
+      S.summary = S.fb.summary; S.fb = null; S.q = null; S.lesson = null;
+      await refreshStudent();
+      S.course = findCourse(S.course.subjectId, S.course.boardId);
+      S.screen = "summary";
+      render();
+    } else {
+      S.fb = null; S.selected = null; await nextCheck();
+    }
+  });
+}
+
+function renderSummary() {
+  const s = S.summary || {};
+  main.innerHTML = `
+    <div class="session">
+      <section class="session-main">
+        <div class="navpath"><a data-nav="topics">Topics</a> / Result</div>
+        <h2>Nice work</h2>
+        <p class="sub">You scored ${s.correct ?? "—"} out of ${s.total ?? "—"}</p>
+        <div class="lesson" style="font-size:16px">${pretty(s.message || "Your pathway for this course has been updated.")}</div>
+        <div class="actions">
+          <button class="btn primary" id="more">Another lesson</button>
+          <button class="btn secondary" data-nav="topics">Topics</button>
+          <button class="btn ghost" data-nav="home">Home</button>
+        </div>
+      </section>
+      ${sidePanel({ title: "Updated", lines: ["Topic mastery adjusted", "Teaching style weights updated for this course"] })}
+    </div>`;
+  $("#more").onclick = () => startLearn(S.topic?.id || S.course?.topics?.[0]?.id);
+  wireNav();
+}
+
+function renderReport() {
+  const r = S.report || {};
+  main.innerHTML = `
+    <div class="session">
+      <section class="session-main">
+        <div class="navpath"><a data-nav="topics">Topics</a> / Report</div>
+        <h2>${pretty(r.headline || "Your topic report")}</h2>
+        <p class="sub">${pretty(r.howYouLearn || "")}</p>
+        <div class="two" style="grid-template-columns:1fr 1fr">
+          <div class="side-block"><h4>Strengths</h4><div class="muted">${(r.strengths || []).map(pretty).join(" · ") || "—"}</div></div>
+          <div class="side-block"><h4>Focus areas</h4><div class="muted">${(r.weaknesses || []).map(pretty).join(" · ") || "—"}</div></div>
+        </div>
+        <div class="side-block"><h4>Next steps</h4><div class="muted">${(r.nextSteps || []).map(pretty).join(" · ") || "—"}</div></div>
+        <div class="actions">
+          <button class="btn primary" id="learnNow">Start learning</button>
+          <button class="btn ghost" data-nav="topics">Topics</button>
+        </div>
+      </section>
+      ${sidePanel({ title: "Report", lines: ["Based on your diagnostic answers", "Use Learn to improve weaker areas"] })}
+    </div>`;
+  $("#learnNow").onclick = () => startLearn(S.topic?.id);
+  wireNav();
+}
+
+function bindQuiz(onCheck, onNext) {
+  if (!S.fb && S.q?.question) {
+    $$(".choice").forEach((b) => b.onclick = () => {
+      S.selected = Number(b.dataset.i);
+      if (S.screen === "assess") renderAssess();
+      else render();
+    });
+    $("#check")?.addEventListener("click", onCheck);
+  } else if (S.fb) {
+    $("#next").onclick = onNext;
+  }
+  wireNav();
+}
+
+async function refreshStudent() {
+  const j = await api("/api/student/" + S.token);
+  S.student = j.student;
+}
+
+async function nextAssess() {
+  try {
+    const j = await api("/api/topic/assess/next", { studentId: S.token });
+    if (j.done) {
+      S.screen = "topics";
+      await refreshStudent();
+      S.course = findCourse(S.course.subjectId, S.course.boardId);
+      render();
+      return;
+    }
+    S.q = j; S.fb = null; S.selected = null; S.screen = "assess";
+    render();
+  } catch (e) { err(e); }
+}
+
+async function answerAssess() {
+  try {
+    status("Checking…");
+    const j = await api("/api/topic/assess/answer", { studentId: S.token, choiceIndex: S.selected });
+    S.student = j.student;
+    S.fb = {
+      correct: j.correct,
+      explanation: j.explanation,
+      finished: j.finished,
+      report: j.report,
+      nextQuestion: j.nextQuestion || null,
+    };
+    render();
+  } catch (e) { err(e); }
+}
+
+async function startLearn(topicId) {
+  try {
+    S.topic = { id: topicId };
+    S.fb = null; S.selected = null; S.lesson = null;
+    S.screen = "lesson";
+    render();
+    status("Building your lesson…");
+    const j = await api("/api/topic/learn/start", {
+      studentId: S.token,
+      subjectId: S.course.subjectId,
+      boardId: S.course.boardId,
+      topicId,
+    });
+    S.lesson = j;
+    S.student = j.student;
+    render();
+  } catch (e) {
+    S.screen = "topics";
+    render();
+    setTimeout(() => err(e), 0);
+  }
+}
+
+async function nextCheck() {
+  try {
+    S.q = null; S.fb = null; S.selected = null; S.screen = "check";
+    render();
+    const j = await api("/api/topic/learn/check", { studentId: S.token });
+    if (j.done) {
+      S.screen = "topics";
+      await refreshStudent();
+      S.course = findCourse(S.course.subjectId, S.course.boardId);
+      render();
+      return;
+    }
+    S.q = j;
+    render();
+  } catch (e) { err(e); }
+}
+
+async function answerCheck() {
+  try {
+    const j = await api("/api/topic/learn/answer", { studentId: S.token, choiceIndex: S.selected });
+    S.student = j.student;
+    S.fb = { correct: j.correct, explanation: j.explanation, finished: j.finished, summary: j.summary };
+    render();
+  } catch (e) { err(e); }
+}
+
+function wireNav() {
+  $$("[data-nav]").forEach((a) => {
+    a.onclick = async () => {
+      const n = a.getAttribute("data-nav");
+      if (n === "home") {
+        await refreshStudent().catch(() => {});
+        S.screen = "home";
+      }
+      if (n === "topics") {
+        await refreshStudent().catch(() => {});
+        if (S.course) S.course = findCourse(S.course.subjectId, S.course.boardId);
+        S.screen = "topics";
+      }
+      render();
+    };
+  });
+  $$("[data-open-chat]").forEach((b) => {
+    b.onclick = () => openChatDrawer(b.getAttribute("data-open-chat"));
+  });
+}
+
+function activityLabel(screen) {
+  if (screen === "assess" && S.examMode) return "exam";
+  if (screen === "assess") return "diagnose";
+  if (screen === "lesson") return "lesson";
+  if (screen === "check") return "practice";
+  if (screen === "report") return "report";
+  if (screen === "summary") return "summary";
+  if (screen === "topics") return "topics";
+  if (screen === "home") return "home";
+  return screen || "browse";
+}
+
+function resolveTopicMeta(topicId) {
+  const c = S.course;
+  if (!c || !topicId) return null;
+  return (c.topics || []).find((t) => t.id === topicId) || null;
+}
+
+function trackStudyContext() {
+  const c = S.course;
+  const topicId = S.topic?.id || S.lesson?.topic?.id || S.openTopicId || null;
+  const topicMeta = resolveTopicMeta(topicId);
+  const subFromQ = S.q?.subskill || null;
+  const subFromLesson = S.lesson?.skill || null;
+  const sub = subFromQ || subFromLesson || null;
+  const prompt = S.q?.question?.prompt || null;
+  const choices = S.q?.question?.choices || null;
+  const activity = activityLabel(S.screen);
+  const study = {
+    activity,
+    subjectId: c?.subjectId || null,
+    boardId: c?.boardId || null,
+    subjectName: c?.subjectName || null,
+    boardName: c?.boardName || null,
+    topicId: topicId || null,
+    topicName: topicMeta?.name || S.lesson?.topic?.name || S.topic?.name || null,
+    subskillId: sub?.id || null,
+    subskillName: sub?.name || null,
+    question: prompt
+      ? { prompt, choices: choices || [], activity }
+      : null,
+  };
+  study.key = [
+    study.activity,
+    study.subjectId,
+    study.boardId,
+    study.topicId || "",
+    study.subskillId || "",
+    (prompt || "").slice(0, 80),
+  ].join("|");
+  const prev = S.study?.key;
+  S.study = study;
+  if (prev && prev !== study.key && S.chat.open && S.token) {
+    maybeAnnounceFocusChange(prev, study);
+  }
+}
+
+function focusLine(st = S.study) {
+  if (!st) return "No live focus yet — open a topic.";
+  const bits = [];
+  if (st.subjectName) bits.push(st.subjectName);
+  if (st.topicName) bits.push(st.topicName);
+  if (st.subskillName) bits.push(st.subskillName);
+  if (st.activity && st.activity !== "home" && st.activity !== "topics") bits.push(st.activity);
+  if (st.question) bits.push("this question");
+  return bits.length ? bits.join(" · ") : "Pick a course topic to focus chat.";
+}
+
+function maybeAnnounceFocusChange(_prev, study) {
+  if (!S.chat.messages?.length) return;
+  const tip = study.subskillName
+    ? `Now on: ${study.topicName || "topic"} → ${study.subskillName}${study.question ? " (current question tracked)" : ""}.`
+    : study.topicName
+      ? `Now on topic: ${study.topicName}.`
+      : null;
+  if (!tip) return;
+  const last = S.chat.messages[S.chat.messages.length - 1];
+  if (last?.sys && last.content === tip) return;
+  S.chat.messages.push({ role: "assistant", content: tip, sys: true });
+  // lightweight retarget of peer to new subskill when focus flips mid-chat
+  if (S.chat.mode === "peer" && study.subskillId && S.chat.peer?.subskillId !== study.subskillId) {
+    S.chat.peerRetarget = true;
+  }
+}
+
+function paintChat() {
+  const root = document.getElementById("chatRoot");
+  if (!root) return;
+  const loggedIn = Boolean(S.token && S.student && S.screen !== "gate");
+  document.body.classList.toggle("chat-open", Boolean(loggedIn && S.chat.open));
+  if (!loggedIn) {
+    root.innerHTML = "";
+    return;
+  }
+
+  const mode = S.chat.mode === "peer" ? "peer" : "teacher";
+  const peer = S.chat.peer;
+  const clarity = Math.round((1 - (S.chat.confusion ?? 0.7)) * 100);
+  const st = S.study || {};
+  const fx = focusLine(st);
+
+  root.innerHTML = `
+    <div class="chat-fab" style="${S.chat.open ? "display:none" : ""}">
+      <div class="ctx-pill">${pretty(fx)}</div>
+      <button type="button" class="main" id="fabOpen">Help</button>
+    </div>
+    <aside class="chat-drawer ${S.chat.open ? "open" : ""}" aria-hidden="${S.chat.open ? "false" : "true"}">
+      <div class="hd">
+        <div>
+          <b>${mode === "teacher" ? "Teacher" : "Teach a peer"}</b>
+          <div class="muted" style="font-size:11px;margin-top:3px">${mode === "teacher" ? "Hints on what you're doing now" : "Explain this sub-topic to them"}</div>
+          ${mode === "peer" ? `<div class="peer-meter"><i style="width:${clarity}%"></i></div>` : ""}
+        </div>
+        <button type="button" class="x" id="chatClose" aria-label="Close">×</button>
+      </div>
+      <div class="chat-tabs">
+        <button type="button" class="${mode === "teacher" ? "on" : ""}" data-chat-mode="teacher">Teacher</button>
+        <button type="button" class="${mode === "peer" ? "on" : ""}" data-chat-mode="peer">Peer</button>
+      </div>
+      <div class="chat-focus">
+        <strong>Focus</strong><br/>${pretty(fx)}
+        ${st.question ? `<div class="muted" style="margin-top:4px;font-size:11px">Q: ${pretty(String(st.question.prompt).slice(0, 120))}${String(st.question.prompt).length > 120 ? "…" : ""}</div>` : ""}
+      </div>
+      <div class="chat-log" id="chatLog">
+        ${(S.chat.messages || []).map((m) => {
+          if (m.sys) return `<div class="bubble sys">${pretty(m.content)}</div>`;
+          return `<div class="bubble ${m.role === "user" ? "me" : "them"}">
+            <span class="who">${m.role === "user" ? "You" : (mode === "peer" ? esc(peer?.name || "Peer") : "Teacher")}</span>
+            ${pretty(m.content)}
+          </div>`;
+        }).join("")}
+        ${S.chat.sending ? `<div class="bubble them"><span class="who">…</span>…</div>` : ""}
+        ${S.chat.reward ? `<div class="bubble sys">${pretty(S.chat.reward.message)}</div>` : ""}
+      </div>
+      <div class="chat-compose">
+        <textarea id="chatInput" rows="2" placeholder="${mode === "teacher" ? "Ask about this bit…" : "Explain it in your words…"}"${S.chat.sending ? " disabled" : ""}>${esc(S.chat.draft || "")}</textarea>
+        <button class="btn primary" id="chatSend" ${S.chat.sending ? "disabled" : ""}>Send</button>
+      </div>
+    </aside>`;
+
+  const log = $("#chatLog");
+  if (log) log.scrollTop = log.scrollHeight;
+
+  $("#fabOpen")?.addEventListener("click", () => openChatDrawer(S.chat.mode || "teacher"));
+  $("#chatClose")?.addEventListener("click", () => {
+    S.chat.open = false;
+    paintChat();
+  });
+  $$("[data-chat-mode]").forEach((b) => {
+    b.onclick = () => openChatDrawer(b.dataset.chatMode);
+  });
+  $("#chatSend")?.addEventListener("click", sendChat);
+  $("#chatInput")?.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && !ev.shiftKey) {
+      ev.preventDefault();
+      sendChat();
+    }
+  });
+  $("#chatInput")?.addEventListener("input", (ev) => {
+    S.chat.draft = ev.target.value;
+  });
+}
+
+async function openChatDrawer(mode) {
+  if (!S.course && (S.student?.courses || []).length) S.course = S.student.courses[0];
+  if (!S.course) {
+    S.screen = "enroll";
+    render();
+    return;
+  }
+  trackStudyContext();
+  const next = mode === "peer" ? "peer" : "teacher";
+  const switching = S.chat.mode !== next || !S.chat.bootstrapped || S.chat.peerRetarget;
+  S.chat.mode = next;
+  S.chat.open = true;
+  S.chat.reward = null;
+
+  if (next === "teacher") {
+    if (switching || !S.chat.messages.length) {
+      S.chat.messages = [{
+        role: "assistant",
+        content: teacherOpener(S.study),
+      }];
+      S.chat.bootstrapped = true;
+    }
+    S.chat.peerRetarget = false;
+    paintChat();
+    return;
+  }
+
+  // peer mode — bind to live sub-topic / question
+  paintChat();
+  try {
+    S.chat.sending = true;
+    paintChat();
+    const st = S.study || {};
+    const j = await api("/api/chat/peer/start", {
+      studentId: S.token,
+      subjectId: st.subjectId || S.course.subjectId,
+      boardId: st.boardId || S.course.boardId,
+      topicId: st.topicId || undefined,
+      subskillId: st.subskillId || undefined,
+      activity: st.activity,
+      focus: {
+        activity: st.activity,
+        topicId: st.topicId,
+        topicName: st.topicName,
+        subskillId: st.subskillId,
+        subskillName: st.subskillName,
+        question: st.question,
+      },
+    });
+    S.chat.peer = j.peer;
+    S.chat.messages = [{ role: "assistant", content: j.opener }];
+    S.chat.confusion = 0.8;
+    S.chat.bootstrapped = true;
+    S.chat.peerRetarget = false;
+  } catch (e) {
+    S.chat.messages = [{ role: "assistant", content: "Couldn't start peer chat: " + (e.message || e), sys: true }];
+  }
+  S.chat.sending = false;
+  paintChat();
+}
+
+function teacherOpener(st) {
+  if (st?.subskillName && st?.question) {
+    return `I can see you're on ${st.subskillName}${st.topicName ? " (" + st.topicName + ")" : ""}, and this question. Ask for a hint, a first step, or a check of your method — I won't spoil the answer unless you want me to.`;
+  }
+  if (st?.subskillName) {
+    return `Focused on ${st.subskillName}${st.topicName ? " in " + st.topicName : ""}. What do you want — a quick explanation, method, or exam tip?`;
+  }
+  if (st?.topicName) {
+    return `You're in ${st.topicName}. Ask about any sub-topic or open Diagnose/Learn so I can lock onto the exact skill and question.`;
+  }
+  return `Open a topic (or start Diagnose / Learn) and I'll coach that exact sub-topic. What do you need?`;
+}
+
+async function sendChat() {
+  const input = $("#chatInput");
+  const text = (input?.value || S.chat.draft || "").trim();
+  if (!text || S.chat.sending) return;
+  if (S.chat.mode === "peer" && S.chat.peerRetarget) {
+    await openChatDrawer("peer");
+  }
+  trackStudyContext();
+  S.chat.draft = "";
+  S.chat.messages.push({ role: "user", content: text });
+  S.chat.sending = true;
+  paintChat();
+  try {
+    const st = S.study || {};
+    const payloadMessages = S.chat.messages
+      .filter((m) => !m.sys)
+      .map((m) => ({ role: m.role, content: m.content }));
+    const j = await api("/api/chat", {
+      studentId: S.token,
+      mode: S.chat.mode,
+      messages: payloadMessages,
+      subjectId: st.subjectId || S.course?.subjectId,
+      boardId: st.boardId || S.course?.boardId,
+      topicId: st.topicId || S.chat.peer?.topicId,
+      subskillId: st.subskillId || S.chat.peer?.subskillId,
+      activity: st.activity,
+      focus: {
+        activity: st.activity,
+        topicId: st.topicId,
+        topicName: st.topicName,
+        subskillId: st.subskillId,
+        subskillName: st.subskillName,
+        question: st.question,
+      },
+    });
+    if (j.student) {
+      S.student = j.student;
+      if (S.course) S.course = findCourse(S.course.subjectId, S.course.boardId) || S.course;
+    }
+    S.chat.messages.push({ role: "assistant", content: j.reply || "…" });
+    if (S.chat.mode === "peer") {
+      if (typeof j.confusion === "number") S.chat.confusion = j.confusion;
+      if (j.reward) S.chat.reward = j.reward;
+      if (j.peer) S.chat.peer = j.peer;
+      if (j.understood && j.encouragement) {
+        S.chat.messages.push({ role: "assistant", content: j.encouragement });
+      }
+    }
+  } catch (e) {
+    S.chat.messages.push({ role: "assistant", content: "Couldn't reply — " + (e.message || "try again."), sys: true });
+  }
+  S.chat.sending = false;
+  paintChat();
+}
+
+(async () => {
+  try {
+    const h = await api("/api/health");
+    const c = await api("/api/catalog");
+    S.catalog = c;
+    $("#pills").innerHTML = `
+      <span class="pill">${h.subjectCount} subjects</span>
+      <span class="pill">Ready questions ${h.questionBank || "—"}</span>`;
+  } catch {}
+  if (S.token) {
+    try {
+      const j = await api("/api/student/" + S.token);
+      S.student = j.student;
+      S.screen = S.student.courses?.length ? "home" : "enroll";
+      for (const c of S.student.courses || []) S.picks[c.subjectId] = c.boardId;
+    } catch {
+      localStorage.removeItem("tutorToken");
+      S.token = "";
+      S.screen = "gate";
+    }
+  }
+  render();
+})();
+</script>
+</body>
+</html>
