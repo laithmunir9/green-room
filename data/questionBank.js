@@ -431,7 +431,7 @@ export function getBankQuestions({
   const tried = new Set();
   const seenFp = new Set(excludeFingerprints);
 
-  const pushFrom = (list, src, lv) => {
+  const pushFrom = (list, src, lv, matchedSubskillId) => {
     for (const item of list) {
       const id = contentId(item);
       const fp = item.fingerprint || item.prompt.replace(/\s+/g, " ").trim().toLowerCase();
@@ -445,6 +445,9 @@ export function getBankQuestions({
         fingerprint: fp,
         source: src,
         level: item.difficulty || lv,
+        // The subskill this question actually came from — may differ from the
+        // requested subskillId once we fall back across subskills/topic below.
+        subskillId: matchedSubskillId,
       });
       if (out.length >= count) return true;
     }
@@ -453,17 +456,18 @@ export function getBankQuestions({
 
   for (const lv of levelOrder) {
     const k = key([subjectId, boardId, topicId, subskillId, lv]);
-    if (pushFrom(bank.get(k) || [], "bank", lv)) return out;
+    if (pushFrom(bank.get(k) || [], "bank", lv, subskillId)) return out;
   }
   const subPrefix = key([subjectId, boardId, topicId, subskillId]);
   for (const [k, list] of bank.entries()) {
     if (!k.startsWith(subPrefix + "::")) continue;
-    if (pushFrom(list, "bank", level)) return out;
+    if (pushFrom(list, "bank", level, subskillId)) return out;
   }
   const topicPrefix = key([subjectId, boardId, topicId]);
   for (const [k, list] of bank.entries()) {
     if (!k.startsWith(topicPrefix + "::")) continue;
-    if (pushFrom(list, "bank-topic", level)) return out;
+    const realSubskillId = k.split("::")[3] || subskillId;
+    if (pushFrom(list, "bank-topic", level, realSubskillId)) return out;
   }
   return out;
 }
@@ -476,8 +480,11 @@ export function getExamQuestions({ subjectId, boardId, topicId, count = 5, exclu
   const extras = [];
   for (const [k, arr] of bank.entries()) {
     if (!k.startsWith(topicKey + "::")) continue;
+    const subskillId = k.split("::")[3] || null;
     for (const item of arr) {
-      if (item.style === "exam" || item.difficulty === "hard" || item.difficulty === "stretch") extras.push(item);
+      if (item.style === "exam" || item.difficulty === "hard" || item.difficulty === "stretch") {
+        extras.push({ ...item, subskillId });
+      }
     }
   }
   for (const item of [...list, ...extras]) {
@@ -485,7 +492,9 @@ export function getExamQuestions({ subjectId, boardId, topicId, count = 5, exclu
     const fp = item.fingerprint || item.prompt.replace(/\s+/g, " ").trim().toLowerCase();
     if (excludeIds.has(id) || seenFp.has(fp)) continue;
     seenFp.add(fp);
-    out.push({ ...item, id, fingerprint: fp, style: "exam", source: item.source || "exam-bank" });
+    // Items from `examBank` (list) are genuinely topic-wide, multi-part questions
+    // with no single tested subskill — leave subskillId null rather than guessing.
+    out.push({ ...item, id, fingerprint: fp, style: "exam", source: item.source || "exam-bank", subskillId: item.subskillId || null });
     if (out.length >= count) break;
   }
   return out;

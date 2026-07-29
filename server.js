@@ -226,23 +226,36 @@ function updateTechnique(progress, techId, good, perfect = false) {
   progress.techniques[techId] = clamp(cur + (good ? (perfect ? 0.4 : 0.22) : -0.2), 0.15, 5);
 }
 
+const AI_TIMEOUT_MS = 25000;
+
 async function aiMessages({ model, system, messages, max_tokens = 900, temperature = 0.35 }) {
   if (!API_KEY) throw new Error("Missing OPENROUTER_API_KEY");
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": `http://localhost:${PORT}`,
-      "X-Title": "Adaptive Tutor",
-    },
-    body: JSON.stringify({
-      model,
-      temperature,
-      max_tokens,
-      messages: [{ role: "system", content: system }, ...messages],
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": `http://localhost:${PORT}`,
+        "X-Title": "Adaptive Tutor",
+      },
+      body: JSON.stringify({
+        model,
+        temperature,
+        max_tokens,
+        messages: [{ role: "system", content: system }, ...messages],
+      }),
+      signal: controller.signal,
+    });
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("AI request timed out");
+    throw new Error(`AI request failed: ${e.message || e}`);
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) throw new Error((await res.text()).slice(0, 400));
   return (await res.json()).choices?.[0]?.message?.content || "";
 }
@@ -543,7 +556,20 @@ app.post("/api/student/:id/courses", (req, res) => {
   res.json({ student: publicStudent(s) });
 });
 
+/**
+ * `getBankQuestions` may fall back to a different subskill (or any subskill in
+ * the topic) than the one requested. Tag the returned item with whichever
+ * subskill it actually came from, falling back to the requested one only if
+ * the bank couldn't identify a real match.
+ */
+function resolveSubskillTag(pack, item, requestedSub) {
+  const real = item.subskillId ? pack.topic.subskills.find((s) => s.id === item.subskillId) : null;
+  const sub = real || requestedSub;
+  return { ...item, subskillId: sub.id, subskillName: sub.name };
+}
+
 async function ensureQuestion({ subjectId, boardId, topicId, subskill, level, purpose }) {
+  const pack = getTopic(subjectId, boardId, topicId);
   const cached = getBankQuestions({
     subjectId,
     boardId,
@@ -552,9 +578,8 @@ async function ensureQuestion({ subjectId, boardId, topicId, subskill, level, pu
     level,
     count: 1,
   });
-  if (cached[0]) return { ...cached[0], subskillId: subskill.id, subskillName: subskill.name };
+  if (cached[0]) return resolveSubskillTag(pack, cached[0], subskill);
 
-  const pack = getTopic(subjectId, boardId, topicId);
   const ctx = contextPack(subjectId, boardId, pack.topic);
   const q = await genQuestion({ ctx, subskill, purpose, level });
   const stored = putBankQuestion({
@@ -616,20 +641,12 @@ function buildAssessQueueFromBank(student, subjectId, boardId, topicId, target) 
       if (!batch2[0]) break;
       usedIds.add(batch2[0].id);
       if (batch2[0].fingerprint) usedFp.add(batch2[0].fingerprint);
-      queue.push({
-        ...batch2[0],
-        subskillId: alt.id,
-        subskillName: alt.name,
-      });
+      queue.push(resolveSubskillTag(pack, batch2[0], alt));
       continue;
     }
     usedIds.add(batch[0].id);
     if (batch[0].fingerprint) usedFp.add(batch[0].fingerprint);
-    queue.push({
-      ...batch[0],
-      subskillId: sub.id,
-      subskillName: sub.name,
-    });
+    queue.push(resolveSubskillTag(pack, batch[0], sub));
   }
   return queue;
 }
@@ -662,7 +679,7 @@ async function fillAssessQueue(student, subjectId, boardId, topicId, target, exi
     if (fromBank[0]) {
       usedIds.add(fromBank[0].id);
       if (fromBank[0].fingerprint) usedFp.add(fromBank[0].fingerprint);
-      queue.push({ ...fromBank[0], subskillId: sub.id, subskillName: sub.name });
+      queue.push(resolveSubskillTag(pack, fromBank[0], sub));
       continue;
     }
     try {
@@ -767,16 +784,21 @@ app.post("/api/topic/assess/next", async (req, res) => {
     if (!item.prompt) {
       const pack = getTopic(s.session.subjectId, s.session.boardId, s.session.topicId);
       const sub = pack.topic.subskills[0];
-      const q = await ensureQuestion({
-        subjectId: s.session.subjectId,
-        boardId: s.session.boardId,
-        topicId: s.session.topicId,
-        subskill: sub,
-        level: "medium",
-        purpose: "topic diagnostic",
-      });
-      Object.assign(item, q, { subskillId: sub.id, subskillName: sub.name });
-      putStudent(s);
+      try {
+        const q = await ensureQuestion({
+          subjectId: s.session.subjectId,
+          boardId: s.session.boardId,
+          topicId: s.session.topicId,
+          subskill: sub,
+          level: "medium",
+          purpose: "topic diagnostic",
+        });
+        Object.assign(item, q);
+        putStudent(s);
+      } catch (e) {
+        console.error("[ai] assess/next question generation failed:", e.message || e);
+        return res.status(503).json({ error: "Couldn't prepare the next question right now — please try again." });
+      }
     }
 
     const pack = getTopic(s.session.subjectId, s.session.boardId, s.session.topicId);
@@ -844,11 +866,7 @@ app.post("/api/topic/assess/answer", async (req, res) => {
         if (extra[0].fingerprint !== item.fingerprint) {
           s.session.queue = [
             ...s.session.queue.slice(0, s.session.step),
-            {
-              ...extra[0],
-              subskillId: weak.id,
-              subskillName: weak.name,
-            },
+            resolveSubskillTag(pack, extra[0], weak),
             ...rest,
           ];
           s.session.target = s.session.queue.length;
@@ -919,11 +937,17 @@ app.post("/api/topic/exam/start", async (req, res) => {
       boardId,
       topicId,
       count: 5,
-    }).map((x) => ({
-      ...x,
-      subskillId: pack.topic.subskills[0]?.id,
-      subskillName: pack.topic.subskills[0]?.name || pack.topic.name,
-    }));
+    }).map((x) => {
+      // Only credit a subskill if the bank actually knows which one this question
+      // tests. Topic-wide multi-part exam items carry no subskillId — leave them
+      // unattributed rather than crediting mastery to an arbitrary subskill.
+      const sub = x.subskillId ? pack.topic.subskills.find((s) => s.id === x.subskillId) : null;
+      return {
+        ...x,
+        subskillId: sub?.id || null,
+        subskillName: sub?.name || pack.topic.name,
+      };
+    });
 
     // Fill with hard bank items if exam set is short
     if (queue.length < 4) {
@@ -943,12 +967,7 @@ app.post("/api/topic/exam/start", async (req, res) => {
         for (const m of more) {
           if (queue.length >= 5) break;
           used.add(m.fingerprint || m.id);
-          queue.push({
-            ...m,
-            subskillId: sub.id,
-            subskillName: sub.name,
-            style: "exam",
-          });
+          queue.push({ ...resolveSubskillTag(pack, m, sub), style: "exam" });
         }
       }
     }
@@ -966,12 +985,9 @@ app.post("/api/topic/exam/start", async (req, res) => {
           purpose:
             "PMT-style past paper practice: long clear stem, multi-step, exam command words, detailed plausible options",
         });
-        queue.push({
-          ...q,
-          style: "exam",
-          subskillId: sub.id,
-          subskillName: sub.name,
-        });
+        // ensureQuestion already resolves and tags the real subskill (cache hit or
+        // freshly generated for `sub`) — don't clobber it with the loop variable.
+        queue.push({ ...q, style: "exam" });
       } catch {
         break;
       }
@@ -1147,7 +1163,13 @@ app.post("/api/topic/learn/start", async (req, res) => {
     checks = checks.slice(0, 3);
     if (!checks.length) throw new Error("Could not build checks");
 
-    const lesson = await lessonPromise;
+    let lesson;
+    try {
+      lesson = await lessonPromise;
+    } catch (e) {
+      console.error("[ai] lesson generation failed:", e.message || e);
+      return res.status(503).json({ error: "Couldn't build the lesson right now — please try again." });
+    }
     const cleanLesson = {
       title: cleanStudentText(lesson.title),
       body: cleanStudentText(lesson.body),
@@ -1385,13 +1407,19 @@ app.post("/api/chat", async (req, res) => {
         "Warm, specific, exam-board aware when board is known. " +
         `Live focus JSON: ${JSON.stringify(liveFocus)}`;
 
-      const replyRaw = await aiMessages({
-        model: MODELS.fast,
-        system,
-        messages: history,
-        max_tokens: 320,
-        temperature: 0.35,
-      });
+      let replyRaw;
+      try {
+        replyRaw = await aiMessages({
+          model: MODELS.fast,
+          system,
+          messages: history,
+          max_tokens: 320,
+          temperature: 0.35,
+        });
+      } catch (e) {
+        console.error("[ai] chat teacher failed:", e.message || e);
+        return res.status(503).json({ error: "Couldn't reach the AI tutor right now — please try again." });
+      }
       const reply = cleanStudentText(replyRaw);
       return res.json({ mode: "teacher", reply, focus: liveFocus, student: publicStudent(s) });
     }
@@ -1414,13 +1442,19 @@ app.post("/api/chat", async (req, res) => {
       '{"reply":"...","confusion":0.0,"understood":false,"encouragement":""} ' +
       "confusion 0=clear to 1=lost. understood=true only when the core of the sub-topic clicks.";
 
-    const raw = await aiMessages({
-      model: MODELS.fast,
-      system,
-      messages: history,
-      max_tokens: 320,
-      temperature: 0.55,
-    });
+    let raw;
+    try {
+      raw = await aiMessages({
+        model: MODELS.fast,
+        system,
+        messages: history,
+        max_tokens: 320,
+        temperature: 0.55,
+      });
+    } catch (e) {
+      console.error("[ai] chat peer failed:", e.message || e);
+      return res.status(503).json({ error: "Couldn't reach the AI peer right now — please try again." });
+    }
 
     let parsed;
     try {
