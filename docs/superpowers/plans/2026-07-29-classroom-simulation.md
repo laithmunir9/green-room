@@ -743,12 +743,16 @@ app.post("/api/classroom/message", async (req, res) => {
       "one entry per persona above, in the same order. Set understood=true only for the quick-learner or teacher persona, " +
       "and only when the student's explanation clearly and correctly landed.";
 
+    // K2-Think-V2 is a reasoning model: it spends tokens on a hidden
+    // `reasoning` field before emitting `content`, and Task 1's smoke test
+    // found even a one-word reply consumed ~120+ tokens on reasoning alone.
+    // Budget generously so replies aren't silently truncated.
     let parsed;
     try {
       parsed = await aiK2Json({
         system,
         user: text,
-        max_tokens: 60 * personas.length + 150,
+        max_tokens: 400 * personas.length + 600,
       });
     } catch (e) {
       console.error("[ai] classroom message generation failed:", e.message || e);
