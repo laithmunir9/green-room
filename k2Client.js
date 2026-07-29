@@ -3,8 +3,8 @@
 const K2_TIMEOUT_MS = 25000;
 
 function k2Config() {
-  const apiKey = process.env.K2THINK_API_KEY;
-  const baseUrl = process.env.K2THINK_BASE_URL;
+  const apiKey = process.env.K2THINK_API_KEY?.trim();
+  const baseUrl = process.env.K2THINK_BASE_URL?.trim();
   const model = process.env.K2THINK_MODEL || "MBZUAI-IFM/K2-Think-v2";
   if (!apiKey) throw new Error("Missing K2THINK_API_KEY");
   if (!baseUrl) throw new Error("Missing K2THINK_BASE_URL");
