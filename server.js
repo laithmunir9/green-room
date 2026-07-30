@@ -8,7 +8,7 @@ import { getBankQuestions, putBankQuestion, bankSize, getExamQuestions } from ".
 import { pickVisual } from "./diagrams.js";
 import { aiK2Json } from "./k2Client.js";
 import { PRACTICE_TEMPLATES, TEMPLATE_IDS, findPersona } from "./practiceTemplates.js";
-import { buildScenarioKeywordSet, classifyStudentMessage, selectResponders } from "./practiceClassifier.js";
+import { buildScenarioKeywordSet, classifyStudentMessage, selectResponders, summarizeDelivery, summarizeEngagement } from "./practiceClassifier.js";
 
 
 
@@ -1677,6 +1677,65 @@ app.post("/api/practice/message", async (req, res) => {
     res.json({
       responses,
       student: publicStudent(s),
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+app.post("/api/practice/end", async (req, res) => {
+  try {
+    const s = getStudent(req.body?.studentId);
+    if (!s) return res.status(404).json({ error: "Student not found" });
+    if (!s.practice) return res.status(400).json({ error: "No active practice session" });
+
+    const practice = s.practice;
+    const studentTexts = practice.history.filter((m) => m.role === "student").map((m) => m.text);
+    if (!studentTexts.length) {
+      return res.status(400).json({ error: "Nothing to review yet — send at least one message first" });
+    }
+
+    const delivery = summarizeDelivery(studentTexts);
+    const engagement = summarizeEngagement(studentTexts);
+
+    const transcript = practice.history
+      .map((m) => {
+        const who = m.role === "student" ? "Student" : (findPersona(practice.templateId, m.personaId)?.name || m.personaId);
+        return `${who}: ${m.text}`;
+      })
+      .join("\n");
+
+    const system =
+      "You are a warm, encouraging speaking/communication coach reviewing a completed practice session. " +
+      `Scenario the student described: "${practice.description}". ` +
+      "You will be given the full transcript and two measured signal summaries. Write short (2-4 sentence), " +
+      "specific, encouraging coaching feedback for each of three dimensions. Never output a numeric score or grade. " +
+      "For content correspondence, judge whether what the student actually said stayed relevant and accurate to " +
+      "their stated scenario — you are the only one checking this, read the transcript carefully.\n\n" +
+      `Measured delivery signals (informational — use as context, don't just restate the numbers): ${JSON.stringify(delivery)}\n` +
+      `Measured engagement signals (informational — use as context, don't just restate the numbers): ${JSON.stringify(engagement)}\n\n` +
+      "Respond with JSON only: " +
+      '{"articulation":"...","engagement":"...","contentCorrespondence":"..."} ' +
+      "Plain text only, no markdown.";
+
+    let parsed;
+    try {
+      parsed = await aiK2Json({ system, user: transcript, max_tokens: 1500 });
+    } catch (e) {
+      console.error("[ai] practice end-of-session rubric failed:", e.message || e);
+      return res.status(503).json({ error: "Couldn't put together your feedback right now — please try again." });
+    }
+
+    practice.endedAt = new Date().toISOString();
+    putStudent(s);
+
+    res.json({
+      rubric: {
+        articulation: cleanStudentText(parsed.articulation || ""),
+        engagement: cleanStudentText(parsed.engagement || ""),
+        contentCorrespondence: cleanStudentText(parsed.contentCorrespondence || ""),
+      },
+      raw: { delivery, engagement },
     });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
