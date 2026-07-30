@@ -198,6 +198,7 @@ app.post("/api/practice/start", (req, res) => {
       keywords: [...keywordSet],
       history: [{ role: "agent", personaId: "facilitator", text: opener }],
       studentTurns: [],
+      voiceTurns: [],
       startedAt: new Date().toISOString(),
       endedAt: null,
     };
@@ -224,6 +225,11 @@ app.post("/api/practice/message", async (req, res) => {
 
     const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
     if (!text) return res.status(400).json({ error: "Message required" });
+
+    // Only trust durationSec when it's a real spoken turn (Web Speech API reports
+    // elapsed time) — long enough to rule out browser start/stop timing noise.
+    const durationSec = Number(req.body?.durationSec);
+    const hasSpokenDuration = Number.isFinite(durationSec) && durationSec >= 0.5;
 
     const practice = s.practice;
     const template = PRACTICE_TEMPLATES[practice.templateId];
@@ -282,6 +288,11 @@ app.post("/api/practice/message", async (req, res) => {
 
     practice.history.push({ role: "student", text });
     practice.studentTurns.push(text);
+    if (hasSpokenDuration) {
+      const wordCount = text.split(/\s+/).filter(Boolean).length;
+      practice.voiceTurns = practice.voiceTurns || [];
+      practice.voiceTurns.push({ wordCount, durationSec });
+    }
     for (const r of responses) {
       practice.history.push({ role: "agent", personaId: r.personaId, text: r.reply });
     }
@@ -309,7 +320,7 @@ app.post("/api/practice/end", async (req, res) => {
       return res.status(400).json({ error: "Nothing to review yet — send at least one message first" });
     }
 
-    const delivery = summarizeDelivery(studentTexts);
+    const delivery = summarizeDelivery(studentTexts, practice.voiceTurns || []);
     const engagement = summarizeEngagement(studentTexts);
 
     const transcript = practice.history
@@ -324,6 +335,11 @@ app.post("/api/practice/end", async (req, res) => {
       `Scenario the student described: "${practice.description}". ` +
       "You will be given the full transcript and two measured signal summaries. Write short (2-4 sentence), " +
       "specific, encouraging coaching feedback for each of three dimensions. Never output a numeric score or grade. " +
+      "For articulation, the delivery signals include avgWpm — a real words-per-minute figure measured from the " +
+      "student's actual speaking pace (only present when they used the microphone, null otherwise). When it's " +
+      "present, weigh in on their pace for this kind of scenario (roughly 120-160 wpm reads as clear and " +
+      "conversational for most spoken scenarios; noticeably faster can read as rushed, noticeably slower can read " +
+      "as hesitant) — but don't invent a pace comment when avgWpm is null. " +
       "For content correspondence, judge whether what the student actually said stayed relevant and accurate to " +
       "their stated scenario — you are the only one checking this, read the transcript carefully.\n\n" +
       `Measured delivery signals (informational — use as context, don't just restate the numbers): ${JSON.stringify(delivery)}\n` +

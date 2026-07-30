@@ -85,9 +85,9 @@ export function selectResponders(signals, rng = Math.random) {
   return picks.slice(0, 3);
 }
 
-export function summarizeDelivery(studentTexts) {
+export function summarizeDelivery(studentTexts, voiceTurns = []) {
   const turnCount = studentTexts.length;
-  if (turnCount === 0) return { turnCount: 0, hedgeRate: 0, rambleRate: 0 };
+  if (turnCount === 0) return { turnCount: 0, hedgeRate: 0, rambleRate: 0, avgWpm: null, pacedTurnCount: 0 };
   let totalWords = 0;
   let totalHedges = 0;
   let vagueTurns = 0;
@@ -97,10 +97,18 @@ export function summarizeDelivery(studentTexts) {
     totalHedges += signals.hedgeCount;
     if (signals.vague) vagueTurns += 1;
   }
+  let avgWpm = null;
+  if (voiceTurns.length) {
+    const totalVoiceWords = voiceTurns.reduce((sum, t) => sum + t.wordCount, 0);
+    const totalVoiceMinutes = voiceTurns.reduce((sum, t) => sum + t.durationSec, 0) / 60;
+    avgWpm = totalVoiceMinutes > 0 ? Math.round(totalVoiceWords / totalVoiceMinutes) : null;
+  }
   return {
     turnCount,
     hedgeRate: totalWords > 0 ? totalHedges / totalWords : 0,
     rambleRate: vagueTurns / turnCount,
+    avgWpm,
+    pacedTurnCount: voiceTurns.length,
   };
 }
 

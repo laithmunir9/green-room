@@ -282,6 +282,7 @@ const S = {
   practiceTemplate: null,
   practiceLog: [],
   micOn: false,
+  micStartedAt: 0,
   sending: false,
   rubric: null,
   viaFreeText: false,
@@ -661,13 +662,15 @@ function renderPracticeChat() {
   $("#endBtn").onclick = endPracticeSession;
 }
 
-async function sendPracticeMessage(text) {
+async function sendPracticeMessage(text, durationSec) {
   if (S.sending) return;
   S.practiceLog.push({ role: "student", text });
   S.sending = true;
   render();
   try {
-    const j = await api("/api/practice/message", { studentId: S.token, text });
+    const body = { studentId: S.token, text };
+    if (typeof durationSec === "number" && durationSec > 0) body.durationSec = durationSec;
+    const j = await api("/api/practice/message", body);
     for (const r of j.responses) S.practiceLog.push({ role: "agent", name: r.name, text: r.reply });
     S.sending = false;
     render();
@@ -695,7 +698,7 @@ function toggleMic() {
   recognition.lang = "en-US";
   recognition.interimResults = false;
   recognition.continuous = false;
-  recognition.onstart = () => { S.micOn = true; render(); };
+  recognition.onstart = () => { S.micOn = true; S.micStartedAt = performance.now(); render(); };
   recognition.onend = () => { S.micOn = false; render(); };
   recognition.onerror = (e) => {
     console.error("speech recognition error", e.error);
@@ -704,7 +707,8 @@ function toggleMic() {
   };
   recognition.onresult = (e) => {
     const text = e.results[0][0].transcript;
-    if (text && text.trim()) sendPracticeMessage(text.trim());
+    const durationSec = (performance.now() - S.micStartedAt) / 1000;
+    if (text && text.trim()) sendPracticeMessage(text.trim(), durationSec);
   };
   try { recognition.start(); } catch (e) { console.error(e); }
 }
