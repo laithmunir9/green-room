@@ -222,6 +222,25 @@
       background: var(--rm-panel); border: 2px solid var(--ink);
       filter: url(#sketchWobbleBold);
     }
+    .rm-history { margin-top: 26px; }
+    .rm-history-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--rm-muted); margin-bottom: 10px; }
+    .rm-history-row {
+      position: relative; z-index: 0; display: flex; align-items: baseline; gap: 10px;
+      padding: 10px 14px; margin-bottom: 8px; font-size: 13px;
+    }
+    .rm-history-row::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 12px;
+      background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble);
+    }
+    .rm-history-row b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-weight: 600; flex-shrink: 0; }
+    .rm-history-row .date { color: var(--rm-muted); font-size: 11px; flex-shrink: 0; }
+    .rm-history-row .takeaway { color: var(--rm-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .rm-thinking { display: inline-flex; gap: 4px; align-items: center; }
+    .rm-thinking span { width: 6px; height: 6px; border-radius: 50%; background: var(--rm-muted); animation: thinkBounce 1.2s ease-in-out infinite; }
+    .rm-thinking span:nth-child(2) { animation-delay: .15s; }
+    .rm-thinking span:nth-child(3) { animation-delay: .3s; }
+    @keyframes thinkBounce { 0%, 60%, 100% { transform: translateY(0); opacity: .5; } 30% { transform: translateY(-4px); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { .rm-thinking span { animation: none; opacity: .8; } }
     .rm-btn {
       position: relative; z-index: 0;
       appearance: none; border: none; cursor: pointer; font: inherit; font-weight: 600;
@@ -380,6 +399,8 @@ const S = {
   showTypeInput: false,
   liveWpm: null,
   setupTemplateId: null,
+  soundcheckMode: false,
+  soundcheckText: "",
 };
 
 const main = document.getElementById("main");
@@ -422,6 +443,24 @@ function renderHeaderUser() {
   el.innerHTML = `<b>${esc(S.student.name || "")}</b><span>Level ${level} · ${count} session${count === 1 ? "" : "s"}</span>`;
 }
 
+const SESSION_HISTORY_KEY = "greenRoomSessionHistory";
+function getSessionHistory() {
+  try { return JSON.parse(localStorage.getItem(SESSION_HISTORY_KEY) || "[]"); } catch { return []; }
+}
+function pushSessionHistory(entry) {
+  const list = getSessionHistory();
+  list.unshift(entry);
+  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(list.slice(0, 5)));
+}
+function firstSentence(s, maxLen) {
+  const trimmed = String(s || "").trim();
+  const m = trimmed.match(/^[^.!?]*[.!?]/);
+  const sentence = m ? m[0] : trimmed;
+  return sentence.length > maxLen ? sentence.slice(0, maxLen - 1) + "…" : sentence;
+}
+
+const THINKING_HTML = `<span class="rm-thinking"><span></span><span></span><span></span></span>`;
+
 function esc(s) {
   return String(s ?? "")
     .replaceAll("&", "&amp;")
@@ -452,6 +491,7 @@ function status(msg) {
 
 function render() {
   if (S.screen === "picker") renderPicker();
+  else if (S.screen === "soundcheck") renderSoundcheck();
   else if (S.screen === "setup") renderSetup();
   else if (S.screen === "practice") (S.viaFreeText ? renderPracticeChat() : renderPracticeStaged());
   else if (S.screen === "practiceEnd") renderPracticeEnd();
@@ -607,6 +647,21 @@ const SCENE_BY_ID = {
   casual: sceneCasual,
 };
 
+function sessionHistoryHtml() {
+  const history = getSessionHistory();
+  if (!history.length) return "";
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `<div class="rm-history">
+    <div class="rm-history-label">Recently</div>
+    ${history.map((h) => `
+      <div class="rm-history-row">
+        <b>${esc(h.templateName)}</b>
+        <span class="date">${esc(fmtDate(h.date))}</span>
+        <span class="takeaway">${esc(h.takeaway || "")}</span>
+      </div>`).join("")}
+  </div>`;
+}
+
 function renderPicker() {
   const heroes = HERO_TEMPLATE_IDS.map((id) => CARD_TEMPLATES.find((t) => t.id === id));
   const secondary = CARD_TEMPLATES.filter((t) => !HERO_TEMPLATE_IDS.includes(t.id));
@@ -643,18 +698,70 @@ function renderPicker() {
         <p class="muted" id="status" style="margin-top:10px"></p>
         <div id="err"></div>
       </div>
+      ${sessionHistoryHtml()}
     </div>`;
   $$("[data-tpl]").forEach((b) => (b.onclick = () => {
     const t = CARD_TEMPLATES.find((x) => x.id === b.dataset.tpl);
-    if (t.setupQuestion) {
-      S.setupTemplateId = t.id;
-      S.screen = "setup";
-      render();
-    } else {
-      startPracticeDirect(t.id);
-    }
+    maybeSoundCheck(() => {
+      if (t.setupQuestion) {
+        S.setupTemplateId = t.id;
+        S.screen = "setup";
+        render();
+      } else {
+        startPracticeDirect(t.id);
+      }
+    });
   }));
-  $("#freeGo").onclick = startPracticeFromDescription;
+  $("#freeGo").onclick = () => maybeSoundCheck(startPracticeFromDescription);
+}
+
+const SOUND_CHECK_KEY = "greenRoomSoundCheckDone";
+let pendingIntent = null;
+
+function maybeSoundCheck(intentFn) {
+  if (localStorage.getItem(SOUND_CHECK_KEY)) { intentFn(); return; }
+  pendingIntent = intentFn;
+  S.soundcheckMode = true;
+  S.soundcheckText = "";
+  S.camDismissed = false;
+  S.screen = "soundcheck";
+  render();
+}
+
+function finishSoundcheck() {
+  localStorage.setItem(SOUND_CHECK_KEY, "1");
+  S.soundcheckMode = false;
+  S.soundcheckText = "";
+  stopCamPreview();
+  const intent = pendingIntent;
+  pendingIntent = null;
+  if (intent) intent();
+  else { S.screen = "picker"; render(); }
+}
+
+function renderSoundcheck() {
+  main.innerHTML = `
+    <div class="rm-page">
+      <div class="rm-topbar"><b>Quick sound check</b></div>
+      <h2 class="rm-h2">Let's make sure you're heard</h2>
+      <p class="rm-sub">Optional — say hello, and we'll show you what came through before your first real session.</p>
+      <div class="rm-freeform">
+        <div class="rm-mic-hero" style="padding:6px 0 2px">
+          <button class="rm-mic-big ${S.micOn ? "on" : ""}" id="soundcheckMic" title="${S.micOn ? "Stop" : "Tap and say hello"}">${S.micOn ? "⏹" : "🎤"}</button>
+          <p class="rm-stage-mic-state">${S.micOn ? "Listening…" : "Tap and say hello"}</p>
+        </div>
+        <p class="muted" style="text-align:center;min-height:20px">${S.soundcheckText ? `We heard: "${esc(S.soundcheckText)}"` : ""}</p>
+        <div class="actions" style="justify-content:center;margin-top:10px">
+          <button class="rm-btn ghost" id="soundcheckSkip">Skip for now</button>
+          <button class="rm-btn primary" id="soundcheckContinue" ${S.soundcheckText ? "" : "disabled"}>Continue</button>
+        </div>
+      </div>
+      ${camWidgetHtml()}
+    </div>`;
+  $("#soundcheckMic").onclick = toggleMic;
+  $("#soundcheckSkip").onclick = finishSoundcheck;
+  $("#soundcheckContinue").onclick = finishSoundcheck;
+  wireCamWidget();
 }
 
 function renderSetup() {
@@ -832,7 +939,7 @@ function renderLogBubbles() {
   return S.practiceLog.map((m) => {
     if (m.role === "student") return `<div class="rm-bubble me"><span class="who">You</span>${esc(m.text)}</div>`;
     return `<div class="rm-bubble them"><span class="who">${esc(m.name || "")}</span>${esc(m.text)}</div>`;
-  }).join("") + (S.sending ? `<div class="rm-bubble sys">…</div>` : "");
+  }).join("") + (S.sending ? `<div class="rm-bubble sys">${THINKING_HTML}</div>` : "");
 }
 
 function discardPracticeSession() {
@@ -869,7 +976,7 @@ function renderPracticeStaged() {
         ${templateId === "pitch" ? pitchSlideBar() : ""}
         <hr class="rm-stage-divider" />
         <div class="rm-mic-hero">
-          <p class="rm-caption" id="caption">${S.sending ? "…" : lastUtteranceHtml()}</p>
+          <p class="rm-caption" id="caption">${S.sending ? THINKING_HTML : lastUtteranceHtml()}</p>
           <button class="rm-mic-big ${S.micOn ? "on" : ""}" id="micBig" title="${S.micOn ? "Stop" : "Tap to speak"}" aria-label="${S.micOn ? "Stop listening" : "Start speaking"}">${S.micOn ? "⏹" : "🎤"}</button>
           <p class="rm-stage-mic-state">${S.micOn ? "Listening…" : "Tap to speak"}</p>
           <div class="rm-mic-secondary">
@@ -1039,6 +1146,11 @@ function startRecognition() {
       const durationSec = S.micStartedAt ? (performance.now() - S.micStartedAt) / 1000 : 0;
       S.micStartedAt = 0;
       const text = micTranscriptParts.join(" ").trim();
+      if (S.soundcheckMode) {
+        S.soundcheckText = text;
+        render();
+        return;
+      }
       if (text && durationSec >= 0.5) {
         const wordCount = text.split(/\s+/).filter(Boolean).length;
         S.liveWpm = Math.round(wordCount / (durationSec / 60));
@@ -1097,6 +1209,11 @@ async function endPracticeSession() {
     S.rubric = j.rubric;
     S.screen = "practiceEnd";
     incrementSessionCount();
+    pushSessionHistory({
+      templateName: S.practiceTemplate?.templateName || "Practice session",
+      date: new Date().toISOString(),
+      takeaway: firstSentence(j.rubric?.contentCorrespondence || j.rubric?.articulation || "", 90),
+    });
     render();
     renderHeaderUser();
   } catch (e) { err(e); }
