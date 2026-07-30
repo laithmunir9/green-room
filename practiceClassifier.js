@@ -56,7 +56,7 @@ export function classifyStudentMessage(text, { keywordSet = new Set(), recentStu
     absoluteLanguage,
     selfContradiction,
     onTopic,
-    vague: wordCount > 40 || hedgeCount >= 5,
+    vague: wordCount > 40 || hedgeCount >= 2,
     hesitantShort: wordCount < 8 && hedgeCount > 0,
     offTopic: !onTopic && wordCount >= 4,
   };

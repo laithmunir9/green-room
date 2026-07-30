@@ -143,7 +143,7 @@ test("summarizeDelivery aggregates hedge rate and ramble rate across turns", () 
   const result = summarizeDelivery(texts);
   assert.equal(result.turnCount, 2);
   assert.ok(result.hedgeRate > 0);
-  assert.equal(result.rambleRate, 0); // neither turn is long/hedgy enough to be `vague`
+  assert.equal(result.rambleRate, 0.5); // first turn is vague (4 hedges >= 2), second is clean
 });
 
 test("summarizeDelivery returns zero rates for an empty transcript", () => {
