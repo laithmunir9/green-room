@@ -8,6 +8,7 @@ import { getBankQuestions, putBankQuestion, bankSize, getExamQuestions } from ".
 import { pickVisual } from "./diagrams.js";
 import { aiK2Json } from "./k2Client.js";
 import { CLASSROOM_PERSONAS, TEACHER_AGENT, findPersona } from "./classroomPersonas.js";
+import { PRACTICE_TEMPLATES, TEMPLATE_IDS } from "./practiceTemplates.js";
 import { buildTopicKeywordSet, classifyStudentMessage, selectResponders } from "./classroomClassifier.js";
 
 
@@ -1659,6 +1660,55 @@ app.post("/api/classroom/message", async (req, res) => {
       responses: responses.map(({ personaId, name, reply }) => ({ personaId, name, reply })),
       reward,
       student: publicStudent(s),
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+app.post("/api/practice/infer-scenario", async (req, res) => {
+  try {
+    const s = getStudent(req.body?.studentId);
+    if (!s) return res.status(404).json({ error: "Student not found" });
+    const description = cleanStudentText(req.body?.description || "").slice(0, 2000);
+    if (!description) return res.status(400).json({ error: "Scenario description required" });
+
+    const templateSummaries = TEMPLATE_IDS.map(
+      (id) => `- "${id}": ${PRACTICE_TEMPLATES[id].description}`
+    ).join("\n");
+
+    const system =
+      "You classify a student's free-text scenario description into exactly one practice-session template. " +
+      "Choose the single best match from this fixed list, never invent a new one:\n" +
+      templateSummaries +
+      "\n\nRespond with JSON only: " +
+      '{"templateId":"...","confidence":"high"|"medium"|"low","reason":"..."} ' +
+      "reason is one short sentence explaining the match. Plain text only, no markdown.";
+
+    let parsed;
+    try {
+      parsed = await aiK2Json({ system, user: description, max_tokens: 800 });
+    } catch (e) {
+      console.error("[ai] scenario inference failed:", e.message || e);
+      return res.status(503).json({ error: "Couldn't classify that scenario right now — please try again." });
+    }
+
+    let templateId = parsed.templateId;
+    let confidence = parsed.confidence || "medium";
+    let reason = cleanStudentText(parsed.reason || "");
+    if (!TEMPLATE_IDS.includes(templateId)) {
+      templateId = "casual";
+      confidence = "low";
+      reason = "Couldn't confidently match a specific template — defaulting to casual conversation practice.";
+    }
+
+    const template = PRACTICE_TEMPLATES[templateId];
+    res.json({
+      templateId,
+      templateName: template.name,
+      confidence,
+      reason,
+      personas: template.personas.map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
     });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
