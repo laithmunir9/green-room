@@ -14,6 +14,7 @@
       --r: 20px;
       --shadow: 0 24px 60px rgba(43,74,64,.12);
       --ink: rgba(43,74,64,.62);
+      --rm-header-bg: rgba(255,253,248,.9);
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
@@ -29,8 +30,20 @@
     header {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
       padding: 16px 32px; border-bottom: 2px solid var(--ink);
-      background: rgba(255,253,248,.9); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20;
+      background: var(--rm-header-bg); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20;
     }
+    .theme-toggle {
+      position: relative; z-index: 0;
+      width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+      font-size: 17px; display: flex; align-items: center; justify-content: center;
+      background: transparent; transition: .15s transform;
+    }
+    .theme-toggle::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%;
+      background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble);
+    }
+    .theme-toggle:hover { transform: rotate(-8deg); }
+    .theme-toggle:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
     .brand { display: flex; align-items: center; gap: 12px; position: relative; }
     .brand-wash { position: absolute; left: -10px; top: -12px; width: 56px; height: 56px; z-index: 0; pointer-events: none; }
     .brand img { width: 36px; height: 36px; flex-shrink: 0; position: relative; z-index: 1; }
@@ -64,7 +77,7 @@
     .input-wrap { position: relative; z-index: 0; }
     .input-wrap::before {
       content: ""; position: absolute; inset: 0; z-index: -1;
-      background: #fffdf8; border: 2px solid var(--ink); border-radius: 10px;
+      background: var(--rm-input-bg); border: 2px solid var(--ink); border-radius: 10px;
       filter: url(#sketchWobble);
     }
     .input-wrap.pill::before { border-radius: 999px; }
@@ -112,6 +125,25 @@
       --rm-tan: #e7c48f;
       --rm-ink: #24352e;
       --rm-muted: #5f7268;
+      --rm-bubble-them-bg: #f1ead9;
+      --rm-input-bg: #fffdf8;
+    }
+    :root[data-theme="dark"] {
+      --rm-bubble-them-bg: #33443d;
+      --rm-input-bg: #2a3a34;
+      --bad: #e2685c;
+      --shadow: 0 24px 60px rgba(0,0,0,.55);
+      --ink: rgba(223,232,220,.55);
+      --rm-header-bg: rgba(20,28,25,.85);
+      --rm-bg: #1b2420;
+      --rm-panel: #24342f;
+      --rm-line: rgba(255,255,255,.14);
+      --rm-teal: #5fa38c;
+      --rm-teal-dark: #bfe0cf;
+      --rm-sage: #8fb490;
+      --rm-tan: #eccb98;
+      --rm-ink: #eef2ea;
+      --rm-muted: #9fb3a8;
     }
     .rm-page { background: var(--rm-bg); flex: 1; min-height: calc(100vh - 76px); padding: 32px; }
     .rm-topbar { margin-bottom: 10px; }
@@ -212,7 +244,7 @@
     .rm-bubble { max-width: 86%; padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; }
     .rm-bubble .who { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; color: var(--rm-muted); }
     .rm-bubble.me { align-self: flex-end; background: var(--rm-sage); color: #16261d; }
-    .rm-bubble.them { align-self: flex-start; background: #f1ead9; color: var(--rm-ink); }
+    .rm-bubble.them { align-self: flex-start; background: var(--rm-bubble-them-bg); color: var(--rm-ink); }
     .rm-bubble.sys { align-self: center; color: var(--rm-muted); font-size: 12px; font-style: italic; }
     .rm-controls { display: flex; gap: 8px; align-items: center; }
     .rm-mic-state { font-size: 12px; color: var(--rm-muted); text-align: center; margin: 6px 0 0; }
@@ -274,6 +306,7 @@
           <p>Practice space</p>
         </div>
       </div>
+      <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
     </header>
     <main id="main"></main>
   </div>
@@ -299,6 +332,23 @@ const S = {
 const main = document.getElementById("main");
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("greenRoomTheme", theme);
+  const btn = document.getElementById("themeToggle");
+  if (btn) btn.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+(() => {
+  const saved = localStorage.getItem("greenRoomTheme");
+  const preferred = saved || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  applyTheme(preferred);
+})();
+document.getElementById("themeToggle").onclick = toggleTheme;
 
 function esc(s) {
   return String(s ?? "")
