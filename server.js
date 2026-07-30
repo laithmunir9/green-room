@@ -187,9 +187,20 @@ app.post("/api/practice/start", (req, res) => {
     if (!template) return res.status(400).json({ error: "Unknown template" });
     const description = cleanStudentText(req.body?.description || "").slice(0, 2000);
     if (!description) return res.status(400).json({ error: "Scenario description required" });
+    const setupAnswer = cleanStudentText(req.body?.setupAnswer || "").slice(0, 300);
 
     const keywordSet = buildScenarioKeywordSet(description);
-    const opener = `Alright ${s.name}, whenever you're ready — go ahead.`;
+    // exam_viva and interview are AI-led: a specific setup answer (topic/role)
+    // grounds a real first question instead of waiting on the student to
+    // start explaining unprompted. The other templates stay student-led.
+    let opener;
+    if (templateId === "exam_viva" && setupAnswer) {
+      opener = `Alright ${s.name}, let's begin. Walk me through ${setupAnswer} — start wherever makes the most sense to you.`;
+    } else if (templateId === "interview" && setupAnswer) {
+      opener = `Thanks for coming in, ${s.name}. Let's start here: what draws you to the ${setupAnswer} role, and what relevant experience do you bring?`;
+    } else {
+      opener = `Alright ${s.name}, whenever you're ready — go ahead.`;
+    }
 
     s.practice = {
       templateId: template.id,

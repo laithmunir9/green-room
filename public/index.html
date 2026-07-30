@@ -375,6 +375,7 @@ const S = {
   showTranscript: false,
   showTypeInput: false,
   liveWpm: null,
+  setupTemplateId: null,
 };
 
 const main = document.getElementById("main");
@@ -447,6 +448,7 @@ function status(msg) {
 
 function render() {
   if (S.screen === "picker") renderPicker();
+  else if (S.screen === "setup") renderSetup();
   else if (S.screen === "practice") (S.viaFreeText ? renderPracticeChat() : renderPracticeStaged());
   else if (S.screen === "practiceEnd") renderPracticeEnd();
   else renderGate();
@@ -583,9 +585,11 @@ function sceneCasual() {
 }
 
 const CARD_TEMPLATES = [
-  { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva." },
+  { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva.",
+    setupQuestion: "What's the exam subject/topic?", setupPlaceholder: "e.g. Cell biology — mitosis and meiosis" },
   { id: "pitch", icon: "💡", label: "Investor Pitch", desc: "Sell your idea, whiteboard and all.", defaultDescription: "Practicing pitching an idea to investors." },
-  { id: "interview", icon: "💼", label: "Job Interview", desc: "Answer questions, one on one.", defaultDescription: "Practicing for a job interview." },
+  { id: "interview", icon: "💼", label: "Job Interview", desc: "Answer questions, one on one.", defaultDescription: "Practicing for a job interview.",
+    setupQuestion: "What role are you interviewing for?", setupPlaceholder: "e.g. Senior frontend engineer at a startup" },
   { id: "public_speech", icon: "🎤", label: "Public Speech", desc: "Present to a room, out loud.", defaultDescription: "Practicing a public speech or presentation." },
   { id: "casual", icon: "💬", label: "Casual chat", desc: "Low-stakes conversation practice.", defaultDescription: "Practicing casual conversation." },
 ];
@@ -636,15 +640,53 @@ function renderPicker() {
         <div id="err"></div>
       </div>
     </div>`;
-  $$("[data-tpl]").forEach((b) => (b.onclick = () => startPracticeDirect(b.dataset.tpl)));
+  $$("[data-tpl]").forEach((b) => (b.onclick = () => {
+    const t = CARD_TEMPLATES.find((x) => x.id === b.dataset.tpl);
+    if (t.setupQuestion) {
+      S.setupTemplateId = t.id;
+      S.screen = "setup";
+      render();
+    } else {
+      startPracticeDirect(t.id);
+    }
+  }));
   $("#freeGo").onclick = startPracticeFromDescription;
 }
 
-async function startPracticeDirect(templateId) {
+function renderSetup() {
+  const t = CARD_TEMPLATES.find((x) => x.id === S.setupTemplateId);
+  main.innerHTML = `
+    <div class="rm-page">
+      <div class="rm-topbar"><button class="rm-exit-btn" id="setupBack">← Back</button><b>${esc(t.label)}</b></div>
+      <h2 class="rm-h2">${esc(t.setupQuestion)}</h2>
+      <p class="rm-sub">This grounds the opening question so it's specific to you, not generic.</p>
+      <div class="rm-freeform">
+        <div class="input-wrap"><input id="setupAnswer" placeholder="${esc(t.setupPlaceholder || "")}" /></div>
+        <div class="actions" style="margin-top:10px">
+          <button class="rm-btn primary" id="setupGo">Start practicing</button>
+        </div>
+        <p class="muted" id="status" style="margin-top:10px"></p>
+        <div id="err"></div>
+      </div>
+    </div>`;
+  $("#setupBack").onclick = () => { S.screen = "picker"; render(); };
+  const inputEl = $("#setupAnswer");
+  inputEl.focus();
+  const go = () => {
+    const answer = inputEl.value.trim();
+    if (!answer) { err(new Error("This helps the session ask something specific — give it a quick answer.")); return; }
+    startPracticeDirect(t.id, answer);
+  };
+  $("#setupGo").onclick = go;
+  inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+}
+
+async function startPracticeDirect(templateId, setupAnswer) {
   try {
     status("Setting the scene…");
     const t = CARD_TEMPLATES.find((x) => x.id === templateId);
-    const started = await api("/api/practice/start", { studentId: S.token, templateId, description: t.defaultDescription });
+    const description = setupAnswer ? `${t.defaultDescription} Specifically: ${setupAnswer}` : t.defaultDescription;
+    const started = await api("/api/practice/start", { studentId: S.token, templateId, description, setupAnswer });
     beginPracticeSession(started, false);
   } catch (e) { err(e); }
 }
