@@ -44,14 +44,17 @@ function putStudent(s) {
   return s;
 }
 
-function newStudent(name) {
+function newStudent(name, email) {
   return {
     id: randomUUID(),
     name: (name || "Learner").slice(0, 48),
+    email: (email || "").trim().toLowerCase().slice(0, 254),
     password: "", // optional simple gate
     createdAt: new Date().toISOString(),
   };
 }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function cleanStudentText(s) {
   return String(s ?? "")
@@ -79,8 +82,14 @@ app.get("/api/health", (_req, res) => {
 
 app.post("/api/auth/register", (req, res) => {
   const name = String(req.body?.name || "").trim().slice(0, 48);
+  const email = String(req.body?.email || "").trim().toLowerCase().slice(0, 254);
   if (!name) return res.status(400).json({ error: "Name required" });
-  const s = newStudent(name);
+  if (!email) return res.status(400).json({ error: "Email required" });
+  if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "Enter a valid email" });
+  const db = loadDb();
+  const exists = Object.values(db.students).some((s) => (s.email || "").toLowerCase() === email);
+  if (exists) return res.status(409).json({ error: "An account with that email already exists" });
+  const s = newStudent(name, email);
   const pass = String(req.body?.password || "");
   if (pass) s.password = pass;
   putStudent(s);
@@ -88,13 +97,13 @@ app.post("/api/auth/register", (req, res) => {
 });
 
 app.post("/api/auth/login", (req, res) => {
-  const name = String(req.body?.name || "").trim();
+  const email = String(req.body?.email || "").trim().toLowerCase();
   const pass = String(req.body?.password || "");
   const db = loadDb();
   const found = Object.values(db.students).find(
-    (s) => s.name.toLowerCase() === name.toLowerCase() && (!s.password || s.password === pass)
+    (s) => (s.email || "").toLowerCase() === email && (!s.password || s.password === pass)
   );
-  if (!found) return res.status(401).json({ error: "No matching account (check name/password)" });
+  if (!found) return res.status(401).json({ error: "No matching account (check email/password)" });
   res.json({ student: publicStudent(found), token: found.id });
 });
 

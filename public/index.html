@@ -10,85 +10,61 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0b120e;
-      --panel: #121c16;
-      --panel2: #182319;
-      --line: rgba(240,225,200,.09);
-      --text: #f3f0e8;
-      --muted: #8fa396;
-      --acc: #f0b429;
-      --acc-dim: rgba(240,180,41,.14);
-      --acc2: #5b8c6e;
-      --bad: #e2685a;
+      --bad: #c0453a;
       --r: 20px;
-      --shadow: 0 24px 60px rgba(0,0,0,.45);
+      --shadow: 0 24px 60px rgba(43,74,64,.12);
     }
     * { box-sizing: border-box; }
     html, body { height: 100%; margin: 0; }
     body {
       font-family: "IBM Plex Sans", system-ui, sans-serif;
-      color: var(--text);
+      color: var(--rm-ink);
       background:
-        radial-gradient(900px 500px at 12% -10%, rgba(240,180,41,.07), transparent 55%),
-        radial-gradient(800px 460px at 100% 10%, rgba(91,140,110,.14), transparent 50%),
-        var(--bg);
+        radial-gradient(900px 500px at 12% -10%, rgba(159,187,148,.16), transparent 55%),
+        radial-gradient(800px 460px at 100% 10%, rgba(231,196,143,.18), transparent 50%),
+        var(--rm-bg);
     }
     .shell { min-height: 100%; display: flex; flex-direction: column; }
     header {
       display: flex; justify-content: space-between; align-items: center; gap: 12px;
-      padding: 18px 32px; border-bottom: 1px solid var(--line);
-      background: rgba(9,15,11,.85); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20;
+      padding: 16px 32px; border-bottom: 1px solid var(--rm-line);
+      background: rgba(255,253,248,.85); backdrop-filter: blur(14px); position: sticky; top: 0; z-index: 20;
     }
     .brand { display: flex; align-items: center; gap: 12px; }
-    .lamp {
-      width: 12px; height: 12px; border-radius: 50%;
-      background: var(--acc); box-shadow: 0 0 0 4px var(--acc-dim), 0 0 14px rgba(240,180,41,.7);
-      animation: standby 2.6s ease-in-out infinite;
-      flex-shrink: 0;
-    }
-    @keyframes standby { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
-    @media (prefers-reduced-motion: reduce) { .lamp { animation: none; } }
-    .brand-text h1 { margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -.01em; }
-    .brand-text p { margin: 2px 0 0; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; }
+    .brand img { width: 36px; height: 36px; flex-shrink: 0; }
+    .brand-text h1 { margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -.01em; color: var(--rm-teal-dark); }
+    .brand-text p { margin: 2px 0 0; color: var(--rm-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; }
     main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
     .fill-gate {
       flex: 1; display: grid; place-items: center; padding: 32px;
       min-height: calc(100vh - 76px);
     }
     .card {
-      background: rgba(18,28,22,.92); border: 1px solid var(--line); border-radius: var(--r);
+      background: var(--rm-panel); border: 1px solid var(--rm-line); border-radius: var(--r);
       padding: 30px; box-shadow: var(--shadow); width: min(440px, 100%);
     }
-    h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; margin: 0 0 6px; font-size: 26px; letter-spacing: -.01em; }
-    .sub { color: var(--muted); line-height: 1.55; margin: 0 0 22px; font-size: 14px; }
-    label { display: grid; gap: 6px; font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+    h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; margin: 0 0 6px; font-size: 26px; letter-spacing: -.01em; color: var(--rm-teal-dark); }
+    .sub { color: var(--rm-muted); line-height: 1.55; margin: 0 0 22px; font-size: 14px; }
+    label { display: grid; gap: 6px; font-size: 12.5px; color: var(--rm-muted); margin-bottom: 14px; }
     input {
-      width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line);
-      background: #0c140f; color: var(--text); font: inherit; font-size: 15px;
+      width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--rm-line);
+      background: #fffdf8; color: var(--rm-ink); font: inherit; font-size: 15px; box-sizing: border-box;
     }
-    input:focus-visible, .btn:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+    input:focus-visible, .btn:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
     .btn {
       appearance: none; border: none; cursor: pointer; font: inherit; font-weight: 600;
       border-radius: 999px; padding: 12px 20px; font-size: 14px; transition: .15s transform, .15s filter;
     }
-    .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.08); }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .primary { background: linear-gradient(135deg, #ffd27a, var(--acc)); color: #201400; }
-    .ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+    .primary { background: linear-gradient(135deg, #f3d19c, var(--rm-tan)); color: #2b1f0d; }
+    .ghost { background: transparent; color: var(--rm-teal-dark); border: 1px solid var(--rm-line); }
     .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
-    .muted { color: var(--muted); font-size: 13px; }
+    .muted { color: var(--rm-muted); font-size: 13px; }
     .err {
-      color: var(--bad); background: rgba(226,104,90,.08); border: 1px solid rgba(226,104,90,.3);
+      color: var(--bad); background: rgba(192,69,58,.08); border: 1px solid rgba(192,69,58,.3);
       padding: 12px 14px; border-radius: 12px; font-size: 13px; margin-top: 12px;
     }
-    .checked-in { text-align: center; }
-    .checked-in .lamp-lg {
-      width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 18px;
-      background: radial-gradient(circle at 35% 30%, #ffe6a8, var(--acc) 60%);
-      box-shadow: 0 0 0 10px var(--acc-dim), 0 0 30px rgba(240,180,41,.55);
-    }
-    .checked-in p.name { font-family: Fraunces, Georgia, serif; font-size: 22px; margin: 0 0 4px; }
-    .checked-in .actions { justify-content: center; margin-top: 20px; }
     :root {
       --rm-bg: #fbf7ec;
       --rm-panel: #ffffff;
@@ -101,9 +77,8 @@
       --rm-muted: #5f7268;
     }
     .rm-page { background: var(--rm-bg); flex: 1; min-height: calc(100vh - 76px); padding: 32px; }
-    .rm-topbar { display:flex; align-items:center; gap:10px; margin-bottom: 26px; }
-    .rm-topbar img { width: 34px; height: 34px; }
-    .rm-topbar b { font-family: Fraunces, Georgia, serif; font-size: 18px; color: var(--rm-teal-dark); }
+    .rm-topbar { margin-bottom: 10px; }
+    .rm-topbar b { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--rm-muted); }
     .rm-h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 26px; color: var(--rm-teal-dark); margin: 0 0 6px; }
     .rm-sub { color: var(--rm-muted); font-size: 14px; margin: 0 0 22px; max-width: 60ch; line-height: 1.5; }
     .rm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 30px; }
@@ -155,7 +130,7 @@
   <div class="shell">
     <header>
       <div class="brand">
-        <div class="lamp" aria-hidden="true"></div>
+        <img src="/logo.png" alt="" />
         <div class="brand-text">
           <h1>Green Room</h1>
           <p>Practice space</p>
@@ -225,7 +200,8 @@ function renderGate() {
         <p class="sub">${S.authMode === "register"
           ? "Warm up before you're on. Practice interviews, pitches, exam vivas and talks against a live scenario partner."
           : "Sign back in to pick up where you left off."}</p>
-        <label>Name <input id="name" placeholder="Your name" autocomplete="username" /></label>
+        ${S.authMode === "register" ? `<label>Name <input id="name" placeholder="Your name" autocomplete="name" /></label>` : ""}
+        <label>Email <input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></label>
         <label>Password (optional) <input id="pass" type="password" placeholder="••••••••" autocomplete="current-password" /></label>
         <div class="actions">
           <button class="btn primary" id="go">${S.authMode === "register" ? "Check in" : "Sign in"}</button>
@@ -239,11 +215,17 @@ function renderGate() {
   $("#go").onclick = async () => {
     try {
       status(S.authMode === "register" ? "Checking you in…" : "Signing you in…");
-      const name = $("#name").value.trim();
+      const email = $("#email").value.trim();
       const password = $("#pass").value;
-      if (!name) throw new Error("Please enter your name");
-      const path = S.authMode === "register" ? "/api/auth/register" : "/api/auth/login";
-      const j = await api(path, { name, password });
+      if (!email) throw new Error("Please enter your email");
+      let j;
+      if (S.authMode === "register") {
+        const name = $("#name").value.trim();
+        if (!name) throw new Error("Please enter your name");
+        j = await api("/api/auth/register", { name, email, password });
+      } else {
+        j = await api("/api/auth/login", { email, password });
+      }
       S.token = j.token;
       localStorage.setItem("greenRoomToken", j.token);
       S.student = j.student;
@@ -264,7 +246,7 @@ const CARD_TEMPLATES = [
 function renderPicker() {
   main.innerHTML = `
     <div class="rm-page">
-      <div class="rm-topbar"><img src="/logo.png" alt="" /><b>Choose a scenario</b></div>
+      <div class="rm-topbar"><b>Choose a scenario</b></div>
       <h2 class="rm-h2">Hi ${esc(S.student?.name || "")}, what are you rehearsing?</h2>
       <p class="rm-sub">Pick a scenario to jump straight in, or describe your own below.</p>
       <div class="rm-grid">
@@ -322,7 +304,7 @@ function beginPracticeSession(started) {
 function renderPractice() {
   main.innerHTML = `
     <div class="rm-page">
-      <div class="rm-topbar"><img src="/logo.png" alt="" /><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
+      <div class="rm-topbar"><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
       <div class="rm-session">
         <div class="rm-log" id="log">
           ${S.practiceLog.map((m) => {
@@ -425,7 +407,7 @@ function renderPracticeEnd() {
   const r = S.rubric || {};
   main.innerHTML = `
     <div class="rm-page">
-      <div class="rm-topbar"><img src="/logo.png" alt="" /><b>How it went</b></div>
+      <div class="rm-topbar"><b>How it went</b></div>
       <h2 class="rm-h2">Nice work, ${esc(S.student?.name || "")}</h2>
       <p class="rm-sub">Here's how your practice session went — no scores, just notes to build on.</p>
       <div class="rm-rubric">
