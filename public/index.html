@@ -265,6 +265,7 @@
       background: var(--rm-panel); border: 2.5px solid var(--ink);
       filter: url(#sketchWobbleBold);
     }
+    .rm-stage-label { text-align: center; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--rm-muted); margin: 0 0 10px; }
     .rm-stage-scene { height: 220px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
     .rm-stage-scene svg { width: 100%; height: 100%; overflow: visible; }
     .rm-slide-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 10px; font-size: 12.5px; color: var(--rm-muted); }
@@ -314,7 +315,7 @@
       cursor: pointer; padding: 0;
     }
     .rm-wpm-badge {
-      position: fixed; left: 18px; top: 90px; z-index: 45;
+      position: fixed; left: 18px; top: 150px; z-index: 45;
       padding: 10px 16px; border-radius: 14px; text-align: center; min-width: 66px;
     }
     .rm-wpm-badge::before {
@@ -861,8 +862,9 @@ function renderPracticeStaged() {
   const sceneSvg = templateId === "pitch" ? sceneFn(S.slides[S.slideIndex]) : sceneFn();
   main.innerHTML = `
     <div class="rm-page">
-      <div class="rm-topbar"><button class="rm-exit-btn" id="exitBtn">← Exit</button><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
+      <div class="rm-topbar"><button class="rm-exit-btn" id="exitBtn">← Exit</button></div>
       <div class="rm-stage">
+        <div class="rm-stage-label">${esc(S.practiceTemplate?.templateName || "Practice session")}</div>
         <div class="rm-stage-scene">${sceneSvg}</div>
         ${templateId === "pitch" ? pitchSlideBar() : ""}
         <hr class="rm-stage-divider" />
@@ -922,8 +924,9 @@ function renderPracticeStaged() {
 function renderPracticeChat() {
   main.innerHTML = `
     <div class="rm-page">
-      <div class="rm-topbar"><button class="rm-exit-btn" id="exitBtn">← Exit</button><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
+      <div class="rm-topbar"><button class="rm-exit-btn" id="exitBtn">← Exit</button></div>
       <div class="rm-session">
+        <div class="rm-stage-label">${esc(S.practiceTemplate?.templateName || "Practice session")}</div>
         <div class="rm-log" id="log">
           ${renderLogBubbles()}
         </div>
