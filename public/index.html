@@ -303,7 +303,10 @@
     }
     .rm-rubric .blk h4 { margin: 0 0 8px; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); font-size: 15px; }
     .rm-rubric .blk p { margin: 0; color: var(--rm-ink); font-size: 14px; line-height: 1.6; }
-    .rm-cam { position: fixed; right: 18px; bottom: 18px; width: 160px; border-radius: 14px; overflow: hidden; border: 2px solid var(--rm-teal); box-shadow: 0 10px 30px rgba(0,0,0,.3); background:#000; z-index: 50; }
+    .rm-cam { position: fixed; width: 160px; border-radius: 14px; overflow: hidden; border: 2px solid var(--rm-teal); box-shadow: 0 10px 30px rgba(0,0,0,.3); background:#000; z-index: 50; }
+    .rm-cam.pos-br { right: 18px; bottom: 18px; }
+    .rm-cam.pos-bl { left: 18px; bottom: 18px; }
+    .rm-cam.pos-tr { right: 18px; top: 90px; }
     .rm-cam video { width: 100%; display: block; transform: scaleX(-1); }
     .rm-cam-close {
       position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
@@ -729,9 +732,23 @@ function wpmBadgeHtml() {
   </div>`;
 }
 
+// Fixed-position corner per template, chosen to stay clear of that
+// template's own scene/controls rather than one hardcoded spot for all:
+// pitch gets the slide-shuffle row along the bottom, so its camera moves
+// left of center; interview reads naturally as "your own tile" beside the
+// video call, so it sits top-right instead of bottom.
+const CAM_POSITION_BY_TEMPLATE = {
+  exam_viva: "pos-br",
+  pitch: "pos-bl",
+  interview: "pos-tr",
+  public_speech: "pos-br",
+  casual: "pos-bl",
+};
+
 function camWidgetHtml() {
   if (S.camDismissed) return "";
-  return `<div class="rm-cam" id="camWrap">
+  const posClass = CAM_POSITION_BY_TEMPLATE[S.practiceTemplate?.templateId] || "pos-br";
+  return `<div class="rm-cam ${posClass}" id="camWrap">
     <video id="camVideo" autoplay playsinline muted></video>
     <button class="rm-cam-close" id="camClose" title="Turn off camera">✕</button>
   </div>`;
