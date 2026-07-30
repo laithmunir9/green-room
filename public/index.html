@@ -216,6 +216,20 @@
     .rm-bubble.sys { align-self: center; color: var(--rm-muted); font-size: 12px; font-style: italic; }
     .rm-controls { display: flex; gap: 8px; align-items: center; }
     .rm-mic-state { font-size: 12px; color: var(--rm-muted); text-align: center; margin: 6px 0 0; }
+    .rm-btn.sm { padding: 6px 12px; font-size: 12px; }
+    .rm-stage { position: relative; z-index: 0; max-width: 720px; margin: 0 auto; padding: 22px 22px 20px; }
+    .rm-stage::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 22px;
+      background: var(--rm-panel); border: 2.5px solid var(--ink);
+      filter: url(#sketchWobbleBold);
+    }
+    .rm-stage-scene { height: 220px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+    .rm-stage-scene svg { width: 100%; height: 100%; overflow: visible; }
+    .rm-slide-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 10px; font-size: 12.5px; color: var(--rm-muted); }
+    .rm-stage-divider { border: none; border-top: 2px dashed var(--rm-line); margin: 0 0 14px; }
+    .rm-stage-log { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px 2px 12px; }
+    .rm-stage-controls { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+    .rm-stage-mic-state { font-size: 12px; color: var(--rm-muted); text-align: center; margin: 6px 0 0; }
     .rm-rubric { display: grid; gap: 14px; max-width: 640px; margin: 0 auto; }
     .rm-rubric .blk { position: relative; z-index: 0; padding: 18px 20px; }
     .rm-rubric .blk::before {
@@ -270,6 +284,9 @@ const S = {
   micOn: false,
   sending: false,
   rubric: null,
+  viaFreeText: false,
+  slides: [],
+  slideIndex: 0,
 };
 
 const main = document.getElementById("main");
@@ -306,7 +323,7 @@ function status(msg) {
 
 function render() {
   if (S.screen === "picker") renderPicker();
-  else if (S.screen === "practice") renderPractice();
+  else if (S.screen === "practice") (S.viaFreeText ? renderPracticeChat() : renderPracticeStaged());
   else if (S.screen === "practiceEnd") renderPracticeEnd();
   else renderGate();
 }
@@ -354,14 +371,15 @@ function renderGate() {
   };
 }
 
-function sceneWhiteboard() {
-  return `<svg viewBox="0 0 300 220" aria-hidden="true">
+function sceneWhiteboard(slideUrl) {
+  const frame = `
     <line x1="72" y1="204" x2="56" y2="216" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
     <line x1="228" y1="204" x2="244" y2="216" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
     <rect x="35" y="28" width="230" height="168" rx="6" fill="#fffdf8" stroke="var(--ink)" stroke-width="3" filter="url(#sketchWobbleBold)"/>
     <line x1="35" y1="186" x2="265" y2="186" stroke="var(--ink)" stroke-width="2"/>
     <rect x="146" y="181" width="18" height="9" rx="2" fill="var(--rm-tan)" stroke="var(--ink)" stroke-width="1.5"/>
-    <rect x="170" y="181" width="18" height="9" rx="2" fill="var(--rm-sage)" stroke="var(--ink)" stroke-width="1.5"/>
+    <rect x="170" y="181" width="18" height="9" rx="2" fill="var(--rm-sage)" stroke="var(--ink)" stroke-width="1.5"/>`;
+  const doodles = `
     <line x1="60" y1="160" x2="60" y2="66" stroke="var(--ink)" stroke-width="2"/>
     <line x1="60" y1="160" x2="140" y2="160" stroke="var(--ink)" stroke-width="2"/>
     <rect x="68" y="128" width="14" height="32" fill="var(--rm-sage)" opacity="0.75"/>
@@ -372,8 +390,12 @@ function sceneWhiteboard() {
     <line x1="199" y1="115" x2="211" y2="115" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
     <line x1="205" y1="66" x2="205" y2="57" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
     <line x1="183" y1="90" x2="174" y2="90" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
-    <line x1="227" y1="90" x2="236" y2="90" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
-  </svg>`;
+    <line x1="227" y1="90" x2="236" y2="90" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>`;
+  const slide = slideUrl
+    ? `<defs><clipPath id="boardClip"><rect x="40" y="33" width="220" height="148" rx="4"/></clipPath></defs>
+       <image href="${esc(slideUrl)}" x="40" y="33" width="220" height="148" preserveAspectRatio="xMidYMid slice" clip-path="url(#boardClip)"/>`
+    : "";
+  return `<svg viewBox="0 0 300 220" aria-hidden="true">${frame}${slideUrl ? slide : doodles}</svg>`;
 }
 
 function sceneVideoCall() {
@@ -402,6 +424,39 @@ function sceneClassroom() {
   </svg>`;
 }
 
+function sceneAuditorium() {
+  const row = (y, count, scale) => {
+    const spacing = 260 / (count + 1);
+    let heads = "";
+    for (let i = 1; i <= count; i++) {
+      const x = 20 + spacing * i;
+      heads += `
+        <path d="M${x - 13 * scale},${y + 10 * scale} Q${x},${y - 14 * scale} ${x + 13 * scale},${y + 10 * scale} Z" fill="var(--rm-sage)" opacity="0.8" stroke="var(--ink)" stroke-width="1.5"/>
+        <circle cx="${x}" cy="${y - 6 * scale}" r="${7 * scale}" fill="#fffdf8" stroke="var(--ink)" stroke-width="1.5"/>`;
+    }
+    return heads;
+  };
+  return `<svg viewBox="0 0 300 220" aria-hidden="true" filter="url(#sketchWobble)">
+    ${row(46, 7, 0.7)}
+    ${row(88, 6, 0.95)}
+    ${row(134, 5, 1.2)}
+    <rect x="128" y="176" width="10" height="34" rx="3" fill="var(--rm-tan)" stroke="var(--ink)" stroke-width="2"/>
+    <ellipse cx="133" cy="172" rx="14" ry="6" fill="none" stroke="var(--ink)" stroke-width="2"/>
+  </svg>`;
+}
+
+function sceneCasual() {
+  return `<svg viewBox="0 0 300 220" aria-hidden="true" filter="url(#sketchWobble)">
+    <ellipse cx="150" cy="200" rx="66" ry="9" fill="var(--rm-sage)" opacity="0.3"/>
+    <path d="M112,192 Q108,138 150,136 Q192,138 188,192 Z" fill="var(--rm-tan)" stroke="var(--ink)" stroke-width="2.5"/>
+    <circle cx="150" cy="92" r="32" fill="#fffdf8" stroke="var(--ink)" stroke-width="2.5"/>
+    <path d="M118,150 Q90,128 80,90" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M182,150 Q206,104 198,72" fill="none" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="130" y1="190" x2="116" y2="208" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+    <line x1="170" y1="190" x2="184" y2="208" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+  </svg>`;
+}
+
 const CARD_TEMPLATES = [
   { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva." },
   { id: "pitch", icon: "💡", label: "Investor Pitch", desc: "Sell your idea, whiteboard and all.", defaultDescription: "Practicing pitching an idea to investors." },
@@ -411,7 +466,13 @@ const CARD_TEMPLATES = [
 ];
 
 const HERO_TEMPLATE_IDS = ["public_speech", "pitch", "interview"];
-const SCENE_BY_ID = { public_speech: sceneClassroom, pitch: sceneWhiteboard, interview: sceneVideoCall };
+const SCENE_BY_ID = {
+  exam_viva: sceneClassroom,
+  pitch: sceneWhiteboard,
+  interview: sceneVideoCall,
+  public_speech: sceneAuditorium,
+  casual: sceneCasual,
+};
 
 function renderPicker() {
   const heroes = HERO_TEMPLATE_IDS.map((id) => CARD_TEMPLATES.find((t) => t.id === id));
@@ -459,7 +520,7 @@ async function startPracticeDirect(templateId) {
     status("Setting the scene…");
     const t = CARD_TEMPLATES.find((x) => x.id === templateId);
     const started = await api("/api/practice/start", { studentId: S.token, templateId, description: t.defaultDescription });
-    beginPracticeSession(started);
+    beginPracticeSession(started, false);
   } catch (e) { err(e); }
 }
 
@@ -470,20 +531,99 @@ async function startPracticeFromDescription() {
     status("Figuring out the best fit…");
     const inferred = await api("/api/practice/infer-scenario", { studentId: S.token, description });
     const started = await api("/api/practice/start", { studentId: S.token, templateId: inferred.templateId, description });
-    beginPracticeSession(started);
+    beginPracticeSession(started, true);
   } catch (e) { err(e); }
 }
 
-function beginPracticeSession(started) {
+function beginPracticeSession(started, viaFreeText) {
   S.practiceTemplate = started.practice;
   S.practiceLog = [{ role: "agent", name: "Facilitator", text: started.opener }];
   S.sending = false;
+  S.viaFreeText = !!viaFreeText;
+  S.slides.forEach((u) => URL.revokeObjectURL(u));
+  S.slides = [];
+  S.slideIndex = 0;
   S.screen = "practice";
   render();
   speak(started.opener, "facilitator");
 }
 
-function renderPractice() {
+function handleSlideFiles(files) {
+  const urls = [...files].filter((f) => f.type.startsWith("image/")).map((f) => URL.createObjectURL(f));
+  if (!urls.length) return;
+  S.slides.forEach((u) => URL.revokeObjectURL(u));
+  S.slides = urls;
+  S.slideIndex = 0;
+  render();
+}
+
+function pitchSlideBar() {
+  if (!S.slides.length) {
+    return `<div class="rm-slide-bar">
+      <label class="rm-btn ghost sm" style="cursor:pointer">📎 Upload slides<input type="file" id="slideFile" accept="image/*" multiple hidden /></label>
+    </div>`;
+  }
+  return `<div class="rm-slide-bar">
+    <button class="rm-btn ghost sm" id="slidePrev">◂ Prev</button>
+    <span>Slide ${S.slideIndex + 1} of ${S.slides.length}</span>
+    <button class="rm-btn ghost sm" id="slideNext">Next ▸</button>
+    <label class="rm-btn ghost sm" style="cursor:pointer">Change<input type="file" id="slideFile" accept="image/*" multiple hidden /></label>
+  </div>`;
+}
+
+function renderPracticeStaged() {
+  const templateId = S.practiceTemplate?.templateId;
+  const sceneFn = SCENE_BY_ID[templateId] || sceneClassroom;
+  const sceneSvg = templateId === "pitch" ? sceneFn(S.slides[S.slideIndex]) : sceneFn();
+  main.innerHTML = `
+    <div class="rm-page">
+      <div class="rm-topbar"><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
+      <div class="rm-stage">
+        <div class="rm-stage-scene">${sceneSvg}</div>
+        ${templateId === "pitch" ? pitchSlideBar() : ""}
+        <hr class="rm-stage-divider" />
+        <div class="rm-stage-log" id="log">
+          ${S.practiceLog.map((m) => {
+            if (m.role === "student") return `<div class="rm-bubble me"><span class="who">You</span>${esc(m.text)}</div>`;
+            return `<div class="rm-bubble them"><span class="who">${esc(m.name || "")}</span>${esc(m.text)}</div>`;
+          }).join("")}
+          ${S.sending ? `<div class="rm-bubble sys">…</div>` : ""}
+        </div>
+        <div class="rm-stage-controls">
+          <button class="rm-btn mic ${S.micOn ? "on" : ""}" id="micBtn">${S.micOn ? "⏹ Stop" : "🎤 Speak"}</button>
+          <div class="input-wrap pill" style="flex:1"><input type="text" id="textIn" placeholder="Or type here…" /></div>
+          <button class="rm-btn primary" id="sendBtn">Send</button>
+        </div>
+        <p class="rm-stage-mic-state">${S.micOn ? "Listening…" : "Mic is off — tap to speak, or type instead"}</p>
+      </div>
+      <div class="actions" style="justify-content:center; margin-top:16px">
+        <button class="rm-btn ghost" id="endBtn">End session</button>
+      </div>
+      <p class="muted" id="status" style="text-align:center"></p>
+      <div id="err"></div>
+    </div>`;
+  const logEl = $("#log");
+  if (logEl) logEl.scrollTop = logEl.scrollHeight;
+  $("#micBtn").onclick = toggleMic;
+  $("#sendBtn").onclick = () => {
+    const v = $("#textIn").value.trim();
+    if (v) sendPracticeMessage(v);
+  };
+  $("#textIn").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $("#sendBtn").click();
+  });
+  $("#endBtn").onclick = endPracticeSession;
+  if (templateId === "pitch") {
+    const fileEl = $("#slideFile");
+    if (fileEl) fileEl.onchange = (e) => handleSlideFiles(e.target.files);
+    const prevEl = $("#slidePrev");
+    if (prevEl) prevEl.onclick = () => { S.slideIndex = (S.slideIndex - 1 + S.slides.length) % S.slides.length; render(); };
+    const nextEl = $("#slideNext");
+    if (nextEl) nextEl.onclick = () => { S.slideIndex = (S.slideIndex + 1) % S.slides.length; render(); };
+  }
+}
+
+function renderPracticeChat() {
   main.innerHTML = `
     <div class="rm-page">
       <div class="rm-topbar"><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
