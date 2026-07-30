@@ -89,6 +89,66 @@
     }
     .checked-in p.name { font-family: Fraunces, Georgia, serif; font-size: 22px; margin: 0 0 4px; }
     .checked-in .actions { justify-content: center; margin-top: 20px; }
+    :root {
+      --rm-bg: #fbf7ec;
+      --rm-panel: #ffffff;
+      --rm-line: rgba(43,74,64,.12);
+      --rm-teal: #3e7565;
+      --rm-teal-dark: #2b4a40;
+      --rm-sage: #9fbb94;
+      --rm-tan: #e7c48f;
+      --rm-ink: #24352e;
+      --rm-muted: #5f7268;
+    }
+    .rm-page { background: var(--rm-bg); flex: 1; min-height: calc(100vh - 76px); padding: 32px; }
+    .rm-topbar { display:flex; align-items:center; gap:10px; margin-bottom: 26px; }
+    .rm-topbar img { width: 34px; height: 34px; }
+    .rm-topbar b { font-family: Fraunces, Georgia, serif; font-size: 18px; color: var(--rm-teal-dark); }
+    .rm-h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 26px; color: var(--rm-teal-dark); margin: 0 0 6px; }
+    .rm-sub { color: var(--rm-muted); font-size: 14px; margin: 0 0 22px; max-width: 60ch; line-height: 1.5; }
+    .rm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 30px; }
+    .rm-card {
+      background: var(--rm-panel); border: 1px solid var(--rm-line); border-radius: 16px;
+      padding: 20px 16px; text-align: left; cursor: pointer; font: inherit; color: var(--rm-ink);
+      display: flex; flex-direction: column; gap: 8px; transition: .15s transform, .15s border-color, .15s box-shadow;
+    }
+    .rm-card:hover { border-color: var(--rm-teal); transform: translateY(-2px); box-shadow: 0 10px 24px rgba(43,74,64,.1); }
+    .rm-card:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
+    .rm-card .rm-ico { font-size: 26px; }
+    .rm-card b { font-family: Fraunces, Georgia, serif; font-size: 16px; color: var(--rm-teal-dark); }
+    .rm-card span { font-size: 12.5px; color: var(--rm-muted); }
+    .rm-freeform { background: var(--rm-panel); border: 1px solid var(--rm-line); border-radius: 16px; padding: 20px; }
+    .rm-freeform textarea {
+      width: 100%; min-height: 70px; border-radius: 10px; border: 1px solid var(--rm-line);
+      background: #fffdf8; color: var(--rm-ink); font: inherit; font-size: 14px; padding: 10px 12px; resize: vertical; box-sizing: border-box;
+    }
+    .rm-btn {
+      appearance: none; border: none; cursor: pointer; font: inherit; font-weight: 600;
+      border-radius: 999px; padding: 11px 18px; font-size: 13.5px; transition: .15s transform, .15s filter;
+    }
+    .rm-btn:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.06); }
+    .rm-btn:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
+    .rm-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .rm-btn.primary { background: linear-gradient(135deg, #f3d19c, var(--rm-tan)); color: #2b1f0d; }
+    .rm-btn.ghost { background: transparent; color: var(--rm-teal-dark); border: 1px solid var(--rm-line); }
+    .rm-btn.mic { background: var(--rm-teal); color: #fff; }
+    .rm-btn.mic.on { background: #c0453a; }
+    .rm-session { display: grid; grid-template-columns: 1fr; gap: 14px; max-width: 720px; margin: 0 auto; }
+    .rm-log { background: var(--rm-panel); border: 1px solid var(--rm-line); border-radius: 16px; padding: 16px; height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .rm-bubble { max-width: 86%; padding: 10px 13px; border-radius: 14px; font-size: 14px; line-height: 1.5; }
+    .rm-bubble .who { display: block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; color: var(--rm-muted); }
+    .rm-bubble.me { align-self: flex-end; background: var(--rm-sage); color: #16261d; }
+    .rm-bubble.them { align-self: flex-start; background: #f1ead9; color: var(--rm-ink); }
+    .rm-bubble.sys { align-self: center; color: var(--rm-muted); font-size: 12px; font-style: italic; }
+    .rm-controls { display: flex; gap: 8px; align-items: center; }
+    .rm-controls input[type=text] { flex: 1; padding: 12px 14px; border-radius: 999px; border: 1px solid var(--rm-line); background: #fff; font: inherit; font-size: 14px; box-sizing: border-box; }
+    .rm-mic-state { font-size: 12px; color: var(--rm-muted); text-align: center; margin: 6px 0 0; }
+    .rm-rubric { display: grid; gap: 14px; max-width: 640px; margin: 0 auto; }
+    .rm-rubric .blk { background: var(--rm-panel); border: 1px solid var(--rm-line); border-radius: 16px; padding: 18px 20px; }
+    .rm-rubric .blk h4 { margin: 0 0 8px; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); font-size: 15px; }
+    .rm-rubric .blk p { margin: 0; color: var(--rm-ink); font-size: 14px; line-height: 1.6; }
+    .rm-cam { position: fixed; right: 18px; bottom: 18px; width: 160px; border-radius: 14px; overflow: hidden; border: 2px solid var(--rm-teal); box-shadow: 0 10px 30px rgba(0,0,0,.3); background:#000; z-index: 50; }
+    .rm-cam video { width: 100%; display: block; transform: scaleX(-1); }
   </style>
 </head>
 <body>
@@ -111,10 +171,16 @@ const S = {
   student: null,
   screen: "gate",
   authMode: "register",
+  practiceTemplate: null,
+  practiceLog: [],
+  micOn: false,
+  sending: false,
+  rubric: null,
 };
 
 const main = document.getElementById("main");
 const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
 function esc(s) {
   return String(s ?? "")
@@ -145,7 +211,9 @@ function status(msg) {
 }
 
 function render() {
-  if (S.screen === "checkedIn") renderCheckedIn();
+  if (S.screen === "picker") renderPicker();
+  else if (S.screen === "practice") renderPractice();
+  else if (S.screen === "practiceEnd") renderPracticeEnd();
   else renderGate();
 }
 
@@ -179,28 +247,200 @@ function renderGate() {
       S.token = j.token;
       localStorage.setItem("greenRoomToken", j.token);
       S.student = j.student;
-      S.screen = "checkedIn";
+      S.screen = "picker";
       render();
     } catch (e) { err(e); }
   };
 }
 
-function renderCheckedIn() {
+const CARD_TEMPLATES = [
+  { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva." },
+  { id: "pitch", icon: "💡", label: "Investor pitch", desc: "Pitch an idea to investors.", defaultDescription: "Practicing pitching an idea to investors." },
+  { id: "interview", icon: "💼", label: "Job interview", desc: "Answer questions in a job interview.", defaultDescription: "Practicing for a job interview." },
+  { id: "public_speech", icon: "🎤", label: "Public speech", desc: "Present or speak to an audience.", defaultDescription: "Practicing a public speech or presentation." },
+  { id: "casual", icon: "💬", label: "Casual chat", desc: "Low-stakes conversation practice.", defaultDescription: "Practicing casual conversation." },
+];
+
+function renderPicker() {
   main.innerHTML = `
-    <div class="fill-gate">
-      <div class="card checked-in">
-        <div class="lamp-lg" aria-hidden="true"></div>
-        <p class="muted" style="margin:0 0 2px">You're checked in</p>
-        <p class="name">${esc(S.student?.name || "")}</p>
-        <p class="sub" style="margin-top:14px">Practice sessions aren't wired into this screen yet.</p>
-        <div class="actions">
-          <button class="btn ghost" id="logout">Sign out</button>
+    <div class="rm-page">
+      <div class="rm-topbar"><img src="/logo.png" alt="" /><b>Choose a scenario</b></div>
+      <h2 class="rm-h2">Hi ${esc(S.student?.name || "")}, what are you rehearsing?</h2>
+      <p class="rm-sub">Pick a scenario to jump straight in, or describe your own below.</p>
+      <div class="rm-grid">
+        ${CARD_TEMPLATES.map((t) => `
+          <button class="rm-card" data-tpl="${t.id}">
+            <div class="rm-ico" aria-hidden="true">${t.icon}</div>
+            <b>${esc(t.label)}</b>
+            <span>${esc(t.desc)}</span>
+          </button>`).join("")}
+      </div>
+      <div class="rm-freeform">
+        <b style="font-family:Fraunces,Georgia,serif;color:var(--rm-teal-dark);font-size:15px">Or describe your own scenario</b>
+        <p class="rm-sub" style="margin:6px 0 10px">We'll match it to the closest practice mode.</p>
+        <textarea id="freeDesc" placeholder="e.g. I'm defending my thesis to a review committee next week"></textarea>
+        <div class="actions" style="margin-top:10px">
+          <button class="rm-btn primary" id="freeGo">Start practicing</button>
         </div>
+        <p class="muted" id="status" style="margin-top:10px"></p>
+        <div id="err"></div>
       </div>
     </div>`;
-  $("#logout").onclick = () => {
-    localStorage.removeItem("greenRoomToken");
-    S.token = ""; S.student = null; S.screen = "gate";
+  $$("[data-tpl]").forEach((b) => (b.onclick = () => startPracticeDirect(b.dataset.tpl)));
+  $("#freeGo").onclick = startPracticeFromDescription;
+}
+
+async function startPracticeDirect(templateId) {
+  try {
+    status("Setting the scene…");
+    const t = CARD_TEMPLATES.find((x) => x.id === templateId);
+    const started = await api("/api/practice/start", { studentId: S.token, templateId, description: t.defaultDescription });
+    beginPracticeSession(started);
+  } catch (e) { err(e); }
+}
+
+async function startPracticeFromDescription() {
+  try {
+    const description = $("#freeDesc").value.trim();
+    if (!description) { err(new Error("Describe your scenario first")); return; }
+    status("Figuring out the best fit…");
+    const inferred = await api("/api/practice/infer-scenario", { studentId: S.token, description });
+    const started = await api("/api/practice/start", { studentId: S.token, templateId: inferred.templateId, description });
+    beginPracticeSession(started);
+  } catch (e) { err(e); }
+}
+
+function beginPracticeSession(started) {
+  S.practiceTemplate = started.practice;
+  S.practiceLog = [{ role: "agent", name: "Facilitator", text: started.opener }];
+  S.sending = false;
+  S.screen = "practice";
+  render();
+  speak(started.opener);
+}
+
+function renderPractice() {
+  main.innerHTML = `
+    <div class="rm-page">
+      <div class="rm-topbar"><img src="/logo.png" alt="" /><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
+      <div class="rm-session">
+        <div class="rm-log" id="log">
+          ${S.practiceLog.map((m) => {
+            if (m.role === "student") return `<div class="rm-bubble me"><span class="who">You</span>${esc(m.text)}</div>`;
+            return `<div class="rm-bubble them"><span class="who">${esc(m.name || "")}</span>${esc(m.text)}</div>`;
+          }).join("")}
+          ${S.sending ? `<div class="rm-bubble sys">…</div>` : ""}
+        </div>
+        <div class="rm-controls">
+          <button class="rm-btn mic ${S.micOn ? "on" : ""}" id="micBtn">${S.micOn ? "⏹ Stop" : "🎤 Speak"}</button>
+          <input type="text" id="textIn" placeholder="Or type here…" />
+          <button class="rm-btn primary" id="sendBtn">Send</button>
+        </div>
+        <p class="rm-mic-state">${S.micOn ? "Listening…" : "Mic is off — tap to speak, or type instead"}</p>
+        <div class="actions" style="justify-content:center">
+          <button class="rm-btn ghost" id="endBtn">End session</button>
+        </div>
+        <p class="muted" id="status" style="text-align:center"></p>
+        <div id="err"></div>
+      </div>
+    </div>`;
+  const logEl = $("#log");
+  if (logEl) logEl.scrollTop = logEl.scrollHeight;
+  $("#micBtn").onclick = toggleMic;
+  $("#sendBtn").onclick = () => {
+    const v = $("#textIn").value.trim();
+    if (v) sendPracticeMessage(v);
+  };
+  $("#textIn").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $("#sendBtn").click();
+  });
+  $("#endBtn").onclick = endPracticeSession;
+}
+
+async function sendPracticeMessage(text) {
+  if (S.sending) return;
+  S.practiceLog.push({ role: "student", text });
+  S.sending = true;
+  render();
+  try {
+    const j = await api("/api/practice/message", { studentId: S.token, text });
+    for (const r of j.responses) S.practiceLog.push({ role: "agent", name: r.name, text: r.reply });
+    S.sending = false;
+    render();
+    for (const r of j.responses) speak(r.reply);
+  } catch (e) {
+    S.sending = false;
+    render();
+    err(e);
+  }
+}
+
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+function toggleMic() {
+  if (!SpeechRec) {
+    alert("Speech recognition isn't supported in this browser. Try Chrome.");
+    return;
+  }
+  if (S.micOn) {
+    recognition && recognition.stop();
+    return;
+  }
+  recognition = new SpeechRec();
+  recognition.lang = "en-US";
+  recognition.interimResults = false;
+  recognition.continuous = false;
+  recognition.onstart = () => { S.micOn = true; render(); };
+  recognition.onend = () => { S.micOn = false; render(); };
+  recognition.onerror = (e) => {
+    console.error("speech recognition error", e.error);
+    S.micOn = false;
+    render();
+  };
+  recognition.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    if (text && text.trim()) sendPracticeMessage(text.trim());
+  };
+  try { recognition.start(); } catch (e) { console.error(e); }
+}
+
+function speak(text) {
+  if (!("speechSynthesis" in window) || !text) return;
+  const u = new SpeechSynthesisUtterance(text);
+  speechSynthesis.speak(u);
+}
+
+async function endPracticeSession() {
+  try {
+    status("Putting together your feedback…");
+    const j = await api("/api/practice/end", { studentId: S.token });
+    S.rubric = j.rubric;
+    S.screen = "practiceEnd";
+    render();
+  } catch (e) { err(e); }
+}
+
+function renderPracticeEnd() {
+  const r = S.rubric || {};
+  main.innerHTML = `
+    <div class="rm-page">
+      <div class="rm-topbar"><img src="/logo.png" alt="" /><b>How it went</b></div>
+      <h2 class="rm-h2">Nice work, ${esc(S.student?.name || "")}</h2>
+      <p class="rm-sub">Here's how your practice session went — no scores, just notes to build on.</p>
+      <div class="rm-rubric">
+        <div class="blk"><h4>Articulation</h4><p>${esc(r.articulation || "—")}</p></div>
+        <div class="blk"><h4>Engagement</h4><p>${esc(r.engagement || "—")}</p></div>
+        <div class="blk"><h4>Content correspondence</h4><p>${esc(r.contentCorrespondence || "—")}</p></div>
+      </div>
+      <div class="actions" style="justify-content:center;margin-top:20px">
+        <button class="rm-btn primary" id="again">Practice again</button>
+      </div>
+    </div>`;
+  $("#again").onclick = () => {
+    S.screen = "picker";
+    S.practiceLog = [];
+    S.rubric = null;
     render();
   };
 }
@@ -210,7 +450,7 @@ function renderCheckedIn() {
     try {
       const j = await api("/api/student/" + S.token);
       S.student = j.student;
-      S.screen = "checkedIn";
+      S.screen = "picker";
     } catch {
       localStorage.removeItem("greenRoomToken");
       S.token = "";
