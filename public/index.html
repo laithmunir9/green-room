@@ -310,6 +310,16 @@
       border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; line-height: 20px;
       cursor: pointer; padding: 0;
     }
+    .rm-wpm-badge {
+      position: fixed; left: 18px; top: 90px; z-index: 45;
+      padding: 10px 16px; border-radius: 14px; text-align: center; min-width: 66px;
+    }
+    .rm-wpm-badge::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 14px;
+      background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble);
+    }
+    .rm-wpm-badge b { display: block; font-size: 22px; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); line-height: 1; }
+    .rm-wpm-badge span { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--rm-muted); margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -364,6 +374,7 @@ const S = {
   slideIndex: 0,
   showTranscript: false,
   showTypeInput: false,
+  liveWpm: null,
 };
 
 const main = document.getElementById("main");
@@ -657,6 +668,7 @@ function beginPracticeSession(started, viaFreeText) {
   S.camDismissed = false;
   S.showTranscript = false;
   S.showTypeInput = false;
+  S.liveWpm = null;
   S.slides.forEach((u) => URL.revokeObjectURL(u));
   S.slides = [];
   S.slideIndex = 0;
@@ -667,6 +679,13 @@ function beginPracticeSession(started, viaFreeText) {
 
 let camStream = null;
 let camRequesting = false;
+
+function wpmBadgeHtml() {
+  return `<div class="rm-wpm-badge" title="Your pace on your last spoken turn">
+    <b>${S.liveWpm ?? "—"}</b>
+    <span>wpm</span>
+  </div>`;
+}
 
 function camWidgetHtml() {
   if (S.camDismissed) return "";
@@ -759,6 +778,7 @@ function discardPracticeSession() {
   S.practiceTemplate = null;
   S.showTranscript = false;
   S.showTypeInput = false;
+  S.liveWpm = null;
   S.screen = "picker";
   render();
 }
@@ -803,6 +823,7 @@ function renderPracticeStaged() {
       <p class="muted" id="status" style="text-align:center"></p>
       <div id="err"></div>
       ${camWidgetHtml()}
+      ${wpmBadgeHtml()}
     </div>`;
   const logEl = $("#log");
   if (logEl) logEl.scrollTop = logEl.scrollHeight;
@@ -854,6 +875,7 @@ function renderPracticeChat() {
         <div id="err"></div>
       </div>
       ${camWidgetHtml()}
+      ${wpmBadgeHtml()}
     </div>`;
   const logEl = $("#log");
   if (logEl) logEl.scrollTop = logEl.scrollHeight;
@@ -949,6 +971,10 @@ function startRecognition() {
       const durationSec = S.micStartedAt ? (performance.now() - S.micStartedAt) / 1000 : 0;
       S.micStartedAt = 0;
       const text = micTranscriptParts.join(" ").trim();
+      if (text && durationSec >= 0.5) {
+        const wordCount = text.split(/\s+/).filter(Boolean).length;
+        S.liveWpm = Math.round(wordCount / (durationSec / 60));
+      }
       render();
       if (text) sendPracticeMessage(text, durationSec);
       else if (micFatalError) alert("Couldn't access the microphone. Check your browser's mic permission for this site.");
