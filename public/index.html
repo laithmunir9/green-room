@@ -150,8 +150,14 @@
       --rm-muted: #9fb3a8;
     }
     .rm-page { background: var(--rm-bg); flex: 1; min-height: calc(100vh - 76px); padding: 32px; }
-    .rm-topbar { margin-bottom: 10px; }
+    .rm-topbar { margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
     .rm-topbar b { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--rm-muted); }
+    .rm-exit-btn {
+      border: none; background: transparent; cursor: pointer; font: inherit;
+      font-size: 12px; font-weight: 600; color: var(--rm-muted); padding: 4px 0;
+    }
+    .rm-exit-btn:hover { color: var(--rm-teal-dark); text-decoration: underline; }
+    .rm-exit-btn:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
     .rm-h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 26px; color: var(--rm-teal-dark); margin: 0 0 6px; }
     .rm-sub { color: var(--rm-muted); font-size: 14px; margin: 0 0 22px; max-width: 60ch; line-height: 1.5; }
     .rm-hero-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
@@ -744,6 +750,19 @@ function renderLogBubbles() {
   }).join("") + (S.sending ? `<div class="rm-bubble sys">…</div>` : "");
 }
 
+function discardPracticeSession() {
+  const hasProgress = S.practiceLog.some((m) => m.role === "student");
+  if (hasProgress && !confirm("Leave this practice session? Your conversation won't be saved.")) return;
+  if (S.micOn) { micStopRequested = true; recognition && recognition.stop(); }
+  stopCamPreview();
+  S.practiceLog = [];
+  S.practiceTemplate = null;
+  S.showTranscript = false;
+  S.showTypeInput = false;
+  S.screen = "picker";
+  render();
+}
+
 function lastUtteranceHtml() {
   if (!S.practiceLog.length) return "&nbsp;";
   const m = S.practiceLog[S.practiceLog.length - 1];
@@ -757,7 +776,7 @@ function renderPracticeStaged() {
   const sceneSvg = templateId === "pitch" ? sceneFn(S.slides[S.slideIndex]) : sceneFn();
   main.innerHTML = `
     <div class="rm-page">
-      <div class="rm-topbar"><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
+      <div class="rm-topbar"><button class="rm-exit-btn" id="exitBtn">← Exit</button><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
       <div class="rm-stage">
         <div class="rm-stage-scene">${sceneSvg}</div>
         ${templateId === "pitch" ? pitchSlideBar() : ""}
@@ -802,6 +821,7 @@ function renderPracticeStaged() {
     });
   }
   $("#endBtn").onclick = endPracticeSession;
+  $("#exitBtn").onclick = discardPracticeSession;
   wireCamWidget();
   if (templateId === "pitch") {
     const fileEl = $("#slideFile");
@@ -816,7 +836,7 @@ function renderPracticeStaged() {
 function renderPracticeChat() {
   main.innerHTML = `
     <div class="rm-page">
-      <div class="rm-topbar"><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
+      <div class="rm-topbar"><button class="rm-exit-btn" id="exitBtn">← Exit</button><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
       <div class="rm-session">
         <div class="rm-log" id="log">
           ${renderLogBubbles()}
@@ -846,6 +866,7 @@ function renderPracticeChat() {
     if (e.key === "Enter") $("#sendBtn").click();
   });
   $("#endBtn").onclick = endPracticeSession;
+  $("#exitBtn").onclick = discardPracticeSession;
   wireCamWidget();
 }
 
