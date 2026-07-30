@@ -241,6 +241,11 @@
     .rm-rubric .blk p { margin: 0; color: var(--rm-ink); font-size: 14px; line-height: 1.6; }
     .rm-cam { position: fixed; right: 18px; bottom: 18px; width: 160px; border-radius: 14px; overflow: hidden; border: 2px solid var(--rm-teal); box-shadow: 0 10px 30px rgba(0,0,0,.3); background:#000; z-index: 50; }
     .rm-cam video { width: 100%; display: block; transform: scaleX(-1); }
+    .rm-cam-close {
+      position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
+      border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; line-height: 20px;
+      cursor: pointer; padding: 0;
+    }
   </style>
 </head>
 <body>
@@ -283,6 +288,7 @@ const S = {
   practiceLog: [],
   micOn: false,
   micStartedAt: 0,
+  camDismissed: false,
   sending: false,
   rubric: null,
   viaFreeText: false,
@@ -541,12 +547,68 @@ function beginPracticeSession(started, viaFreeText) {
   S.practiceLog = [{ role: "agent", name: "Facilitator", text: started.opener }];
   S.sending = false;
   S.viaFreeText = !!viaFreeText;
+  S.camDismissed = false;
   S.slides.forEach((u) => URL.revokeObjectURL(u));
   S.slides = [];
   S.slideIndex = 0;
   S.screen = "practice";
   render();
   speak(started.opener, "facilitator");
+}
+
+let camStream = null;
+let camRequesting = false;
+
+function camWidgetHtml() {
+  if (S.camDismissed) return "";
+  return `<div class="rm-cam" id="camWrap">
+    <video id="camVideo" autoplay playsinline muted></video>
+    <button class="rm-cam-close" id="camClose" title="Turn off camera">✕</button>
+  </div>`;
+}
+
+function wireCamWidget() {
+  const closeEl = $("#camClose");
+  if (closeEl) closeEl.onclick = dismissCamPreview;
+  mountCamPreview();
+}
+
+function mountCamPreview() {
+  if (S.camDismissed || !navigator.mediaDevices?.getUserMedia) return;
+  const videoEl = $("#camVideo");
+  if (!videoEl) return;
+  if (camStream) {
+    videoEl.srcObject = camStream;
+    return;
+  }
+  if (camRequesting) return;
+  camRequesting = true;
+  navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+    .then((stream) => {
+      camRequesting = false;
+      if (S.camDismissed) { stream.getTracks().forEach((t) => t.stop()); return; }
+      camStream = stream;
+      const el = $("#camVideo");
+      if (el) el.srcObject = stream;
+      else stream.getTracks().forEach((t) => t.stop());
+    })
+    .catch((e) => {
+      camRequesting = false;
+      console.error("camera preview unavailable", e);
+    });
+}
+
+function stopCamPreview() {
+  if (camStream) {
+    camStream.getTracks().forEach((t) => t.stop());
+    camStream = null;
+  }
+}
+
+function dismissCamPreview() {
+  S.camDismissed = true;
+  stopCamPreview();
+  render();
 }
 
 function handleSlideFiles(files) {
@@ -602,6 +664,7 @@ function renderPracticeStaged() {
       </div>
       <p class="muted" id="status" style="text-align:center"></p>
       <div id="err"></div>
+      ${camWidgetHtml()}
     </div>`;
   const logEl = $("#log");
   if (logEl) logEl.scrollTop = logEl.scrollHeight;
@@ -614,6 +677,7 @@ function renderPracticeStaged() {
     if (e.key === "Enter") $("#sendBtn").click();
   });
   $("#endBtn").onclick = endPracticeSession;
+  wireCamWidget();
   if (templateId === "pitch") {
     const fileEl = $("#slideFile");
     if (fileEl) fileEl.onchange = (e) => handleSlideFiles(e.target.files);
@@ -648,6 +712,7 @@ function renderPracticeChat() {
         <p class="muted" id="status" style="text-align:center"></p>
         <div id="err"></div>
       </div>
+      ${camWidgetHtml()}
     </div>`;
   const logEl = $("#log");
   if (logEl) logEl.scrollTop = logEl.scrollHeight;
@@ -660,6 +725,7 @@ function renderPracticeChat() {
     if (e.key === "Enter") $("#sendBtn").click();
   });
   $("#endBtn").onclick = endPracticeSession;
+  wireCamWidget();
 }
 
 async function sendPracticeMessage(text, durationSec) {
@@ -748,6 +814,7 @@ async function endPracticeSession() {
   try {
     status("Putting together your feedback…");
     const j = await api("/api/practice/end", { studentId: S.token });
+    stopCamPreview();
     S.rubric = j.rubric;
     S.screen = "practiceEnd";
     render();
