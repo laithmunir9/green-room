@@ -5,6 +5,7 @@ const STUCK_RE = /\b(i don'?t know|not sure|i'?m stuck|confused|no idea|i forget
 const ABSOLUTE_RE = /\b(always|never|definitely|certainly|100%|guaranteed)\b/i;
 const NEGATION_RE = /\b(not|isn'?t|doesn'?t|never|no longer|wasn'?t|aren'?t)\b/i;
 const ENGAGEMENT_RE = /\?|what do you think|does that make sense|any questions|do you agree/i;
+const TOPIC_SHIFT_RE = /\b(anyway|by the way|off[\s-]?topic|unrelated|different subject|switching topics|speaking of something else|change the subject|changing the subject|not related to this)\b/i;
 
 const STOPWORDS = new Set([
   "the", "a", "an", "and", "or", "but", "is", "are", "was", "were", "be", "been",
@@ -47,7 +48,7 @@ export function classifyStudentMessage(text, { keywordSet = new Set(), recentStu
     }
   }
 
-  const onTopic = keywordSet.size === 0 || [...currentSig].some((w) => keywordSet.has(w));
+  const onTopic = !TOPIC_SHIFT_RE.test(trimmed);
 
   return {
     wordCount,
@@ -58,7 +59,7 @@ export function classifyStudentMessage(text, { keywordSet = new Set(), recentStu
     onTopic,
     vague: wordCount > 40 || hedgeCount >= 2,
     hesitantShort: wordCount < 8 && hedgeCount > 0,
-    offTopic: !onTopic && wordCount >= 4,
+    offTopic: !onTopic,
   };
 }
 

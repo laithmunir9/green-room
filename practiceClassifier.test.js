@@ -135,6 +135,24 @@ test("selectResponders: caps at 3 responders even if multiple triggers fire", ()
   assert.equal(picks.length, 3);
 });
 
+test("a substantive on-topic answer with no scenario keyword overlap is not off-topic", () => {
+  const signals = classifyStudentMessage(
+    "I led the migration of our billing service from a monolith to microservices over six months.",
+    { keywordSet: new Set(["practicing", "software", "engineering", "interview"]) }
+  );
+  assert.equal(signals.offTopic, false);
+  const picks = selectResponders(signals, () => 1);
+  assert.deepEqual(picks, ["impressed"]);
+});
+
+test("an explicit topic-shift phrase is flagged off-topic even when it echoes scenario keywords", () => {
+  const signals = classifyStudentMessage(
+    "Anyway, forget the interview stuff, what's for lunch?",
+    { keywordSet: new Set(["interview"]) }
+  );
+  assert.equal(signals.offTopic, true);
+});
+
 test("summarizeDelivery aggregates hedge rate and ramble rate across turns", () => {
   const texts = [
     "I think maybe this is kind of right, I guess.", // hedgy, short

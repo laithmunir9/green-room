@@ -137,11 +137,12 @@ el("endBtn").onclick = async () => {
   try {
     const j = await api("/api/practice/end", { studentId: token });
     const r = j.rubric;
+    const esc = (s) => String(s).replace(/</g, "&lt;");
     el("rubric").innerHTML =
-      `<div class="rubric-block"><h4>Articulation</h4><div>${r.articulation}</div></div>` +
-      `<div class="rubric-block"><h4>Engagement</h4><div>${r.engagement}</div></div>` +
-      `<div class="rubric-block"><h4>Content correspondence</h4><div>${r.contentCorrespondence}</div></div>` +
-      `<div class="raw">raw: ${JSON.stringify(j.raw)}</div>`;
+      `<div class="rubric-block"><h4>Articulation</h4><div>${esc(r.articulation)}</div></div>` +
+      `<div class="rubric-block"><h4>Engagement</h4><div>${esc(r.engagement)}</div></div>` +
+      `<div class="rubric-block"><h4>Content correspondence</h4><div>${esc(r.contentCorrespondence)}</div></div>` +
+      `<div class="raw">raw: ${esc(JSON.stringify(j.raw))}</div>`;
   } catch (e) {
     alert("End failed: " + e.message);
   }

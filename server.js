@@ -1514,6 +1514,8 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
+// ── Scenario practice sessions ──
+
 app.post("/api/practice/infer-scenario", async (req, res) => {
   try {
     const s = getStudent(req.body?.studentId);
@@ -1542,7 +1544,7 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
     }
 
     let templateId = parsed.templateId;
-    let confidence = parsed.confidence || "medium";
+    let confidence = ["high", "medium", "low"].includes(parsed.confidence) ? parsed.confidence : "medium";
     let reason = cleanStudentText(parsed.reason || "");
     if (!TEMPLATE_IDS.includes(templateId)) {
       templateId = "casual";
@@ -1563,8 +1565,6 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
   }
 });
 
-// ── Scenario practice sessions ──
-
 app.post("/api/practice/start", (req, res) => {
   try {
     const s = getStudent(req.body?.studentId);
@@ -1584,6 +1584,7 @@ app.post("/api/practice/start", (req, res) => {
       description,
       keywords: [...keywordSet],
       history: [{ role: "agent", personaId: "facilitator", text: opener }],
+      studentTurns: [],
       startedAt: new Date().toISOString(),
       endedAt: null,
     };
@@ -1658,16 +1659,16 @@ app.post("/api/practice/message", async (req, res) => {
     }
 
     const repliesById = new Map((parsed.replies || []).map((r) => [r.personaId, r]));
-    const responses = personas.map((p) => {
-      const r = repliesById.get(p.id) || {};
-      return {
-        personaId: p.id,
-        name: p.name,
-        reply: cleanStudentText(r.reply || "..."),
-      };
-    });
+    const responses = personas
+      .map((p) => {
+        const r = repliesById.get(p.id);
+        const reply = cleanStudentText(r?.reply || "");
+        return reply ? { personaId: p.id, name: p.name, reply } : null;
+      })
+      .filter(Boolean);
 
     practice.history.push({ role: "student", text });
+    practice.studentTurns.push(text);
     for (const r of responses) {
       practice.history.push({ role: "agent", personaId: r.personaId, text: r.reply });
     }
@@ -1690,7 +1691,7 @@ app.post("/api/practice/end", async (req, res) => {
     if (!s.practice) return res.status(400).json({ error: "No active practice session" });
 
     const practice = s.practice;
-    const studentTexts = practice.history.filter((m) => m.role === "student").map((m) => m.text);
+    const studentTexts = practice.studentTurns || [];
     if (!studentTexts.length) {
       return res.status(400).json({ error: "Nothing to review yet — send at least one message first" });
     }
@@ -1718,9 +1719,11 @@ app.post("/api/practice/end", async (req, res) => {
       '{"articulation":"...","engagement":"...","contentCorrespondence":"..."} ' +
       "Plain text only, no markdown.";
 
+    // K2-Think-V2 spends tokens on hidden reasoning before emitting content —
+    // scale with transcript length so longer sessions don't get silently truncated.
     let parsed;
     try {
-      parsed = await aiK2Json({ system, user: transcript, max_tokens: 1500 });
+      parsed = await aiK2Json({ system, user: transcript, max_tokens: 1200 + Math.floor(transcript.length / 3) });
     } catch (e) {
       console.error("[ai] practice end-of-session rubric failed:", e.message || e);
       return res.status(503).json({ error: "Couldn't put together your feedback right now — please try again." });
