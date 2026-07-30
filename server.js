@@ -4,8 +4,22 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { randomUUID } from "crypto";
 import { aiK2Json } from "./k2Client.js";
+import { synthesizeSpeech } from "./elevenLabsClient.js";
+import { PERSONA_VOICE_IDS } from "./elevenLabsVoices.js";
 import { PRACTICE_TEMPLATES, TEMPLATE_IDS, findPersona } from "./practiceTemplates.js";
 import { buildScenarioKeywordSet, classifyStudentMessage, selectResponders, summarizeDelivery, summarizeEngagement } from "./practiceClassifier.js";
+
+// K2-Think-V2 occasionally returns truncated/malformed JSON (hidden-reasoning
+// token exhaustion) — one silent retry before surfacing an error to the student,
+// since this was the single biggest live reliability complaint on this app so far.
+async function aiK2JsonWithRetry(opts, retries = 1) {
+  try {
+    return await aiK2Json(opts);
+  } catch (e) {
+    if (retries <= 0) throw e;
+    return aiK2JsonWithRetry(opts, retries - 1);
+  }
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const envPath = join(__dirname, ".env");
@@ -136,7 +150,7 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
 
     let parsed;
     try {
-      parsed = await aiK2Json({ system, user: description, max_tokens: 800 });
+      parsed = await aiK2JsonWithRetry({ system, user: description, max_tokens: 800 });
     } catch (e) {
       console.error("[ai] scenario inference failed:", e.message || e);
       return res.status(503).json({ error: "Couldn't classify that scenario right now — please try again." });
@@ -247,7 +261,7 @@ app.post("/api/practice/message", async (req, res) => {
     // budget generously so replies aren't silently truncated.
     let parsed;
     try {
-      parsed = await aiK2Json({
+      parsed = await aiK2JsonWithRetry({
         system,
         user: text,
         max_tokens: 400 * personas.length + 600,
@@ -322,7 +336,7 @@ app.post("/api/practice/end", async (req, res) => {
     // scale with transcript length so longer sessions don't get silently truncated.
     let parsed;
     try {
-      parsed = await aiK2Json({ system, user: transcript, max_tokens: 1200 + Math.floor(transcript.length / 3) });
+      parsed = await aiK2JsonWithRetry({ system, user: transcript, max_tokens: 1200 + Math.floor(transcript.length / 3) });
     } catch (e) {
       console.error("[ai] practice end-of-session rubric failed:", e.message || e);
       return res.status(503).json({ error: "Couldn't put together your feedback right now — please try again." });
@@ -341,6 +355,22 @@ app.post("/api/practice/end", async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+app.post("/api/practice/speak", async (req, res) => {
+  try {
+    const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
+    if (!text) return res.status(400).json({ error: "Text required" });
+    const personaId = String(req.body?.personaId || "facilitator");
+    const voiceId = PERSONA_VOICE_IDS[personaId] || PERSONA_VOICE_IDS.facilitator;
+    const audio = await synthesizeSpeech(text, voiceId);
+    res.set("Content-Type", "audio/mpeg");
+    res.set("Cache-Control", "no-store");
+    res.send(audio);
+  } catch (e) {
+    console.error("[tts] synthesis failed:", e.message || e);
+    res.status(503).json({ error: "Couldn't generate audio right now." });
   }
 });
 

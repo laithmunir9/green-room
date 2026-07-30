@@ -298,7 +298,7 @@ function beginPracticeSession(started) {
   S.sending = false;
   S.screen = "practice";
   render();
-  speak(started.opener);
+  speak(started.opener, "facilitator");
 }
 
 function renderPractice() {
@@ -349,7 +349,7 @@ async function sendPracticeMessage(text) {
     for (const r of j.responses) S.practiceLog.push({ role: "agent", name: r.name, text: r.reply });
     S.sending = false;
     render();
-    for (const r of j.responses) speak(r.reply);
+    speakSequence(j.responses.map((r) => ({ text: r.reply, personaId: r.personaId })));
   } catch (e) {
     S.sending = false;
     render();
@@ -387,10 +387,35 @@ function toggleMic() {
   try { recognition.start(); } catch (e) { console.error(e); }
 }
 
-function speak(text) {
-  if (!("speechSynthesis" in window) || !text) return;
-  const u = new SpeechSynthesisUtterance(text);
-  speechSynthesis.speak(u);
+function playAudioBlob(blob) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    const done = () => { URL.revokeObjectURL(url); resolve(); };
+    audio.addEventListener("ended", done);
+    audio.addEventListener("error", done);
+    audio.play().catch(done);
+  });
+}
+
+async function speak(text, personaId) {
+  if (!text) return;
+  try {
+    const res = await fetch("/api/practice/speak", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, personaId: personaId || "facilitator" }),
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    await playAudioBlob(blob);
+  } catch (e) {
+    console.error("speak failed", e);
+  }
+}
+
+async function speakSequence(items) {
+  for (const item of items) await speak(item.text, item.personaId);
 }
 
 async function endPracticeSession() {
