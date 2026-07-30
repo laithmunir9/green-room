@@ -800,31 +800,74 @@ async function sendPracticeMessage(text, durationSec) {
 
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
+let micStopRequested = false;
+let micTranscriptParts = [];
+let micFatalError = false;
 
+// The browser's SpeechRecognition can fire `onend` on its own during a pause
+// (silence-detection auto-stop) even in continuous mode. From the student's
+// perspective the mic must only ever stop when they press Stop — so `onend`
+// checks micStopRequested: if they didn't ask for it, we restart seamlessly
+// instead of ending the turn, and keep accumulating into the same transcript.
 function toggleMic() {
   if (!SpeechRec) {
     alert("Speech recognition isn't supported in this browser. Try Chrome.");
     return;
   }
   if (S.micOn) {
+    micStopRequested = true;
     recognition && recognition.stop();
     return;
   }
+  startRecognition();
+}
+
+function startRecognition() {
+  micStopRequested = false;
+  micFatalError = false;
+  micTranscriptParts = [];
   recognition = new SpeechRec();
   recognition.lang = "en-US";
-  recognition.interimResults = false;
-  recognition.continuous = false;
-  recognition.onstart = () => { S.micOn = true; S.micStartedAt = performance.now(); render(); };
-  recognition.onend = () => { S.micOn = false; render(); };
-  recognition.onerror = (e) => {
-    console.error("speech recognition error", e.error);
-    S.micOn = false;
+  recognition.interimResults = true;
+  recognition.continuous = true;
+  recognition.onstart = () => {
+    S.micOn = true;
+    if (!S.micStartedAt) S.micStartedAt = performance.now();
     render();
   };
   recognition.onresult = (e) => {
-    const text = e.results[0][0].transcript;
-    const durationSec = (performance.now() - S.micStartedAt) / 1000;
-    if (text && text.trim()) sendPracticeMessage(text.trim(), durationSec);
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const res = e.results[i];
+      if (res.isFinal) micTranscriptParts.push(res[0].transcript.trim());
+    }
+  };
+  recognition.onerror = (e) => {
+    console.error("speech recognition error", e.error);
+    // Permission/device errors are fatal — don't loop restarting forever.
+    // Everything else (no-speech, network blips, aborted) is transient;
+    // onend decides whether to restart.
+    if (["not-allowed", "service-not-allowed", "audio-capture"].includes(e.error)) {
+      micFatalError = true;
+      micStopRequested = true;
+    }
+  };
+  recognition.onend = () => {
+    if (micStopRequested) {
+      S.micOn = false;
+      const durationSec = S.micStartedAt ? (performance.now() - S.micStartedAt) / 1000 : 0;
+      S.micStartedAt = 0;
+      const text = micTranscriptParts.join(" ").trim();
+      render();
+      if (text) sendPracticeMessage(text, durationSec);
+      else if (micFatalError) alert("Couldn't access the microphone. Check your browser's mic permission for this site.");
+    } else {
+      // Unexpected auto-stop mid-thought — restart without the student noticing.
+      // A short delay avoids some browsers throwing if start() is called too
+      // soon after the previous session's onend.
+      setTimeout(() => {
+        try { recognition.start(); } catch (e) { console.error("mic restart failed", e); }
+      }, 50);
+    }
   };
   try { recognition.start(); } catch (e) { console.error(e); }
 }
