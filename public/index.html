@@ -782,8 +782,14 @@ function dismissCamPreview() {
 }
 
 function handleSlideFiles(files) {
-  const urls = [...files].filter((f) => f.type.startsWith("image/")).map((f) => URL.createObjectURL(f));
-  if (!urls.length) return;
+  const all = [...files];
+  const images = all.filter((f) => f.type.startsWith("image/"));
+  if (!all.length) return;
+  if (!images.length) {
+    err(new Error("That file type isn't supported here — export your slides as images (PNG or JPG) and upload those instead."));
+    return;
+  }
+  const urls = images.map((f) => URL.createObjectURL(f));
   S.slides.forEach((u) => URL.revokeObjectURL(u));
   S.slides = urls;
   S.slideIndex = 0;
@@ -793,7 +799,7 @@ function handleSlideFiles(files) {
 function pitchSlideBar() {
   if (!S.slides.length) {
     return `<div class="rm-slide-bar">
-      <label class="rm-btn ghost sm" style="cursor:pointer">📎 Upload slides<input type="file" id="slideFile" accept="image/*" multiple hidden /></label>
+      <label class="rm-btn ghost sm" style="cursor:pointer">📎 Upload slide images<input type="file" id="slideFile" accept="image/*" multiple hidden /></label>
     </div>`;
   }
   return `<div class="rm-slide-bar">
