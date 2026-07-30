@@ -266,6 +266,28 @@
     .rm-stage-log { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px 2px 12px; }
     .rm-stage-controls { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
     .rm-stage-mic-state { font-size: 12px; color: var(--rm-muted); text-align: center; margin: 6px 0 0; }
+    .rm-mic-hero { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 4px 0 2px; }
+    .rm-caption { min-height: 20px; text-align: center; font-size: 13.5px; color: var(--rm-ink); max-width: 48ch; margin: 0 0 12px; line-height: 1.5; }
+    .rm-caption .who { font-weight: 700; color: var(--rm-muted); text-transform: uppercase; font-size: 10px; letter-spacing: .05em; margin-right: 6px; }
+    .rm-mic-big {
+      position: relative; z-index: 0;
+      width: 92px; height: 92px; border-radius: 50%; border: none; cursor: pointer;
+      font-size: 34px; color: #fff; display: flex; align-items: center; justify-content: center;
+      transition: .15s transform;
+    }
+    .rm-mic-big::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 50%;
+      background: var(--rm-teal); border: 3px solid var(--ink); filter: url(#sketchWobbleBold);
+    }
+    .rm-mic-big:hover { transform: scale(1.04) rotate(-2deg); }
+    .rm-mic-big:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 3px; }
+    .rm-mic-big.on::before { background: var(--bad); }
+    .rm-mic-big.on { animation: micPulse 1.6s ease-in-out infinite; }
+    @keyframes micPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    @media (prefers-reduced-motion: reduce) { .rm-mic-big.on { animation: none; } }
+    .rm-mic-secondary { display: flex; gap: 8px; margin-top: 12px; }
+    .rm-transcript-panel { width: 100%; margin-top: 12px; max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px; }
+    .rm-type-panel { width: 100%; margin-top: 12px; display: flex; gap: 8px; align-items: center; }
     .rm-rubric { display: grid; gap: 14px; max-width: 640px; margin: 0 auto; }
     .rm-rubric .blk { position: relative; z-index: 0; padding: 18px 20px; }
     .rm-rubric .blk::before {
@@ -334,6 +356,8 @@ const S = {
   viaFreeText: false,
   slides: [],
   slideIndex: 0,
+  showTranscript: false,
+  showTypeInput: false,
 };
 
 const main = document.getElementById("main");
@@ -625,6 +649,8 @@ function beginPracticeSession(started, viaFreeText) {
   S.sending = false;
   S.viaFreeText = !!viaFreeText;
   S.camDismissed = false;
+  S.showTranscript = false;
+  S.showTypeInput = false;
   S.slides.forEach((u) => URL.revokeObjectURL(u));
   S.slides = [];
   S.slideIndex = 0;
@@ -711,6 +737,20 @@ function pitchSlideBar() {
   </div>`;
 }
 
+function renderLogBubbles() {
+  return S.practiceLog.map((m) => {
+    if (m.role === "student") return `<div class="rm-bubble me"><span class="who">You</span>${esc(m.text)}</div>`;
+    return `<div class="rm-bubble them"><span class="who">${esc(m.name || "")}</span>${esc(m.text)}</div>`;
+  }).join("") + (S.sending ? `<div class="rm-bubble sys">…</div>` : "");
+}
+
+function lastUtteranceHtml() {
+  if (!S.practiceLog.length) return "&nbsp;";
+  const m = S.practiceLog[S.practiceLog.length - 1];
+  const who = m.role === "student" ? "You" : (m.name || "");
+  return `<span class="who">${esc(who)}</span>${esc(m.text)}`;
+}
+
 function renderPracticeStaged() {
   const templateId = S.practiceTemplate?.templateId;
   const sceneFn = SCENE_BY_ID[templateId] || sceneClassroom;
@@ -722,19 +762,21 @@ function renderPracticeStaged() {
         <div class="rm-stage-scene">${sceneSvg}</div>
         ${templateId === "pitch" ? pitchSlideBar() : ""}
         <hr class="rm-stage-divider" />
-        <div class="rm-stage-log" id="log">
-          ${S.practiceLog.map((m) => {
-            if (m.role === "student") return `<div class="rm-bubble me"><span class="who">You</span>${esc(m.text)}</div>`;
-            return `<div class="rm-bubble them"><span class="who">${esc(m.name || "")}</span>${esc(m.text)}</div>`;
-          }).join("")}
-          ${S.sending ? `<div class="rm-bubble sys">…</div>` : ""}
+        <div class="rm-mic-hero">
+          <p class="rm-caption" id="caption">${S.sending ? "…" : lastUtteranceHtml()}</p>
+          <button class="rm-mic-big ${S.micOn ? "on" : ""}" id="micBig" title="${S.micOn ? "Stop" : "Tap to speak"}" aria-label="${S.micOn ? "Stop listening" : "Start speaking"}">${S.micOn ? "⏹" : "🎤"}</button>
+          <p class="rm-stage-mic-state">${S.micOn ? "Listening…" : "Tap to speak"}</p>
+          <div class="rm-mic-secondary">
+            <button class="rm-btn ghost sm" id="toggleTranscript">${S.showTranscript ? "Hide transcript" : "📝 Transcript"}</button>
+            <button class="rm-btn ghost sm" id="toggleType">${S.showTypeInput ? "Hide typing" : "⌨ Type instead"}</button>
+          </div>
+          ${S.showTranscript ? `<div class="rm-transcript-panel" id="log">${renderLogBubbles()}</div>` : ""}
+          ${S.showTypeInput ? `
+            <div class="rm-type-panel">
+              <div class="input-wrap pill" style="flex:1"><input type="text" id="textIn" placeholder="Type your response…" /></div>
+              <button class="rm-btn primary" id="sendBtn">Send</button>
+            </div>` : ""}
         </div>
-        <div class="rm-stage-controls">
-          <button class="rm-btn mic ${S.micOn ? "on" : ""}" id="micBtn">${S.micOn ? "⏹ Stop" : "🎤 Speak"}</button>
-          <div class="input-wrap pill" style="flex:1"><input type="text" id="textIn" placeholder="Or type here…" /></div>
-          <button class="rm-btn primary" id="sendBtn">Send</button>
-        </div>
-        <p class="rm-stage-mic-state">${S.micOn ? "Listening…" : "Mic is off — tap to speak, or type instead"}</p>
       </div>
       <div class="actions" style="justify-content:center; margin-top:16px">
         <button class="rm-btn ghost" id="endBtn">End session</button>
@@ -745,14 +787,20 @@ function renderPracticeStaged() {
     </div>`;
   const logEl = $("#log");
   if (logEl) logEl.scrollTop = logEl.scrollHeight;
-  $("#micBtn").onclick = toggleMic;
-  $("#sendBtn").onclick = () => {
-    const v = $("#textIn").value.trim();
-    if (v) sendPracticeMessage(v);
-  };
-  $("#textIn").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") $("#sendBtn").click();
-  });
+  $("#micBig").onclick = toggleMic;
+  $("#toggleTranscript").onclick = () => { S.showTranscript = !S.showTranscript; render(); };
+  $("#toggleType").onclick = () => { S.showTypeInput = !S.showTypeInput; render(); };
+  const textIn = $("#textIn");
+  if (textIn) {
+    textIn.focus();
+    $("#sendBtn").onclick = () => {
+      const v = textIn.value.trim();
+      if (v) sendPracticeMessage(v);
+    };
+    textIn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("#sendBtn").click();
+    });
+  }
   $("#endBtn").onclick = endPracticeSession;
   wireCamWidget();
   if (templateId === "pitch") {
@@ -771,11 +819,7 @@ function renderPracticeChat() {
       <div class="rm-topbar"><b>${esc(S.practiceTemplate?.templateName || "Practice session")}</b></div>
       <div class="rm-session">
         <div class="rm-log" id="log">
-          ${S.practiceLog.map((m) => {
-            if (m.role === "student") return `<div class="rm-bubble me"><span class="who">You</span>${esc(m.text)}</div>`;
-            return `<div class="rm-bubble them"><span class="who">${esc(m.name || "")}</span>${esc(m.text)}</div>`;
-          }).join("")}
-          ${S.sending ? `<div class="rm-bubble sys">…</div>` : ""}
+          ${renderLogBubbles()}
         </div>
         <div class="rm-controls">
           <button class="rm-btn mic ${S.micOn ? "on" : ""}" id="micBtn">${S.micOn ? "⏹ Stop" : "🎤 Speak"}</button>
