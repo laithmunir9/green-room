@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Practice Sessions — Test Harness</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+  select, input, button, textarea { font: inherit; padding: 6px 8px; }
+  textarea { width: 100%; }
+  #log { border: 1px solid #ccc; padding: 10px; height: 320px; overflow-y: auto; margin: 12px 0; }
+  .msg { margin: 6px 0; }
+  .msg b { display: inline-block; min-width: 90px; }
+  .msg.student { color: #144; }
+  .msg.sys { color: #888; font-style: italic; }
+  #composer { display: flex; gap: 8px; }
+  #composer input { flex: 1; }
+  label { display: block; margin: 8px 0 2px; font-size: 13px; color: #555; }
+  fieldset { margin: 10px 0; }
+  .rubric-block { border: 1px solid #ccc; border-radius: 6px; padding: 10px; margin: 8px 0; }
+  .rubric-block h4 { margin: 0 0 6px; }
+  .raw { color: #888; font-size: 12px; }
+</style>
+</head>
+<body>
+<h2>Practice Sessions — Test Harness</h2>
+<p style="color:#888">Throwaway test page, no shared state with the main app.</p>
+
+<fieldset id="step1">
+  <legend>1. Describe your scenario</legend>
+  <label>Student name</label>
+  <input id="name" value="PracticeTester" />
+  <label>Scenario description</label>
+  <textarea id="description" rows="3" placeholder="e.g. I'm pitching a startup idea to investors next week"></textarea>
+  <div style="margin-top:8px"><button id="inferBtn">Infer scenario</button></div>
+</fieldset>
+
+<fieldset id="step2" style="display:none">
+  <legend>2. Confirm or override the template</legend>
+  <div id="inferResult" class="raw"></div>
+  <label>Template</label>
+  <select id="template">
+    <option value="exam_viva">Exam viva</option>
+    <option value="pitch">Investor pitch</option>
+    <option value="interview">Job interview</option>
+    <option value="public_speech">Public speech</option>
+    <option value="casual">Casual conversation practice</option>
+  </select>
+  <div style="margin-top:8px"><button id="startBtn">Start session</button></div>
+</fieldset>
+
+<div id="session" style="display:none">
+  <div id="log"></div>
+  <div id="composer">
+    <input id="text" placeholder="Say your piece..." />
+    <button id="sendBtn">Send</button>
+  </div>
+  <div style="margin-top:10px"><button id="endBtn">End session</button></div>
+  <div id="rubric"></div>
+</div>
+
+<script>
+let token = null;
+let description = "";
+
+function el(id) { return document.getElementById(id); }
+
+function logMsg(who, text, cls) {
+  const log = el("log");
+  const div = document.createElement("div");
+  div.className = "msg " + (cls || "");
+  div.innerHTML = "<b>" + who + ":</b> " + String(text).replace(/</g, "&lt;");
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function api(path, body) {
+  const res = await fetch(path, {
+    method: body ? "POST" : "GET",
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || res.statusText);
+  return j;
+}
+
+el("inferBtn").onclick = async () => {
+  try {
+    const name = (el("name").value.trim() || "PracticeTester") + "_" + Date.now();
+    const reg = await api("/api/auth/register", { name });
+    token = reg.token;
+    description = el("description").value.trim();
+    if (!description) { alert("Enter a scenario description first"); return; }
+    const j = await api("/api/practice/infer-scenario", { studentId: token, description });
+    el("inferResult").textContent =
+      `Inferred: ${j.templateName} (${j.confidence}) — ${j.reason}`;
+    el("template").value = j.templateId;
+    el("step2").style.display = "block";
+  } catch (e) {
+    alert("Infer failed: " + e.message);
+  }
+};
+
+el("startBtn").onclick = async () => {
+  try {
+    const templateId = el("template").value;
+    const started = await api("/api/practice/start", { studentId: token, templateId, description });
+    el("step1").style.display = "none";
+    el("step2").style.display = "none";
+    el("session").style.display = "block";
+    logMsg("System", `Scenario: ${started.practice.templateName}`, "sys");
+    logMsg("System", "Roster: " + started.practice.personas.map((p) => `${p.name} (${p.trait})`).join(", "), "sys");
+    logMsg("Facilitator", started.opener);
+  } catch (e) {
+    alert("Start failed: " + e.message);
+  }
+};
+
+el("sendBtn").onclick = async () => {
+  const input = el("text");
+  const text = input.value.trim();
+  if (!text || !token) return;
+  input.value = "";
+  logMsg("You", text, "student");
+  try {
+    const j = await api("/api/practice/message", { studentId: token, text });
+    for (const r of j.responses) logMsg(r.name, r.reply);
+  } catch (e) {
+    logMsg("System", "Error: " + e.message, "sys");
+  }
+};
+el("text").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") el("sendBtn").click();
+});
+
+el("endBtn").onclick = async () => {
+  try {
+    const j = await api("/api/practice/end", { studentId: token });
+    const r = j.rubric;
+    el("rubric").innerHTML =
+      `<div class="rubric-block"><h4>Articulation</h4><div>${r.articulation}</div></div>` +
+      `<div class="rubric-block"><h4>Engagement</h4><div>${r.engagement}</div></div>` +
+      `<div class="rubric-block"><h4>Content correspondence</h4><div>${r.contentCorrespondence}</div></div>` +
+      `<div class="raw">raw: ${JSON.stringify(j.raw)}</div>`;
+  } catch (e) {
+    alert("End failed: " + e.message);
+  }
+};
+</script>
+</body>
+</html>
