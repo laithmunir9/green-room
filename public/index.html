@@ -48,7 +48,11 @@
     .header-user { text-align: right; line-height: 1.3; }
     .header-user b { display: block; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 14px; color: var(--rm-teal-dark); }
     .header-user span { display: block; font-size: 11px; color: var(--rm-muted); }
-    .brand { display: flex; align-items: center; gap: 12px; position: relative; }
+    .brand {
+      display: flex; align-items: center; gap: 12px; position: relative;
+      border: none; background: transparent; padding: 0; font: inherit; text-align: left; cursor: pointer;
+    }
+    .brand:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 4px; border-radius: 8px; }
     .brand-wash { position: absolute; left: -10px; top: -12px; width: 56px; height: 56px; z-index: 0; pointer-events: none; }
     .brand img { width: 36px; height: 36px; flex-shrink: 0; position: relative; z-index: 1; }
     .brand-text { position: relative; z-index: 1; }
@@ -333,16 +337,20 @@
       border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; line-height: 20px;
       cursor: pointer; padding: 0;
     }
+    /* Vertically centered on the right edge — never competes with the topbar
+       (Exit button, top) or End session/camera (bottom) on any template,
+       regardless of which corner that template's camera happens to use. */
     .rm-wpm-badge {
-      position: fixed; left: 18px; top: 150px; z-index: 45;
-      padding: 10px 16px; border-radius: 14px; text-align: center; min-width: 66px;
+      position: fixed; right: 18px; top: 50%; transform: translateY(-50%); z-index: 45;
+      padding: 18px 16px; border-radius: 18px; text-align: center; min-width: 78px;
     }
     .rm-wpm-badge::before {
-      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 14px;
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 18px;
       background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble);
     }
-    .rm-wpm-badge b { display: block; font-size: 22px; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); line-height: 1; }
-    .rm-wpm-badge span { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--rm-muted); margin-top: 4px; }
+    .rm-wpm-badge b { display: block; font-size: 28px; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); line-height: 1; }
+    .rm-wpm-badge span { display: block; font-size: 9.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--rm-muted); margin-top: 5px; }
+    .rm-wpm-badge em { display: block; font-size: 9.5px; font-style: normal; color: var(--rm-muted); margin-top: 8px; line-height: 1.3; }
   </style>
 </head>
 <body>
@@ -360,7 +368,7 @@
   </svg>
   <div class="shell">
     <header>
-      <div class="brand">
+      <button class="brand" id="brandHome" type="button" title="Back to your scenarios" aria-label="Back to your scenarios">
         <svg class="brand-wash" viewBox="0 0 56 56" aria-hidden="true">
           <path d="M28,4 C40,3 51,12 51,26 C52,40 40,51 27,51 C13,52 4,41 4,27 C3,14 15,5 28,4 Z"
                 fill="var(--rm-tan)" opacity="0.35" transform="rotate(-6 28 28)" filter="url(#sketchWobbleBold)" />
@@ -370,7 +378,7 @@
           <h1>Green Room</h1>
           <p>Practice space</p>
         </div>
-      </div>
+      </button>
       <div class="header-right">
         <div class="header-user" id="headerUser" hidden></div>
         <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
@@ -423,6 +431,7 @@ function toggleTheme() {
   applyTheme(preferred);
 })();
 document.getElementById("themeToggle").onclick = toggleTheme;
+document.getElementById("brandHome").onclick = goHome;
 
 const SESSION_COUNT_KEY = "greenRoomSessionCount";
 function getSessionCount() {
@@ -837,6 +846,7 @@ function wpmBadgeHtml() {
   return `<div class="rm-wpm-badge" title="Your pace on your last spoken turn">
     <b>${S.liveWpm ?? "—"}</b>
     <span>wpm</span>
+    <em>last turn</em>
   </div>`;
 }
 
@@ -956,6 +966,13 @@ function discardPracticeSession() {
   render();
 }
 
+function goHome() {
+  if (S.screen === "practice") { discardPracticeSession(); return; }
+  if (S.screen === "picker" || S.screen === "gate") return;
+  S.screen = S.student ? "picker" : "gate";
+  render();
+}
+
 function lastUtteranceHtml() {
   if (!S.practiceLog.length) return "&nbsp;";
   const m = S.practiceLog[S.practiceLog.length - 1];
@@ -976,7 +993,7 @@ function renderPracticeStaged() {
         ${templateId === "pitch" ? pitchSlideBar() : ""}
         <hr class="rm-stage-divider" />
         <div class="rm-mic-hero">
-          <p class="rm-caption" id="caption">${S.sending ? THINKING_HTML : lastUtteranceHtml()}</p>
+          <p class="rm-caption" id="caption">${S.sending ? THINKING_HTML : (S.showTranscript ? "&nbsp;" : lastUtteranceHtml())}</p>
           <button class="rm-mic-big ${S.micOn ? "on" : ""}" id="micBig" title="${S.micOn ? "Stop" : "Tap to speak"}" aria-label="${S.micOn ? "Stop listening" : "Start speaking"}">${S.micOn ? "⏹" : "🎤"}</button>
           <p class="rm-stage-mic-state">${S.micOn ? "Listening…" : "Tap to speak"}</p>
           <div class="rm-mic-secondary">
