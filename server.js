@@ -7,9 +7,8 @@ import { TECHNIQUES, CATALOG, listSubjects, getBoard, getTopic } from "./curricu
 import { getBankQuestions, putBankQuestion, bankSize, getExamQuestions } from "./data/questionBank.js";
 import { pickVisual } from "./diagrams.js";
 import { aiK2Json } from "./k2Client.js";
-import { CLASSROOM_PERSONAS, TEACHER_AGENT, findPersona } from "./classroomPersonas.js";
-import { PRACTICE_TEMPLATES, TEMPLATE_IDS } from "./practiceTemplates.js";
-import { buildTopicKeywordSet, classifyStudentMessage, selectResponders } from "./classroomClassifier.js";
+import { PRACTICE_TEMPLATES, TEMPLATE_IDS, findPersona } from "./practiceTemplates.js";
+import { buildScenarioKeywordSet, classifyStudentMessage, selectResponders } from "./practiceClassifier.js";
 
 
 
@@ -1515,157 +1514,6 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// ── Classroom simulation: student explains a topic to AI peers + a teacher ──
-
-app.post("/api/classroom/start", (req, res) => {
-  try {
-    const s = getStudent(req.body?.studentId);
-    if (!s) return res.status(404).json({ error: "Student not found" });
-    const { subjectId, boardId } = req.body || {};
-    if (!subjectId || !boardId) return res.status(400).json({ error: "subjectId and boardId required" });
-    const pack = getBoard(subjectId, boardId);
-    if (!pack) return res.status(400).json({ error: "Unknown course" });
-    const progress = ensureCourse(s, subjectId, boardId);
-    const focus = normalizeStudyFocus(req.body || {}, pack);
-    const target = pickTeachTarget(progress, pack, focus.topicId, focus.subskillId);
-    if (!target?.sub) return res.status(400).json({ error: "No topic available" });
-
-    const keywordSet = buildTopicKeywordSet(
-      target.topic.name,
-      target.sub.name,
-      target.topic.subskills.map((ss) => ss.name)
-    );
-
-    const opener = `Alright ${s.name}, go ahead and explain ${target.sub.name} to the class — take your time.`;
-
-    s.classroom = {
-      subjectId,
-      boardId,
-      topicId: target.topic.id,
-      subskillId: target.sub.id,
-      topicName: target.topic.name,
-      subskillName: target.sub.name,
-      keywords: [...keywordSet],
-      history: [{ role: "agent", personaId: "teacher", text: opener }],
-      rewardGiven: false,
-    };
-    putStudent(s);
-
-    res.json({
-      classroom: {
-        topicName: target.topic.name,
-        subskillName: target.sub.name,
-        personas: [...CLASSROOM_PERSONAS, TEACHER_AGENT].map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
-      },
-      opener,
-    });
-  } catch (e) {
-    res.status(500).json({ error: String(e.message || e) });
-  }
-});
-
-app.post("/api/classroom/message", async (req, res) => {
-  try {
-    const s = getStudent(req.body?.studentId);
-    if (!s) return res.status(404).json({ error: "Student not found" });
-    if (!s.classroom) return res.status(400).json({ error: "No active classroom session — call /api/classroom/start first" });
-
-    const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
-    if (!text) return res.status(400).json({ error: "Message required" });
-
-    const classroom = s.classroom;
-    const keywordSet = new Set(classroom.keywords || []);
-    const recentStudentMessages = classroom.history
-      .filter((m) => m.role === "student")
-      .slice(-3)
-      .map((m) => m.text);
-
-    const signals = classifyStudentMessage(text, { keywordSet, recentStudentMessages });
-    const responderIds = selectResponders(signals);
-
-    const personas = responderIds.map((id) => findPersona(id)).filter(Boolean);
-    if (!personas.length) return res.status(500).json({ error: "Could not select a responder" });
-
-    const recentTurns = classroom.history.slice(-8).map((m) => {
-      const who = m.role === "student" ? "Student" : (findPersona(m.personaId)?.name || m.personaId);
-      return `${who}: ${m.text}`;
-    });
-
-    const system =
-      "You are running a small classroom role-play. Multiple distinct classmates (and sometimes the teacher) " +
-      "respond to a student who is explaining a topic out loud. Stay strictly in character for each persona listed " +
-      "below — do not blend their voices together. Keep every reply short (1-3 sentences), plain text, no markdown.\n\n" +
-      `Topic: ${classroom.topicName}. Sub-topic being explained: ${classroom.subskillName}.\n` +
-      (recentTurns.length ? `Recent conversation:\n${recentTurns.join("\n")}\n\n` : "\n") +
-      "Personas responding this turn:\n" +
-      personas.map((p) => `- ${p.name} (id: "${p.id}"): ${p.systemPrompt}`).join("\n") +
-      "\n\nRespond with JSON only: " +
-      '{"replies":[{"personaId":"...","reply":"...","understood":false}]} ' +
-      "one entry per persona above, in the same order. Set understood=true only for the quick-learner or teacher persona, " +
-      "and only when the student's explanation clearly and correctly landed.";
-
-    // K2-Think-V2 is a reasoning model: it spends tokens on a hidden
-    // `reasoning` field before emitting `content`, and Task 1's smoke test
-    // found even a one-word reply consumed ~120+ tokens on reasoning alone.
-    // Budget generously so replies aren't silently truncated.
-    let parsed;
-    try {
-      parsed = await aiK2Json({
-        system,
-        user: text,
-        max_tokens: 400 * personas.length + 600,
-      });
-    } catch (e) {
-      console.error("[ai] classroom message generation failed:", e.message || e);
-      return res.status(503).json({ error: "Couldn't reach the classroom right now — please try again." });
-    }
-
-    const repliesById = new Map((parsed.replies || []).map((r) => [r.personaId, r]));
-    const responses = personas.map((p) => {
-      const r = repliesById.get(p.id) || {};
-      return {
-        personaId: p.id,
-        name: p.name,
-        reply: cleanStudentText(r.reply || "..."),
-        understood: Boolean(r.understood),
-      };
-    });
-
-    classroom.history.push({ role: "student", text });
-    for (const r of responses) {
-      classroom.history.push({ role: "agent", personaId: r.personaId, text: r.reply });
-    }
-    classroom.history = classroom.history.slice(-40);
-
-    let reward = null;
-    const quickLearnerResponded = responderIds.includes("quick_learner");
-    const understoodSignal = responses.some((r) => r.understood);
-    const studentTurnCount = classroom.history.filter((m) => m.role === "student").length;
-    const genuineQuickLearnerSignal =
-      quickLearnerResponded && studentTurnCount >= 2 && !signals.stuckPhrase && !signals.vague;
-    if (!classroom.rewardGiven && (understoodSignal || genuineQuickLearnerSignal)) {
-      const rewardProgress = ensureCourse(s, classroom.subjectId, classroom.boardId);
-      const cur = rewardProgress.mastery[classroom.subskillId] ?? 0;
-      rewardProgress.mastery[classroom.subskillId] = cur === 0 ? 0.35 : clamp(cur + 0.1, 0, 1);
-      classroom.rewardGiven = true;
-      reward = {
-        masteryBoost: true,
-        subskillName: classroom.subskillName,
-        message: `The class gets it. +mastery on ${classroom.subskillName}.`,
-      };
-    }
-
-    putStudent(s);
-    res.json({
-      responses: responses.map(({ personaId, name, reply }) => ({ personaId, name, reply })),
-      reward,
-      student: publicStudent(s),
-    });
-  } catch (e) {
-    res.status(500).json({ error: String(e.message || e) });
-  }
-});
-
 app.post("/api/practice/infer-scenario", async (req, res) => {
   try {
     const s = getStudent(req.body?.studentId);
@@ -1709,6 +1557,126 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
       confidence,
       reason,
       personas: template.personas.map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+// ── Scenario practice sessions ──
+
+app.post("/api/practice/start", (req, res) => {
+  try {
+    const s = getStudent(req.body?.studentId);
+    if (!s) return res.status(404).json({ error: "Student not found" });
+    const { templateId } = req.body || {};
+    const template = PRACTICE_TEMPLATES[templateId];
+    if (!template) return res.status(400).json({ error: "Unknown template" });
+    const description = cleanStudentText(req.body?.description || "").slice(0, 2000);
+    if (!description) return res.status(400).json({ error: "Scenario description required" });
+
+    const keywordSet = buildScenarioKeywordSet(description);
+    const opener = `Alright ${s.name}, whenever you're ready — go ahead.`;
+
+    s.practice = {
+      templateId: template.id,
+      templateName: template.name,
+      description,
+      keywords: [...keywordSet],
+      history: [{ role: "agent", personaId: "facilitator", text: opener }],
+      startedAt: new Date().toISOString(),
+      endedAt: null,
+    };
+    putStudent(s);
+
+    res.json({
+      practice: {
+        templateId: template.id,
+        templateName: template.name,
+        personas: template.personas.map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
+      },
+      opener,
+    });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+app.post("/api/practice/message", async (req, res) => {
+  try {
+    const s = getStudent(req.body?.studentId);
+    if (!s) return res.status(404).json({ error: "Student not found" });
+    if (!s.practice) return res.status(400).json({ error: "No active practice session — call /api/practice/start first" });
+
+    const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
+    if (!text) return res.status(400).json({ error: "Message required" });
+
+    const practice = s.practice;
+    const template = PRACTICE_TEMPLATES[practice.templateId];
+    if (!template) return res.status(500).json({ error: "Unknown template for this session" });
+
+    const keywordSet = new Set(practice.keywords || []);
+    const recentStudentMessages = practice.history
+      .filter((m) => m.role === "student")
+      .slice(-3)
+      .map((m) => m.text);
+
+    const signals = classifyStudentMessage(text, { keywordSet, recentStudentMessages });
+    const responderIds = selectResponders(signals);
+
+    const personas = responderIds.map((id) => findPersona(practice.templateId, id)).filter(Boolean);
+    if (!personas.length) return res.status(500).json({ error: "Could not select a responder" });
+
+    const recentTurns = practice.history.slice(-8).map((m) => {
+      const who = m.role === "student" ? "Student" : (findPersona(practice.templateId, m.personaId)?.name || m.personaId);
+      return `${who}: ${m.text}`;
+    });
+
+    const system =
+      "You are running a short scenario role-play. " + template.description + " " +
+      "Multiple distinct characters respond to the student in character. Stay strictly in character for each " +
+      "persona listed below — do not blend their voices together. Keep every reply short (1-3 sentences), plain text, no markdown.\n\n" +
+      (recentTurns.length ? `Recent conversation:\n${recentTurns.join("\n")}\n\n` : "\n") +
+      "Characters responding this turn:\n" +
+      personas.map((p) => `- ${p.name} (id: "${p.id}"): ${p.systemPrompt}`).join("\n") +
+      "\n\nRespond with JSON only: " +
+      '{"replies":[{"personaId":"...","reply":"..."}]} ' +
+      "one entry per character above, in the same order.";
+
+    // K2-Think-V2 spends tokens on hidden reasoning before emitting content —
+    // budget generously so replies aren't silently truncated.
+    let parsed;
+    try {
+      parsed = await aiK2Json({
+        system,
+        user: text,
+        max_tokens: 400 * personas.length + 600,
+      });
+    } catch (e) {
+      console.error("[ai] practice message generation failed:", e.message || e);
+      return res.status(503).json({ error: "Couldn't reach the session right now — please try again." });
+    }
+
+    const repliesById = new Map((parsed.replies || []).map((r) => [r.personaId, r]));
+    const responses = personas.map((p) => {
+      const r = repliesById.get(p.id) || {};
+      return {
+        personaId: p.id,
+        name: p.name,
+        reply: cleanStudentText(r.reply || "..."),
+      };
+    });
+
+    practice.history.push({ role: "student", text });
+    for (const r of responses) {
+      practice.history.push({ role: "agent", personaId: r.personaId, text: r.reply });
+    }
+    practice.history = practice.history.slice(-40);
+
+    putStudent(s);
+    res.json({
+      responses,
+      student: publicStudent(s),
     });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
