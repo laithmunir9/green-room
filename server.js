@@ -3,21 +3,19 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 import { randomUUID } from "crypto";
-import { aiK2Json } from "./k2Client.js";
-import { synthesizeSpeech } from "./elevenLabsClient.js";
-import { PERSONA_VOICE_IDS } from "./elevenLabsVoices.js";
+import { aiOpenAIJson } from "./openaiChatClient.js";
+import { PERSONA_OPENAI_VOICES, synthesizeOpenAISpeech } from "./openaiSpeechClient.js";
 import { PRACTICE_TEMPLATES, TEMPLATE_IDS, findPersona } from "./practiceTemplates.js";
 import { buildScenarioKeywordSet, classifyStudentMessage, selectResponders, summarizeDelivery, summarizeEngagement } from "./practiceClassifier.js";
+import { applyLikelyAsrCorrections } from "./transcriptAsrCorrections.js";
+import { transcribeAudioBuffer } from "./openaiTranscriptionClient.js";
 
-// K2-Think-V2 occasionally returns truncated/malformed JSON (hidden-reasoning
-// token exhaustion) — one silent retry before surfacing an error to the student,
-// since this was the single biggest live reliability complaint on this app so far.
-async function aiK2JsonWithRetry(opts, retries = 1) {
+async function aiJsonWithRetry(opts, retries = 1) {
   try {
-    return await aiK2Json(opts);
+    return await aiOpenAIJson(opts);
   } catch (e) {
     if (retries <= 0) throw e;
-    return aiK2JsonWithRetry(opts, retries - 1);
+    return aiJsonWithRetry(opts, retries - 1);
   }
 }
 
@@ -86,6 +84,15 @@ function publicStudent(s) {
   return { id: s.id, name: s.name };
 }
 
+function localFallbackReply(persona, signals) {
+  if (signals.stuck) return "Take a breath and try that again from the main point.";
+  if (signals.offTopic) return "I may have lost the connection to the question. Could you bring that back to the role?";
+  if (signals.selfContradictory) return "Could you clarify that? I heard a couple of ideas that seem to point in different directions.";
+  if (signals.vague) return "Could you give me one concrete example of that?";
+  if (persona?.id === "impressed") return "That's a clear start. Could you add one specific example to make it stronger?";
+  return "Could you say a little more about that?";
+}
+
 const app = express();
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(join(__dirname, "public")));
@@ -150,7 +157,7 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
 
     let parsed;
     try {
-      parsed = await aiK2JsonWithRetry({ system, user: description, max_tokens: 800 });
+      parsed = await aiJsonWithRetry({ system, user: description, max_tokens: 800, temperature: 0.2 });
     } catch (e) {
       console.error("[ai] scenario inference failed:", e.message || e);
       return res.status(503).json({ error: "Couldn't classify that scenario right now — please try again." });
@@ -274,18 +281,22 @@ app.post("/api/practice/message", async (req, res) => {
       '{"replies":[{"personaId":"...","reply":"..."}]} ' +
       "one entry per character above, in the same order.";
 
-    // K2-Think-V2 spends tokens on hidden reasoning before emitting content —
-    // budget generously so replies aren't silently truncated.
     let parsed;
     try {
-      parsed = await aiK2JsonWithRetry({
+      parsed = await aiJsonWithRetry({
         system,
         user: text,
-        max_tokens: 400 * personas.length + 600,
+        max_tokens: 220 * personas.length + 300,
+        temperature: 0.45,
       });
     } catch (e) {
-      console.error("[ai] practice message generation failed:", e.message || e);
-      return res.status(503).json({ error: "Couldn't reach the session right now — please try again." });
+      console.error("[ai] OpenAI practice message generation failed:", e.message || e);
+      parsed = {
+        replies: personas.map((p) => ({
+          personaId: p.id,
+          reply: localFallbackReply(p, signals),
+        })),
+      };
     }
 
     const repliesById = new Map((parsed.replies || []).map((r) => [r.personaId, r]));
@@ -318,6 +329,56 @@ app.post("/api/practice/message", async (req, res) => {
     res.status(500).json({ error: String(e.message || e) });
   }
 });
+
+app.post("/api/practice/polish-transcript", (req, res) => {
+  try {
+    const s = getStudent(req.body?.studentId);
+    if (!s) return res.status(404).json({ error: "Student not found" });
+
+    const rawTranscript = applyLikelyAsrCorrections(cleanStudentText(req.body?.text || "")).slice(0, 2000);
+    if (!rawTranscript) return res.status(400).json({ error: "Transcript required" });
+    res.json({ text: rawTranscript });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+app.post(
+  "/api/practice/transcribe-audio",
+  express.raw({ type: ["audio/webm", "audio/mp4", "audio/wav", "application/octet-stream"], limit: "12mb" }),
+  async (req, res) => {
+    try {
+      const s = getStudent(req.query?.studentId);
+      if (!s) return res.status(404).json({ error: "Student not found" });
+      if (!Buffer.isBuffer(req.body) || req.body.length < 1000) return res.status(400).json({ error: "Audio required" });
+
+      const practice = s.practice;
+      const prompt = [
+        "Green Room speaking practice transcript.",
+        practice?.templateName ? `Scenario: ${practice.templateName}.` : "",
+        practice?.description ? `Context: ${practice.description}.` : "",
+        "Produce a verbatim transcript for coaching, not a polished rewrite.",
+        "Preserve filler words and disfluencies exactly when audible, including um, uh, like, you know, repeated words, restarts, and false starts.",
+        "The speaker may have an accent or speak casually. Preserve their actual wording.",
+        "Likely phrases include police officer, policeman, firefighter, fireman, public speaking, I used to be, and I am very strong.",
+      ].filter(Boolean).join(" ");
+
+      const transcribed = await transcribeAudioBuffer(req.body, {
+        mimeType: req.get("content-type") || "audio/webm",
+        prompt,
+      });
+      const text = applyLikelyAsrCorrections(cleanStudentText(transcribed)).slice(0, 2000);
+      if (!text) return res.status(422).json({ error: "No speech detected" });
+      console.log(`[audio] transcribed ${req.body.length} bytes -> "${text.slice(0, 90)}${text.length > 90 ? "..." : ""}"`);
+      res.json({ text });
+    } catch (e) {
+      console.error("[audio] transcription failed:", e.message || e);
+      const status = /Missing OPENAI_API_KEY/.test(String(e.message || e)) ? 503 : 500;
+      const detail = String(e.message || "").replace(/sk-[A-Za-z0-9_-]+/g, "sk-...");
+      res.status(status).json({ error: detail || "Couldn't transcribe that audio right now." });
+    }
+  }
+);
 
 app.post("/api/practice/end", async (req, res) => {
   try {
@@ -359,11 +420,14 @@ app.post("/api/practice/end", async (req, res) => {
       '{"articulation":"...","engagement":"...","contentCorrespondence":"..."} ' +
       "Plain text only, no markdown.";
 
-    // K2-Think-V2 spends tokens on hidden reasoning before emitting content —
-    // scale with transcript length so longer sessions don't get silently truncated.
     let parsed;
     try {
-      parsed = await aiK2JsonWithRetry({ system, user: transcript, max_tokens: 1200 + Math.floor(transcript.length / 3) });
+      parsed = await aiJsonWithRetry({
+        system,
+        user: transcript,
+        max_tokens: 900 + Math.floor(transcript.length / 4),
+        temperature: 0.35,
+      });
     } catch (e) {
       console.error("[ai] practice end-of-session rubric failed:", e.message || e);
       return res.status(503).json({ error: "Couldn't put together your feedback right now — please try again." });
@@ -390,8 +454,8 @@ app.post("/api/practice/speak", async (req, res) => {
     const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
     if (!text) return res.status(400).json({ error: "Text required" });
     const personaId = String(req.body?.personaId || "facilitator");
-    const voiceId = PERSONA_VOICE_IDS[personaId] || PERSONA_VOICE_IDS.facilitator;
-    const audio = await synthesizeSpeech(text, voiceId);
+    const voice = PERSONA_OPENAI_VOICES[personaId] || PERSONA_OPENAI_VOICES.facilitator;
+    const audio = await synthesizeOpenAISpeech(text, { voice });
     res.set("Content-Type", "audio/mpeg");
     res.set("Cache-Control", "no-store");
     res.send(audio);

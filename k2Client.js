@@ -42,16 +42,19 @@ export async function aiK2Messages({ system, messages, max_tokens = 400, tempera
   return data.choices?.[0]?.message?.content || "";
 }
 
-export async function aiK2Json({ system, user, max_tokens = 500, model } = {}) {
+export async function aiK2Json({ system, user, max_tokens = 500, model, temperature } = {}) {
   let text = await aiK2Messages({
     system,
     messages: [{ role: "user", content: user }],
     max_tokens,
     model,
+    temperature,
   });
   text = text.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "").trim();
   const a = text.indexOf("{");
   const b = text.lastIndexOf("}");
   if (a >= 0 && b > a) text = text.slice(a, b + 1);
+  if (!text) throw new Error("K2 Think returned an empty JSON response");
+  if (a < 0 || b <= a) throw new Error(`K2 Think returned non-JSON content: ${text.slice(0, 120)}`);
   return JSON.parse(text);
 }

@@ -1,0 +1,21 @@
+- generic [active] [ref=f5e1]:
+  - main [ref=f5e2]:
+    - generic [ref=f5e3]:
+      - generic [ref=f5e4]:
+        - img "Green Room logo" [ref=f5e5]
+        - generic [ref=f5e6]: Green Room
+      - generic [ref=f5e7]:
+        - generic [ref=f5e8]:
+          - paragraph [ref=f5e9]: Hackathon pitch
+          - heading "Practice the room before you face it." [level=1] [ref=f5e10]
+          - paragraph [ref=f5e11]: AI role-play for viva, pitch, interview, and public-speaking practice.
+        - generic "Transcript preview" [ref=f5e12]:
+          - generic [ref=f5e14]: Whenever you're ready, go ahead.
+          - generic [ref=f5e15]: I want to explain my idea clearly.
+          - generic [ref=f5e16]: live practice loop
+      - text: Title
+    - text: Problem Proof Solution Demo Impact
+  - navigation "Slideshow controls" [ref=f5e17]:
+    - button "Previous" [ref=f5e18] [cursor=pointer]: Back
+    - button "Next" [ref=f5e21] [cursor=pointer]
+    - generic [ref=f5e22]: 1/6.0

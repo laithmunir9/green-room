@@ -46,8 +46,16 @@
     .theme-toggle:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
     .header-right { display: flex; align-items: center; gap: 14px; }
     .header-user { text-align: right; line-height: 1.3; }
+    .header-user-main { display: flex; align-items: baseline; justify-content: flex-end; gap: 8px; }
     .header-user b { display: block; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 14px; color: var(--rm-teal-dark); }
     .header-user span { display: block; font-size: 11px; color: var(--rm-muted); }
+    .logout-link {
+      appearance: none; border: none; background: transparent; padding: 0;
+      color: var(--rm-muted); cursor: pointer; font: inherit; font-size: 11px;
+      line-height: 1.2; text-decoration: underline; text-underline-offset: 2px;
+    }
+    .logout-link:hover { color: var(--rm-teal-dark); }
+    .logout-link:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; border-radius: 4px; }
     .brand {
       display: flex; align-items: center; gap: 12px; position: relative;
       border: none; background: transparent; padding: 0; font: inherit; text-align: left; cursor: pointer;
@@ -290,6 +298,7 @@
     }
     .rm-stage-label { text-align: center; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--rm-muted); margin: 0 0 10px; }
     .rm-stage-scene { height: 220px; display: flex; align-items: center; justify-content: center; margin-bottom: 6px; }
+    .rm-stage-scene.is-pitch { height: 320px; }
     .rm-stage-scene svg { width: 100%; height: 100%; overflow: visible; }
     .rm-slide-bar { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 0 10px; font-size: 12.5px; color: var(--rm-muted); }
     .rm-stage-divider { border: none; border-top: 2px dashed var(--rm-line); margin: 0 0 14px; }
@@ -387,6 +396,7 @@
     <main id="main"></main>
   </div>
 
+<script src="/micTranscriptAccumulator.js"></script>
 <script>
 const S = {
   token: localStorage.getItem("greenRoomToken") || "",
@@ -445,11 +455,47 @@ function incrementSessionCount() {
 function renderHeaderUser() {
   const el = document.getElementById("headerUser");
   if (!el) return;
-  if (!S.student) { el.hidden = true; return; }
+  if (!S.student) {
+    el.hidden = true;
+    el.innerHTML = "";
+    return;
+  }
   const count = getSessionCount();
   const level = Math.floor(count / 3) + 1;
   el.hidden = false;
-  el.innerHTML = `<b>${esc(S.student.name || "")}</b><span>Level ${level} · ${count} session${count === 1 ? "" : "s"}</span>`;
+  el.innerHTML = `
+    <div class="header-user-main">
+      <button class="logout-link" id="logoutBtn" type="button">Log out</button>
+      <b>${esc(S.student.name || "")}</b>
+    </div>
+    <span>Level ${level} · ${count} session${count === 1 ? "" : "s"}</span>`;
+  $("#logoutBtn", el).onclick = logout;
+}
+
+function logout() {
+  if (S.micOn) stopMicCapture({ cancel: true });
+  stopCamPreview();
+  localStorage.removeItem("greenRoomToken");
+  S.token = "";
+  S.student = null;
+  S.screen = "gate";
+  S.authMode = "login";
+  S.practiceTemplate = null;
+  S.practiceLog = [];
+  S.micOn = false;
+  S.sending = false;
+  S.rubric = null;
+  S.viaFreeText = false;
+  S.slides = [];
+  S.slideIndex = 0;
+  S.showTranscript = false;
+  S.showTypeInput = false;
+  S.liveWpm = null;
+  S.setupTemplateId = null;
+  S.soundcheckMode = false;
+  S.soundcheckText = "";
+  renderHeaderUser();
+  render();
 }
 
 const SESSION_HISTORY_KEY = "greenRoomSessionHistory";
@@ -552,6 +598,18 @@ function renderGate() {
 }
 
 function sceneWhiteboard(slideUrl) {
+  if (slideUrl) {
+    return `<svg viewBox="0 0 520 320" aria-hidden="true">
+      <line x1="152" y1="284" x2="108" y2="316" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+      <line x1="368" y1="284" x2="412" y2="316" stroke="var(--ink)" stroke-width="4" stroke-linecap="round"/>
+      <rect x="20" y="10" width="480" height="270" rx="8" fill="#fffdf8" stroke="var(--ink)" stroke-width="4" filter="url(#sketchWobbleBold)"/>
+      <defs><clipPath id="boardClip"><rect x="30" y="20" width="460" height="240" rx="5"/></clipPath></defs>
+      <image href="${esc(slideUrl)}" x="30" y="20" width="460" height="240" preserveAspectRatio="xMidYMid slice" clip-path="url(#boardClip)"/>
+      <line x1="20" y1="268" x2="500" y2="268" stroke="var(--ink)" stroke-width="3"/>
+      <rect x="248" y="260" width="26" height="12" rx="2" fill="var(--rm-tan)" stroke="var(--ink)" stroke-width="2"/>
+      <rect x="282" y="260" width="26" height="12" rx="2" fill="var(--rm-sage)" stroke="var(--ink)" stroke-width="2"/>
+    </svg>`;
+  }
   const frame = `
     <line x1="72" y1="204" x2="56" y2="216" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
     <line x1="228" y1="204" x2="244" y2="216" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
@@ -571,22 +629,18 @@ function sceneWhiteboard(slideUrl) {
     <line x1="205" y1="66" x2="205" y2="57" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
     <line x1="183" y1="90" x2="174" y2="90" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
     <line x1="227" y1="90" x2="236" y2="90" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>`;
-  const slide = slideUrl
-    ? `<defs><clipPath id="boardClip"><rect x="40" y="33" width="220" height="148" rx="4"/></clipPath></defs>
-       <image href="${esc(slideUrl)}" x="40" y="33" width="220" height="148" preserveAspectRatio="xMidYMid slice" clip-path="url(#boardClip)"/>`
-    : "";
-  return `<svg viewBox="0 0 300 220" aria-hidden="true">${frame}${slideUrl ? slide : doodles}</svg>`;
+  return `<svg viewBox="0 0 300 220" aria-hidden="true">${frame}${doodles}</svg>`;
 }
 
 function sceneVideoCall() {
   return `<svg viewBox="0 0 300 220" aria-hidden="true">
-    <rect x="30" y="20" width="240" height="180" rx="14" fill="#1c2b24" stroke="var(--ink)" stroke-width="3" filter="url(#sketchWobbleBold)"/>
-    <circle cx="48" cy="38" r="4" fill="var(--rm-tan)"/>
-    <circle cx="61" cy="38" r="4" fill="var(--rm-sage)"/>
-    <circle cx="74" cy="38" r="4" fill="#fffdf8"/>
-    <circle cx="252" cy="38" r="5" fill="#c0453a"/>
-    <circle cx="150" cy="96" r="27" fill="#fffdf8" stroke="#fffdf8" stroke-width="2.5"/>
-    <path d="M108,182 Q108,130 150,128 Q192,130 192,182 Z" fill="var(--rm-sage)" stroke="#fffdf8" stroke-width="2.5"/>
+    <rect x="12" y="8" width="276" height="204" rx="16" fill="#1c2b24" stroke="var(--ink)" stroke-width="3" filter="url(#sketchWobbleBold)"/>
+    <circle cx="34" cy="29" r="4" fill="var(--rm-tan)"/>
+    <circle cx="48" cy="29" r="4" fill="var(--rm-sage)"/>
+    <circle cx="62" cy="29" r="4" fill="#fffdf8"/>
+    <circle cx="266" cy="29" r="5" fill="#c0453a"/>
+    <circle cx="150" cy="91" r="34" fill="#fffdf8" stroke="#fffdf8" stroke-width="2.5"/>
+    <path d="M94,198 Q94,134 150,131 Q206,134 206,198 Z" fill="var(--rm-sage)" stroke="#fffdf8" stroke-width="2.5"/>
   </svg>`;
 }
 
@@ -955,7 +1009,7 @@ function renderLogBubbles() {
 function discardPracticeSession() {
   const hasProgress = S.practiceLog.some((m) => m.role === "student");
   if (hasProgress && !confirm("Leave this practice session? Your conversation won't be saved.")) return;
-  if (S.micOn) { micStopRequested = true; recognition && recognition.stop(); }
+  if (S.micOn) stopMicCapture({ cancel: true });
   stopCamPreview();
   S.practiceLog = [];
   S.practiceTemplate = null;
@@ -989,7 +1043,7 @@ function renderPracticeStaged() {
       <div class="rm-topbar"><button class="rm-exit-btn" id="exitBtn">← Exit</button></div>
       <div class="rm-stage">
         <div class="rm-stage-label">${esc(S.practiceTemplate?.templateName || "Practice session")}</div>
-        <div class="rm-stage-scene">${sceneSvg}</div>
+        <div class="rm-stage-scene ${templateId === "pitch" ? "is-pitch" : ""}">${sceneSvg}</div>
         ${templateId === "pitch" ? pitchSlideBar() : ""}
         <hr class="rm-stage-divider" />
         <div class="rm-mic-hero">
@@ -1104,48 +1158,194 @@ async function sendPracticeMessage(text, durationSec) {
   }
 }
 
+function updateLiveWpm(text, durationSec) {
+  if (text && durationSec >= 0.5) {
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    S.liveWpm = Math.round(wordCount / (durationSec / 60));
+  }
+}
+
+async function polishSpokenTranscript(text) {
+  try {
+    const j = await api("/api/practice/polish-transcript", { studentId: S.token, text });
+    return (j.text || text).trim();
+  } catch (e) {
+    console.warn("transcript polish failed; using raw transcript", e);
+    return text;
+  }
+}
+
+async function sendSpokenPracticeMessage(rawText, durationSec) {
+  status("Cleaning up transcript...");
+  const text = await polishSpokenTranscript(rawText);
+  updateLiveWpm(text, durationSec);
+  if (text) sendPracticeMessage(text, durationSec);
+}
+
+async function finishSoundcheckTranscript(rawText) {
+  const text = await polishSpokenTranscript(rawText);
+  S.soundcheckText = text;
+  render();
+}
+
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
 let micStopRequested = false;
-let micTranscriptParts = [];
 let micFatalError = false;
+let micUsingRecorder = false;
+let micRecorder = null;
+let micRecordingStream = null;
+let micAudioChunks = [];
+let micCancelTurn = false;
+const micTranscriptAccumulator = createMicTranscriptAccumulator();
 
-// The browser's SpeechRecognition can fire `onend` on its own during a pause
-// (silence-detection auto-stop) even in continuous mode. From the student's
-// perspective the mic must only ever stop when they press Stop — so `onend`
-// checks micStopRequested: if they didn't ask for it, we restart seamlessly
-// instead of ending the turn, and keep accumulating into the same transcript.
 function toggleMic() {
-  if (!SpeechRec) {
-    alert("Speech recognition isn't supported in this browser. Try Chrome.");
-    return;
-  }
   if (S.micOn) {
-    micStopRequested = true;
-    recognition && recognition.stop();
+    stopMicCapture();
     return;
   }
-  startRecognition();
+  startMicCapture();
 }
 
-function startRecognition() {
+function recorderMimeType() {
+  if (!window.MediaRecorder) return "";
+  for (const type of ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"]) {
+    if (MediaRecorder.isTypeSupported(type)) return type;
+  }
+  return "";
+}
+
+async function transcribeRecordedAudio(blob) {
+  status("Transcribing audio...");
+  const res = await fetch(`/api/practice/transcribe-audio?studentId=${encodeURIComponent(S.token)}`, {
+    method: "POST",
+    headers: { "Content-Type": blob.type || "audio/webm" },
+    body: blob,
+  });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(j.error || "Audio transcription failed");
+  return (j.text || "").trim();
+}
+
+async function finishMicTurnFromText(rawText, durationSec) {
+  if (S.soundcheckMode) {
+    render();
+    if (rawText) finishSoundcheckTranscript(rawText);
+    return;
+  }
+  render();
+  if (rawText) sendSpokenPracticeMessage(rawText, durationSec);
+  else if (micFatalError) alert("Couldn't access the microphone. Check your browser's mic permission for this site.");
+}
+
+function stopMicTracks() {
+  if (micRecordingStream) {
+    micRecordingStream.getTracks().forEach((t) => t.stop());
+    micRecordingStream = null;
+  }
+}
+
+function stopMicCapture({ cancel = false } = {}) {
+  micStopRequested = true;
+  micCancelTurn = cancel;
+  if (micUsingRecorder && micRecorder && micRecorder.state !== "inactive") {
+    try { micRecorder.stop(); } catch (e) { console.error("recorder stop failed", e); }
+  }
+  if (recognition) {
+    try { recognition.stop(); } catch {}
+  }
+}
+
+async function startMicCapture() {
   micStopRequested = false;
   micFatalError = false;
-  micTranscriptParts = [];
+  micCancelTurn = false;
+  micTranscriptAccumulator.reset();
+  micAudioChunks = [];
+
+  if (navigator.mediaDevices?.getUserMedia && window.MediaRecorder) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+        video: false,
+      });
+      const mimeType = recorderMimeType();
+      micRecordingStream = stream;
+      micUsingRecorder = true;
+      micRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      micRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) micAudioChunks.push(e.data);
+      };
+      micRecorder.onstop = async () => {
+        const durationSec = S.micStartedAt ? (performance.now() - S.micStartedAt) / 1000 : 0;
+        const blob = new Blob(micAudioChunks, { type: micRecorder.mimeType || mimeType || "audio/webm" });
+        S.micOn = false;
+        S.micStartedAt = 0;
+        render();
+        stopMicTracks();
+        if (micCancelTurn) {
+          micCancelTurn = false;
+          return;
+        }
+
+        if (!blob.size) {
+          status("I couldn't record any audio. Check the mic permission and try again.");
+          return;
+        }
+        let transcribedText = "";
+        try {
+          transcribedText = await transcribeRecordedAudio(blob);
+        } catch (e) {
+          console.error("audio transcription failed", e);
+          status(e.message || "Audio transcription failed. Try again or type it instead.");
+          return;
+        }
+        if (!transcribedText) {
+          status("I couldn't catch speech clearly. Try again or type it instead.");
+          return;
+        }
+        await finishMicTurnFromText(transcribedText, durationSec);
+      };
+      S.micOn = true;
+      S.micStartedAt = performance.now();
+      render();
+      micRecorder.start(250);
+      return;
+    } catch (e) {
+      console.error("audio recorder unavailable", e);
+      stopMicTracks();
+      micUsingRecorder = false;
+      micRecorder = null;
+      micAudioChunks = [];
+    }
+  }
+
+  if (!SpeechRec) {
+    alert("Speech recognition isn't supported in this browser. Try Chrome, or type instead.");
+    return;
+  }
+  startRecognition({ backupOnly: false });
+}
+
+// Browser SpeechRecognition is now only the primary path when MediaRecorder is
+// unavailable. During recorded turns, it quietly provides a last-ditch fallback.
+function startRecognition({ backupOnly = false } = {}) {
   recognition = new SpeechRec();
   recognition.lang = "en-US";
   recognition.interimResults = true;
   recognition.continuous = true;
   recognition.onstart = () => {
+    if (backupOnly) return;
     S.micOn = true;
     if (!S.micStartedAt) S.micStartedAt = performance.now();
     render();
   };
   recognition.onresult = (e) => {
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      const res = e.results[i];
-      if (res.isFinal) micTranscriptParts.push(res[0].transcript.trim());
-    }
+    micTranscriptAccumulator.recordResultEvent(e);
   };
   recognition.onerror = (e) => {
     console.error("speech recognition error", e.error);
@@ -1158,23 +1358,14 @@ function startRecognition() {
     }
   };
   recognition.onend = () => {
+    micTranscriptAccumulator.flushSession();
+    if (backupOnly) return;
     if (micStopRequested) {
       S.micOn = false;
       const durationSec = S.micStartedAt ? (performance.now() - S.micStartedAt) / 1000 : 0;
       S.micStartedAt = 0;
-      const text = micTranscriptParts.join(" ").trim();
-      if (S.soundcheckMode) {
-        S.soundcheckText = text;
-        render();
-        return;
-      }
-      if (text && durationSec >= 0.5) {
-        const wordCount = text.split(/\s+/).filter(Boolean).length;
-        S.liveWpm = Math.round(wordCount / (durationSec / 60));
-      }
-      render();
-      if (text) sendPracticeMessage(text, durationSec);
-      else if (micFatalError) alert("Couldn't access the microphone. Check your browser's mic permission for this site.");
+      const text = micTranscriptAccumulator.text();
+      finishMicTurnFromText(text, durationSec);
     } else {
       // Unexpected auto-stop mid-thought — restart without the student noticing.
       // A short delay avoids some browsers throwing if start() is called too

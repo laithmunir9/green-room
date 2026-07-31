@@ -1,0 +1,3 @@
+IEC Pitch Deck Template (1).pdf: used only for pitch-deck sequence guidance: problem, solution, product/demo, team/close; business model, roadmap, market, and ask were intentionally excluded per user instruction.
+HI Bootcamp - Day 3.pdf: used for jury criteria and 2-minute pitch guidance: specific person/problem, proof it is real, live demo, impact, and team understanding.
+ai_stage_fright_research.pdf: used for research statistics on AI/VR public-speaking anxiety interventions.

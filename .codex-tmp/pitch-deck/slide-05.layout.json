@@ -1,0 +1,1071 @@
+{
+  "schema": "openai.presentation.layout/v4",
+  "unit": "px",
+  "slide": {
+    "aid": "sl/ib5abs",
+    "id": "ib5abs",
+    "slide": 5,
+    "layoutId": "d86b53f9-960d-4f89-8dfc-587a37871775",
+    "layoutName": "Title Slide",
+    "layoutType": "title",
+    "masterLayoutId": "7cff7696-b48b-48b7-b058-d25eb9cef5e1",
+    "masterLayoutName": "Master",
+    "backgroundColor": "#FFFDF8",
+    "frame": {
+      "left": 0,
+      "top": 0,
+      "width": 1280,
+      "height": 720
+    }
+  },
+  "theme": {
+    "colorSchemeName": "Green Room",
+    "colors": {
+      "dk1": "#24352E",
+      "lt1": "#FBF7EC",
+      "dk2": "#2B4A40",
+      "lt2": "#FFFDF8",
+      "accent1": "#2B4A40",
+      "accent2": "#9FBB94",
+      "accent3": "#E7C48F",
+      "accent4": "#F1EAD9",
+      "accent5": "#5F7268",
+      "accent6": "#C0453A",
+      "hlink": "#2B4A40",
+      "folHlink": "#5F7268"
+    },
+    "typefaces": [
+      "+mn-lt"
+    ]
+  },
+  "inheritedLayers": [
+    {
+      "scope": "layout",
+      "id": "d86b53f9-960d-4f89-8dfc-587a37871775",
+      "name": "Title Slide",
+      "type": "title",
+      "parentLayoutId": "7cff7696-b48b-48b7-b058-d25eb9cef5e1",
+      "elements": []
+    },
+    {
+      "scope": "master",
+      "id": "7cff7696-b48b-48b7-b058-d25eb9cef5e1",
+      "name": "Master",
+      "type": "master",
+      "elements": []
+    }
+  ],
+  "elements": [
+    {
+      "order": 1,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/s7y5s3q5",
+      "id": "1",
+      "bbox": [
+        78,
+        74,
+        950,
+        78
+      ],
+      "geometry": "rect",
+      "text": "Demo the one moment that matters.",
+      "textPreview": "Demo the one moment that matters.",
+      "resolvedFontSize": 46,
+      "resolvedTextStyle": {
+        "fontSize": 46,
+        "typeface": "+mn-lt",
+        "color": "#2B4A40",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Demo the one moment that matters."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Demo the one moment that matters.",
+          "resolvedTextStyle": {
+            "fontSize": 46,
+            "color": "#2B4A40",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Demo the one moment that matters.",
+              "fontSize": 46,
+              "color": "#2B4A40",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 2,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/r6pojipk",
+      "id": "2",
+      "bbox": [
+        82,
+        156,
+        700,
+        38
+      ],
+      "geometry": "rect",
+      "text": "A complete speaking rep, live.",
+      "textPreview": "A complete speaking rep, live.",
+      "resolvedFontSize": 25,
+      "resolvedTextStyle": {
+        "fontSize": 25,
+        "typeface": "+mn-lt",
+        "color": "#5F7268",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "A complete speaking rep, live."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "A complete speaking rep, live.",
+          "resolvedTextStyle": {
+            "fontSize": 25,
+            "color": "#5F7268",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "A complete speaking rep, live.",
+              "fontSize": 25,
+              "color": "#5F7268",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 3,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/q5gnqd8f",
+      "id": "3",
+      "bbox": [
+        96,
+        244,
+        50,
+        50
+      ],
+      "geometry": "rect",
+      "text": "1",
+      "textPreview": "1",
+      "resolvedFontSize": 35,
+      "resolvedTextStyle": {
+        "fontSize": 35,
+        "typeface": "+mn-lt",
+        "color": "#E7C48F",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "1"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "1",
+          "resolvedTextStyle": {
+            "fontSize": 35,
+            "color": "#E7C48F",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "1",
+              "fontSize": 35,
+              "color": "#E7C48F",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 4,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/1wr6ps72",
+      "id": "4",
+      "bbox": [
+        170,
+        244,
+        360,
+        32
+      ],
+      "geometry": "rect",
+      "text": "Pick a scenario",
+      "textPreview": "Pick a scenario",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "fontSize": 27,
+        "typeface": "+mn-lt",
+        "color": "#24352E",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Pick a scenario"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Pick a scenario",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "color": "#24352E",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Pick a scenario",
+              "fontSize": 27,
+              "color": "#24352E",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 5,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/0vi5wn6h",
+      "id": "5",
+      "bbox": [
+        540,
+        247,
+        570,
+        38
+      ],
+      "geometry": "rect",
+      "text": "Viva, pitch, interview, or public speech.",
+      "textPreview": "Viva, pitch, interview, or public speech.",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "fontSize": 21,
+        "typeface": "+mn-lt",
+        "color": "#5F7268",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Viva, pitch, interview, or public speech."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Viva, pitch, interview, or public speech.",
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "color": "#5F7268",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Viva, pitch, interview, or public speech.",
+              "fontSize": 21,
+              "color": "#5F7268",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 6,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/fuponipw",
+      "id": "6",
+      "bbox": [
+        96,
+        328,
+        50,
+        50
+      ],
+      "geometry": "rect",
+      "text": "2",
+      "textPreview": "2",
+      "resolvedFontSize": 35,
+      "resolvedTextStyle": {
+        "fontSize": 35,
+        "typeface": "+mn-lt",
+        "color": "#E7C48F",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "2"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "2",
+          "resolvedTextStyle": {
+            "fontSize": 35,
+            "color": "#E7C48F",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "2",
+              "fontSize": 35,
+              "color": "#E7C48F",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 7,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/e9gnudob",
+      "id": "7",
+      "bbox": [
+        170,
+        328,
+        360,
+        32
+      ],
+      "geometry": "rect",
+      "text": "Answer out loud",
+      "textPreview": "Answer out loud",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "fontSize": 27,
+        "typeface": "+mn-lt",
+        "color": "#24352E",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Answer out loud"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Answer out loud",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "color": "#24352E",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Answer out loud",
+              "fontSize": 27,
+              "color": "#24352E",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 8,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/h0n6do7i",
+      "id": "8",
+      "bbox": [
+        540,
+        331,
+        570,
+        38
+      ],
+      "geometry": "rect",
+      "text": "Speak naturally; the transcript shows what the app heard.",
+      "textPreview": "Speak naturally; the transcript shows what the app heard.",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "fontSize": 21,
+        "typeface": "+mn-lt",
+        "color": "#5F7268",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Speak naturally; the transcript shows what the app heard."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Speak naturally; the transcript shows what the app heard.",
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "color": "#5F7268",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Speak naturally; the transcript shows what the app heard.",
+              "fontSize": 21,
+              "color": "#5F7268",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 9,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gze5kjqx",
+      "id": "9",
+      "bbox": [
+        96,
+        412,
+        50,
+        50
+      ],
+      "geometry": "rect",
+      "text": "3",
+      "textPreview": "3",
+      "resolvedFontSize": 35,
+      "resolvedTextStyle": {
+        "fontSize": 35,
+        "typeface": "+mn-lt",
+        "color": "#E7C48F",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "3"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "3",
+          "resolvedTextStyle": {
+            "fontSize": 35,
+            "color": "#E7C48F",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "3",
+              "fontSize": 35,
+              "color": "#E7C48F",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 10,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/mts3qhc7",
+      "id": "10",
+      "bbox": [
+        170,
+        412,
+        360,
+        32
+      ],
+      "geometry": "rect",
+      "text": "Handle the room",
+      "textPreview": "Handle the room",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "fontSize": 27,
+        "typeface": "+mn-lt",
+        "color": "#24352E",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Handle the room"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Handle the room",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "color": "#24352E",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Handle the room",
+              "fontSize": 27,
+              "color": "#24352E",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 11,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/7e14jmds",
+      "id": "11",
+      "bbox": [
+        540,
+        415,
+        570,
+        38
+      ],
+      "geometry": "rect",
+      "text": "Respond to a follow-up, challenge, or distraction.",
+      "textPreview": "Respond to a follow-up, challenge, or distraction.",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "fontSize": 21,
+        "typeface": "+mn-lt",
+        "color": "#5F7268",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Respond to a follow-up, challenge, or distraction."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Respond to a follow-up, challenge, or distraction.",
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "color": "#5F7268",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Respond to a follow-up, challenge, or distraction.",
+              "fontSize": 21,
+              "color": "#5F7268",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 12,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/8fulsrud",
+      "id": "12",
+      "bbox": [
+        96,
+        496,
+        50,
+        50
+      ],
+      "geometry": "rect",
+      "text": "4",
+      "textPreview": "4",
+      "resolvedFontSize": 35,
+      "resolvedTextStyle": {
+        "fontSize": 35,
+        "typeface": "+mn-lt",
+        "color": "#E7C48F",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "4"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "4",
+          "resolvedTextStyle": {
+            "fontSize": 35,
+            "color": "#E7C48F",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "4",
+              "fontSize": 35,
+              "color": "#E7C48F",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 13,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/9g3mlwvi",
+      "id": "13",
+      "bbox": [
+        170,
+        496,
+        360,
+        32
+      ],
+      "geometry": "rect",
+      "text": "End with feedback",
+      "textPreview": "End with feedback",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "fontSize": 27,
+        "typeface": "+mn-lt",
+        "color": "#24352E",
+        "bold": true,
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "End with feedback"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "End with feedback",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "color": "#24352E",
+            "bold": true,
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "End with feedback",
+              "fontSize": 27,
+              "color": "#24352E",
+              "bold": true,
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 14,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/uhc3u1c3",
+      "id": "14",
+      "bbox": [
+        540,
+        499,
+        570,
+        38
+      ],
+      "geometry": "rect",
+      "text": "See coaching notes and pace from the spoken turn.",
+      "textPreview": "See coaching notes and pace from the spoken turn.",
+      "resolvedFontSize": 21,
+      "resolvedTextStyle": {
+        "fontSize": 21,
+        "typeface": "+mn-lt",
+        "color": "#5F7268",
+        "alignment": "left",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "See coaching notes and pace from the spoken turn."
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "See coaching notes and pace from the spoken turn.",
+          "resolvedTextStyle": {
+            "fontSize": 21,
+            "color": "#5F7268",
+            "alignment": "left"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "See coaching notes and pace from the spoken turn.",
+              "fontSize": 21,
+              "color": "#5F7268",
+              "alignment": "left"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 15,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/vil4n6do",
+      "id": "15",
+      "bbox": [
+        882,
+        92,
+        250,
+        92
+      ],
+      "geometry": "roundRect",
+      "fillColor": "#FBF7EC",
+      "lineColor": "#8C9A90",
+      "lineWidth": 2
+    },
+    {
+      "order": 16,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/gjulwbu9",
+      "id": "16",
+      "bbox": [
+        922,
+        122,
+        170,
+        34
+      ],
+      "geometry": "rect",
+      "text": "Run it live",
+      "textPreview": "Run it live",
+      "resolvedFontSize": 27,
+      "resolvedTextStyle": {
+        "fontSize": 27,
+        "typeface": "+mn-lt",
+        "color": "#2B4A40",
+        "bold": true,
+        "alignment": "center",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "Run it live"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "Run it live",
+          "resolvedTextStyle": {
+            "fontSize": 27,
+            "color": "#2B4A40",
+            "bold": true,
+            "alignment": "center"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "Run it live",
+              "fontSize": 27,
+              "color": "#2B4A40",
+              "bold": true,
+              "alignment": "center"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    },
+    {
+      "order": 17,
+      "kind": "shape",
+      "scope": "slide",
+      "aid": "sh/hk3mpgvu",
+      "id": "17",
+      "bbox": [
+        1168,
+        640,
+        48,
+        24
+      ],
+      "geometry": "rect",
+      "text": "05",
+      "textPreview": "05",
+      "resolvedFontSize": 16,
+      "resolvedTextStyle": {
+        "fontSize": 16,
+        "typeface": "+mn-lt",
+        "color": "#5F7268",
+        "bold": true,
+        "alignment": "right",
+        "insets": {
+          "top": 4.8,
+          "right": 9.6,
+          "bottom": 4.8,
+          "left": 9.6
+        }
+      },
+      "textLayout": {
+        "lineCount": 1,
+        "lines": [
+          {
+            "index": 1,
+            "text": "05"
+          }
+        ]
+      },
+      "paragraphs": [
+        {
+          "index": 1,
+          "text": "05",
+          "resolvedTextStyle": {
+            "fontSize": 16,
+            "color": "#5F7268",
+            "bold": true,
+            "alignment": "right"
+          },
+          "runs": [
+            {
+              "index": 1,
+              "text": "05",
+              "fontSize": 16,
+              "color": "#5F7268",
+              "bold": true,
+              "alignment": "right"
+            }
+          ],
+          "marginLeft": 0
+        }
+      ],
+      "lineWidth": 0
+    }
+  ],
+  "composeRuns": []
+}

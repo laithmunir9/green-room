@@ -6,9 +6,7 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: K2THINK_API_KEY
-        sync: false
-      - key: K2THINK_BASE_URL
+      - key: OPENAI_API_KEY
         sync: false
       - key: PORT
         generateValue: true

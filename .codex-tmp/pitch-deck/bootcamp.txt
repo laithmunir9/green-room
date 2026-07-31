@@ -1,0 +1,181 @@
+
+
+===== PAGE 1 =====
+Make it real.
+Then make it land.
+
+
+===== PAGE 2 =====
+What the jury scores.
+Five things, equally weighted. Everything today points at one of them.
+01 Problem Who has this problem, and how do you know it is real?
+02 Solution What did you build, and why this approach over the obvious one?
+03 Demo It runs live, in front of the jury. Not a slide. Not a video.
+04 Impact If a thousand people used this, what actually changes?
+05 Team Everyone contributed, and anyone can explain any part of it.
+
+
+===== PAGE 3 =====
+Friday. Six minutes each.
+Ten teams, one jury, one room. Here is exactly how your slot runs.
+YOUR 4 MINUTES
+Suggested split: 2 minutes pitch, 2 minutes live 
+demo.
+How you divide it is your call. Some teams demo first and 
+explain after. That works too.
+THEN 2 MINUTES OF QUESTIONS
+The jury asks. Anyone on the team can answer.
+This is where they find out whether you understand your 
+own build.
+Live from your laptop You plug in and run the real thing. No pre-recorded video.
+The clock is hard At four minutes you stop, mid sentence if necessary. Ten teams, one hour.
+Everyone speaks The jury scores the team, not the presenter. Silent members cost you.
+
+
+===== PAGE 4 =====
+Now the hard question.
+You know what you are building. Can you say who it is for and why it matters?
+WHAT LOSES ON FRIDAY
+“We built an AI tool that helps with studying.”
+Nobody in particular has this problem. Nothing in particular 
+changes. The jury has no way to care.
+WHAT WINS
+“Grade 11 students revising alone at 11pm have 
+nobody to ask. Three apps do flashcards. None 
+of them answer a question about the thing in 
+front of you.”
+A real person, a real moment, and homework done. Now 
+the jury leans in.
+Same build. Same code. Completely different score.
+The next 45 minutes are about getting your project from the left box to the right one.
+
+
+===== PAGE 5 =====
+The validation canvas. 45 minutes.
+Two pages on your table. Work through them in order, they build on each other.
+1 Who you serve
+One specific person, not a category.
+2 What is broken today
+What they do instead, and why it fails them.
+3 Your research
+How common is it, and who already solves it?
+4 Your promise
+One sentence, no jargon.
+5 Why AI, why now
+Why this needs a model and not a spreadsheet.
+6 The change you make
+If a thousand people used it, what is different?
+7 What you are not building
+Three things you are deliberately cutting.
+8 What must be true
+The assumption that sinks you if it is wrong.
+
+
+===== PAGE 6 =====
+Two rules while you fill it in.
+Otherwise this becomes a creative writing exercise, and the jury can always tell.
+Be specific enough to be wrong
+“Students” is not a person. “My sister, Grade 9, hates maths homework” is. Specific claims can be checked, and 
+checked claims are the ones that survive the questions.
+Point your AI at your own idea
+You have spent two days pointing these tools at code. Now use one as a research assistant: how common is this 
+problem, who already solves it, what do they charge, what do people complain about? Fifteen minutes of that changes 
+what you build.
+One catch: models invent statistics. No source named, no number used. The jury will ask.
+
+
+===== PAGE 7 =====
+What makes a good prototype.
+Not a product. A prototype is an argument you can click.
+One path, all the way through A single flow that works start to finish beats five half -finished features. The jury 
+sees one thing work, not five things almost work.
+Real enough to believe Plausible data, sensible outputs, a name. A demo full of “test test” reads as 
+unfinished, even when the engineering underneath is good.
+It survives a stranger Someone who has never seen it should get through the main flow without you 
+narrating. T est that on another team before Friday.
+It fails politely Things break on stage. A loading state, a friendly error, a fallback answer. Never a 
+red stack trace on the projector.
+You can explain every part AI wrote most of it. Fine, that is the week. But if you cannot say what a piece does, 
+cut it or learn it before Friday.
+
+
+===== PAGE 8 =====
+Before you call it done.
+Run this list on your own build. Anything you cannot tick is your next hour of work.
+Someone outside your team completed the main flow without help.
+It runs on the laptop you will actually plug in on Friday.
+It works without your home wifi, on a network you have not tested.
+You have a fallback if the model is slow or the API is down.
+Nothing on screen says test, asdf, or lorem ipsum.
+You can start it from cold in under thirty seconds.
+
+
+===== PAGE 9 =====
+What a good pitch looks like.
+Two minutes of talking. Here is where every second goes.
+15s Who you are T eam, track, what the thing is called, one line on what it does.
+30s The person and the problem Your box 1 and box 3. Name a person, then a finding with a 
+source.
+25s What you built The promise, in plain words. Not the tech stack.
+2 min Demo Stop talking about it and show it. This is the part they remember.
+20s Why it matters Your box 6. What changes if this exists.
+15s Team and next Who did what, and what you would build with another week.
+
+
+===== PAGE 10 =====
+Four ways teams lose the room.
+All four are avoidable, and all four will happen tomorrow at the mock pitches.
+The tour
+“Here is the login, here is the settings page.” Nobody 
+cares. Show the one moment that matters.
+The tech list
+Naming six models and four frameworks is not a pitch. 
+What does it do for the person?
+The apology
+“It's not finished, sorry, this bit is broken.” Never 
+apologise. Show what works, confidently.
+The one voice
+One person talks for four minutes while four teammates 
+stand behind them. The jury notices.
+
+
+===== PAGE 11 =====
+What to prepare, starting now.
+You have seen one team do it. Six slides, and none of them are hard if your canvas is honest.
+FROM YOUR CANVAS, STRAIGHT INTO SLIDES
+Box 1 and 2  →  the problem slide
+Box 3  →  the line that proves it is real
+Box 4  →  what you built
+Box 6  →  why it matters
+Box 8  →  the honest answer when the jury pushes
+DECIDE THESE AS A TEAM TODAY
+Who talks, and who drives the demo.
+Which laptop plugs in, and does it have the 
+adapter.
+The exact clicks of your demo, in order.
+What you show if the internet dies.
+Nobody writes a pitch on Friday morning. Write it tonight, badly, and fix it tomorrow.
+
+
+===== PAGE 12 =====
+Tomorrow. Thursday.
+Two rounds of feedback before the jury ever sees you. Use them.
+FIRST HALF
+Demo to each other,
+in pairs.
+Two teams, screens open, no slides.
+You watch each other's build and give real feedback, the 
+kind you would want.
+Then you swap and do it again with another team.
+AFTER THE BREAK
+Mock pitches,
+full room.
+Every team pitches, on the clock, exactly as on Friday.
+Every other team asks the presenting team a question.
+You leave with a list of what to fix, written by nine teams 
+who just watched you.
+
+
+===== PAGE 13 =====
+Build it for someone.
+Then go and tell them why.
