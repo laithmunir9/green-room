@@ -56,6 +56,13 @@
     }
     .logout-link:hover { color: var(--rm-teal-dark); }
     .logout-link:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; border-radius: 4px; }
+    .founder-link {
+      appearance: none; border: none; background: transparent; padding: 0;
+      color: var(--rm-muted); cursor: pointer; font: inherit; font-size: 12px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    }
+    .founder-link:hover { color: var(--rm-teal-dark); text-decoration: underline; text-underline-offset: 3px; }
+    .founder-link:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 3px; border-radius: 5px; }
     .brand {
       display: flex; align-items: center; gap: 12px; position: relative;
       border: none; background: transparent; padding: 0; font: inherit; text-align: left; cursor: pointer;
@@ -67,6 +74,32 @@
     .brand-text h1 { margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -.01em; color: var(--rm-teal-dark); }
     .brand-text p { margin: 2px 0 0; color: var(--rm-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; }
     main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .rm-modal-backdrop {
+      position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
+      padding: 24px; background: rgba(27,36,32,.42); backdrop-filter: blur(6px);
+    }
+    .rm-founder-modal {
+      position: relative; z-index: 0; width: min(560px, 100%); padding: 28px;
+      color: var(--rm-ink);
+    }
+    .rm-founder-modal::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 20px;
+      background: var(--rm-panel); border: 2.5px solid var(--ink);
+      box-shadow: var(--shadow); filter: url(#sketchWobbleBold);
+    }
+    .rm-founder-modal h2 {
+      margin: 0 0 12px; font-family: Fraunces, Georgia, serif; font-weight: 600;
+      font-size: 26px; color: var(--rm-teal-dark);
+    }
+    .rm-founder-modal p { margin: 0 0 12px; color: var(--rm-ink); line-height: 1.65; font-size: 15px; }
+    .rm-founder-modal .signoff { color: var(--rm-muted); font-size: 13px; margin-bottom: 0; }
+    .rm-modal-close {
+      position: absolute; top: 12px; right: 14px; width: 30px; height: 30px;
+      border-radius: 50%; border: none; background: transparent; cursor: pointer;
+      color: var(--rm-muted); font-size: 18px; line-height: 30px;
+    }
+    .rm-modal-close:hover { color: var(--rm-teal-dark); }
+    .rm-modal-close:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
     .fill-gate {
       flex: 1; display: grid; place-items: center; padding: 32px;
       min-height: calc(100vh - 76px);
@@ -438,6 +471,9 @@
     .rm-wpm-badge em { display: block; font-size: 9.5px; font-style: normal; color: var(--rm-muted); margin-top: 8px; line-height: 1.3; }
     @media (max-width: 760px) {
       .rm-page { padding: 22px 16px; }
+      header { padding: 14px 16px; }
+      .header-right { gap: 10px; }
+      .founder-link { font-size: 10.5px; max-width: 68px; line-height: 1.25; }
       .rm-picker-head { display: block; }
       .rm-level-card { width: 128px; margin: 0 0 18px; }
       .rm-path { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
@@ -473,11 +509,13 @@
         </div>
       </button>
       <div class="header-right">
+        <button class="founder-link" id="founderNoteBtn" type="button">Why I made this</button>
         <div class="header-user" id="headerUser" hidden></div>
         <button class="theme-toggle" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode">🌙</button>
       </div>
     </header>
     <main id="main"></main>
+    <div id="founderNoteRoot"></div>
   </div>
 
 <script src="/micTranscriptAccumulator.js"></script>
@@ -504,6 +542,7 @@ const S = {
   soundcheckMode: false,
   soundcheckText: "",
   pickerTab: "practice",
+  founderNoteOpen: false,
 };
 
 const main = document.getElementById("main");
@@ -527,6 +566,10 @@ function toggleTheme() {
 })();
 document.getElementById("themeToggle").onclick = toggleTheme;
 document.getElementById("brandHome").onclick = goHome;
+document.getElementById("founderNoteBtn").onclick = () => {
+  S.founderNoteOpen = true;
+  renderFounderNote();
+};
 
 const SESSION_COUNT_KEY = "greenRoomSessionCount";
 function getSessionCount() {
@@ -555,6 +598,41 @@ function renderHeaderUser() {
     </div>
     <span>Level ${level} · ${count} session${count === 1 ? "" : "s"}</span>`;
   $("#logoutBtn", el).onclick = logout;
+}
+
+function renderFounderNote() {
+  const root = document.getElementById("founderNoteRoot");
+  if (!root) return;
+  if (!S.founderNoteOpen) {
+    root.innerHTML = "";
+    return;
+  }
+  root.innerHTML = `
+    <div class="rm-modal-backdrop" id="founderBackdrop" role="presentation">
+      <section class="rm-founder-modal" role="dialog" aria-modal="true" aria-labelledby="founderTitle">
+        <button class="rm-modal-close" id="founderClose" type="button" aria-label="Close founder note">×</button>
+        <h2 id="founderTitle">Why I made this</h2>
+        <p>I built Green Room because I know how hard it can be to speak when the room suddenly feels bigger than you. A few years ago, I struggled with public speaking myself. I would know what I wanted to say, then lose it once people were watching.</p>
+        <p>Practicing helped, but only when it felt close to the real moment: a question after a pitch, a panel that pushes back, a quiet audience member waiting for the point. I wanted to make a space where people could rehearse those moments before they actually matter.</p>
+        <p class="signoff">This is a practice room for anyone building confidence one rep at a time.</p>
+      </section>
+    </div>`;
+  $("#founderClose").onclick = closeFounderNote;
+  $("#founderBackdrop").onclick = (e) => {
+    if (e.target.id === "founderBackdrop") closeFounderNote();
+  };
+  document.addEventListener("keydown", handleFounderNoteKeydown);
+}
+
+function closeFounderNote() {
+  S.founderNoteOpen = false;
+  document.removeEventListener("keydown", handleFounderNoteKeydown);
+  renderFounderNote();
+  document.getElementById("founderNoteBtn")?.focus();
+}
+
+function handleFounderNoteKeydown(e) {
+  if (e.key === "Escape" && S.founderNoteOpen) closeFounderNote();
 }
 
 function logout() {
