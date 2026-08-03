@@ -342,14 +342,22 @@ label style. `whyItLanded` in Plex 13.5px, `--rm-muted`.
 
 ## Testing
 
-Existing suite is `node --test *.test.js` over root-level modules. Client code
-lives in a single HTML file and is not currently unit-tested; this project does
-not change that.
+Existing suite is `node --test *.test.js` over root-level modules.
 
-**Extract to a testable module:** `curtainCall.js` at the repo root, following
-the pattern of `transcriptAsrCorrections.js`. It exports two pure functions —
-one that validates a `bestLine` against the student's turns, one that decides
-whether a transcript clears the substance gate — and `server.js` imports both.
+Most client code lives inline in a single HTML file and is not unit-tested —
+but `public/micTranscriptAccumulator.js` is a counter-example: browser code in
+its own file, loaded by a plain `<script src>` tag, wrapping an IIFE that
+attaches one global, and tested from root via `node:vm`
+(`micTranscriptAccumulator.test.js`). All new pure logic in this project
+follows that precedent rather than going inline.
+
+Two modules carry every testable decision, so `public/index.html` keeps only
+rendering and DOM wiring:
+
+- `curtainCall.js` — server-side ESM, imported by `server.js`.
+- `public/sessionProgress.js` — browser IIFE, the `micTranscriptAccumulator`
+  pattern. Not ESM: the page is not a module and the tests load it via
+  `node:vm`, so `export` would break both.
 
 `curtainCall.test.js` covers:
 
@@ -358,6 +366,21 @@ whether a transcript clears the substance gate — and `server.js` imports both.
   transcript.
 - Substance gate: under 2 turns; under 15 words; and the boundaries at exactly
   2 turns and exactly 15 words, both of which pass.
+
+`sessionProgress.test.js` covers:
+
+- Signal extraction: flattening `raw`, mapping missing and non-finite values to
+  `null`, and a missing `raw` object entirely.
+- Series: newest-first history read oldest-first; entries with no `signals` and
+  entries with a null metric skipped.
+- Trend rows: the below-threshold state; each row's sentence against known
+  data; the pace row counting spoken sessions only; and an assertion that no
+  generated sentence contains ranking language, enforcing the wording rule
+  mechanically.
+- Milestones: each of the six predicates including its boundary — pace band
+  edges inclusive, hedge threshold exclusive, turn threshold inclusive, typed
+  sessions not breaking a pace run, and entries predating `viaFreeText` not
+  earning it.
 
 **Manual verification** for the rest, in both light and dark mode:
 
@@ -378,10 +401,12 @@ whether a transcript clears the substance gate — and `server.js` imports both.
 
 | File | Change |
 |---|---|
-| `public/index.html` | Signal + `viaFreeText` + `bestLine` persistence; trend panel; milestone rewrite; level card; curtain call card; `listener` on `CARD_TEMPLATES`; strip removal; CSS for trends and curtain call |
+| `public/index.html` | Rendering and wiring only: signal + `viaFreeText` + `bestLine` persistence; trend panel; Career Path rewrite; level card; curtain call card; `listener` on `CARD_TEMPLATES`; strip removal; CSS for trends and curtain call |
 | `server.js` | Prompt fields; calls into `curtainCall.js` for validation and gating |
-| `curtainCall.js` (new) | Verbatim validation + substance gating, extracted for tests |
+| `curtainCall.js` (new) | Verbatim validation + substance gating |
 | `curtainCall.test.js` (new) | Tests for the above |
+| `public/sessionProgress.js` (new) | Signal extraction, trend rows, milestone predicates |
+| `sessionProgress.test.js` (new) | Tests for the above |
 
 `practiceClassifier.js` is not modified — it already produces every signal
 this project consumes.
