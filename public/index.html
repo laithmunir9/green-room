@@ -326,8 +326,15 @@
     .rm-path-node em { display: block; margin-top: 6px; color: var(--rm-muted); font-size: 11.5px; line-height: 1.35; font-style: normal; }
     .rm-next-step { margin: 20px 0 0; color: var(--rm-muted); font-size: 13px; }
     .rm-history-list { display: grid; gap: 12px; max-width: 860px; }
+    .rm-trends { position: relative; z-index: 0; display: grid; gap: 16px; max-width: 860px; padding: 20px; margin-bottom: 14px; }
+    .rm-trend-row { display: grid; grid-template-columns: 150px 1fr; gap: 18px; align-items: center; }
+    .rm-trend-meta { display: grid; gap: 6px; }
+    .rm-trend-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--rm-muted); }
+    .rm-trend-sentence { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--rm-ink); }
+    .rm-trend-row.pending .rm-trend-sentence { color: var(--rm-muted); }
+    .rm-spark { display: block; }
     .rm-history-card { position: relative; z-index: 0; padding: 18px; }
-    .rm-history-card::before, .rm-empty-state::before {
+    .rm-history-card::before, .rm-empty-state::before, .rm-trends::before {
       content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 16px;
       background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble);
     }
@@ -466,6 +473,7 @@
       .rm-path { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
       .rm-path-stats { grid-template-columns: 1fr; }
       .rm-history-card dl div { grid-template-columns: 1fr; gap: 4px; }
+      .rm-trend-row { grid-template-columns: 1fr; gap: 8px; }
     }
   </style>
 </head>
@@ -995,6 +1003,43 @@ function careerPathHtml(history, progress) {
     </div>`;
 }
 
+function sparklineSvg(row) {
+  const w = 140, h = 36, pad = 4;
+  const vs = row.values;
+  const lo = Math.min(...vs), hi = Math.max(...vs);
+  const span = (hi - lo) || 1;
+  const top = hi + span * 0.1, bottom = lo - span * 0.1;
+  const x = (i) => pad + (i * (w - pad * 2)) / Math.max(1, vs.length - 1);
+  const y = (v) => h - pad - ((v - bottom) / (top - bottom)) * (h - pad * 2);
+  const pts = vs.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  let band = "";
+  if (row.band) {
+    const yTop = y(Math.min(top, row.band.to));
+    const yBot = y(Math.max(bottom, row.band.from));
+    if (yBot > yTop) {
+      band = `<rect x="0" y="${yTop.toFixed(1)}" width="${w}" height="${(yBot - yTop).toFixed(1)}" fill="var(--rm-sage)" opacity="0.15" />`;
+    }
+  }
+  return `<svg class="rm-spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">
+    ${band}
+    <polyline points="${pts}" fill="none" stroke="var(--rm-teal)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" filter="url(#sketchWobble)" />
+    <circle cx="${x(vs.length - 1).toFixed(1)}" cy="${y(vs[vs.length - 1]).toFixed(1)}" r="3" fill="var(--rm-tan)" />
+  </svg>`;
+}
+
+function trendPanelHtml(history) {
+  const rows = GreenRoomProgress.trendRows(history);
+  return `<div class="rm-trends">
+    ${rows.map((r) => `<div class="rm-trend-row ${r.ready ? "" : "pending"}">
+      <div class="rm-trend-meta">
+        <div class="rm-trend-label">${esc(r.label)}</div>
+        ${r.ready ? sparklineSvg(r) : ""}
+      </div>
+      <p class="rm-trend-sentence">${esc(r.sentence)}</p>
+    </div>`).join("")}
+  </div>`;
+}
+
 function fullHistoryHtml(history) {
   if (!history.length) {
     return `<div class="rm-empty-state">
@@ -1003,7 +1048,8 @@ function fullHistoryHtml(history) {
     </div>`;
   }
   const fmtDate = (iso) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  return `<div class="rm-history-list">
+  return `${trendPanelHtml(history)}
+  <div class="rm-history-list">
     ${history.map((h) => `<article class="rm-history-card">
       <div class="rm-history-card-head">
         <b>${esc(h.templateName || "Practice session")}</b>
