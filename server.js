@@ -9,6 +9,7 @@ import { PRACTICE_TEMPLATES, TEMPLATE_IDS, findPersona } from "./practiceTemplat
 import { buildScenarioKeywordSet, classifyStudentMessage, selectResponders, summarizeDelivery, summarizeEngagement } from "./practiceClassifier.js";
 import { applyLikelyAsrCorrections } from "./transcriptAsrCorrections.js";
 import { transcribeAudioBuffer } from "./openaiTranscriptionClient.js";
+import { resolveCurtainCall } from "./curtainCall.js";
 
 async function aiJsonWithRetry(opts, retries = 1) {
   try {
@@ -416,8 +417,13 @@ app.post("/api/practice/end", async (req, res) => {
       "their stated scenario — you are the only one checking this, read the transcript carefully.\n\n" +
       `Measured delivery signals (informational — use as context, don't just restate the numbers): ${JSON.stringify(delivery)}\n` +
       `Measured engagement signals (informational — use as context, don't just restate the numbers): ${JSON.stringify(engagement)}\n\n` +
+      "Also pick the single strongest sentence the student actually said and copy it into bestLine " +
+      "EXACTLY as it appears in the transcript — character for character. Do not paraphrase it, tidy it, " +
+      "fix its grammar, merge two sentences, or compose a new one. If you cannot copy a sentence exactly, " +
+      "set bestLine to null. In whyItLanded, write one sentence on what made that line work. " +
+      "If the student said too little for any sentence to stand out, set both bestLine and whyItLanded to null.\n\n" +
       "Respond with JSON only: " +
-      '{"articulation":"...","engagement":"...","contentCorrespondence":"..."} ' +
+      '{"articulation":"...","engagement":"...","contentCorrespondence":"...","bestLine":"...","whyItLanded":"..."} ' +
       "Plain text only, no markdown.";
 
     let parsed;
@@ -436,12 +442,23 @@ app.post("/api/practice/end", async (req, res) => {
     practice.endedAt = new Date().toISOString();
     putStudent(s);
 
+    const curtain = resolveCurtainCall({
+      bestLine: parsed.bestLine,
+      whyItLanded: parsed.whyItLanded,
+      studentTexts,
+    });
+    if (curtain.rejected) {
+      console.warn("[ai] curtain call dropped: bestLine was not verbatim from the transcript");
+    }
+
     res.json({
       rubric: {
         articulation: cleanStudentText(parsed.articulation || ""),
         engagement: cleanStudentText(parsed.engagement || ""),
         contentCorrespondence: cleanStudentText(parsed.contentCorrespondence || ""),
       },
+      bestLine: curtain.bestLine,
+      whyItLanded: curtain.whyItLanded,
       raw: { delivery, engagement },
     });
   } catch (e) {
