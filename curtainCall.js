@@ -3,12 +3,12 @@ const MIN_WORDS = 15;
 
 export function normalizeForMatch(text) {
   return String(text ?? "")
-    .replace(/['']/g, "'")
-    .replace(/[""]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
     .toLowerCase()
     .replace(/\s+/g, " ")
-    .replace(/^[\s"'`]+/, "")
-    .replace(/[\s"'`.,!?;:]+$/, "")
+    .replace(/^[\s"‘’“”`]+/, "")
+    .replace(/[\s"‘’“”`.,!?;:]+$/, "")
     .trim();
 }
 

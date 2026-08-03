@@ -101,3 +101,17 @@ test("resolveCurtainCall keeps a valid quote when whyItLanded is missing", () =>
   assert.equal(out.bestLine, "So I'd get up to speed fast.");
   assert.equal(out.whyItLanded, null);
 });
+
+test("normalizeForMatch converts curly apostrophes to straight ones", () => {
+  assert.equal(normalizeForMatch("I’d"), "i'd");
+});
+
+test("isVerbatim matches when model returns curly apostrophe and transcript has straight", () => {
+  const transcript = ["So I'd get up to speed fast."];
+  assert.equal(isVerbatim("So I’d get up to speed fast.", transcript), true);
+});
+
+test("isVerbatim matches curly double quotes wrapping and strips them", () => {
+  const transcript = ["So I'd get up to speed fast."];
+  assert.equal(isVerbatim("“So I’d get up to speed fast.”", transcript), true);
+});
