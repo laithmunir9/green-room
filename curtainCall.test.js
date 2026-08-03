@@ -115,3 +115,8 @@ test("isVerbatim matches curly double quotes wrapping and strips them", () => {
   const transcript = ["So I'd get up to speed fast."];
   assert.equal(isVerbatim("“So I’d get up to speed fast.”", transcript), true);
 });
+
+test("isVerbatim matches when transcript has curly apostrophe and model returns straight", () => {
+  const transcript = ["So I’d get up to speed fast."];
+  assert.equal(isVerbatim("So I'd get up to speed fast.", transcript), true);
+});
