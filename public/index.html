@@ -293,19 +293,6 @@
       background: var(--rm-panel); border: 2px solid var(--ink);
       filter: url(#sketchWobbleBold);
     }
-    .rm-history { margin-top: 26px; }
-    .rm-history-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--rm-muted); margin-bottom: 10px; }
-    .rm-history-row {
-      position: relative; z-index: 0; display: flex; align-items: baseline; gap: 10px;
-      padding: 10px 14px; margin-bottom: 8px; font-size: 13px;
-    }
-    .rm-history-row::before {
-      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 12px;
-      background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble);
-    }
-    .rm-history-row b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-weight: 600; flex-shrink: 0; }
-    .rm-history-row .date { color: var(--rm-muted); font-size: 11px; flex-shrink: 0; }
-    .rm-history-row .takeaway { color: var(--rm-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .rm-path-panel {
       position: relative; z-index: 0; padding: 24px; max-width: 860px;
     }
@@ -907,21 +894,6 @@ function tabButtonHtml(id, label) {
   return `<button class="rm-tab ${S.pickerTab === id ? "active" : ""}" data-tab="${id}" type="button">${label}</button>`;
 }
 
-function sessionHistoryHtml() {
-  const history = getSessionHistory();
-  if (!history.length) return "";
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  return `<div class="rm-history">
-    <div class="rm-history-label">Recently</div>
-    ${history.map((h) => `
-      <div class="rm-history-row">
-        <b>${esc(h.templateName)}</b>
-        <span class="date">${esc(fmtDate(h.date))}</span>
-        <span class="takeaway">${esc(h.takeaway || "")}</span>
-      </div>`).join("")}
-  </div>`;
-}
-
 function renderPicker() {
   const history = getSessionHistory();
   const progress = careerProgress(history);
@@ -994,8 +966,7 @@ function practicePickerHtml(heroes, secondary) {
       </div>
       <p class="muted" id="status" style="margin-top:10px"></p>
       <div id="err"></div>
-    </div>
-    ${sessionHistoryHtml()}`;
+    </div>`;
 }
 
 function careerPathHtml(history, progress) {
