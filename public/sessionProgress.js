@@ -76,10 +76,60 @@
     return [paceRow(history), hedgingRow(history), turnRow(history)];
   }
 
+  function distinctTemplates(history) {
+    var ids = (history || [])
+      .map(function (h) { return (h && (h.templateId || h.templateName)) || ""; })
+      .filter(Boolean);
+    return new Set(ids);
+  }
+
+  function hasPaceRun(history) {
+    var values = seriesFor(history, "avgWpm");
+    var run = 0;
+    for (var i = 0; i < values.length; i++) {
+      run = values[i] >= PACE_BAND.from && values[i] <= PACE_BAND.to ? run + 1 : 0;
+      if (run >= 3) return true;
+    }
+    return false;
+  }
+
+  function anySignal(history, key, test) {
+    return (history || []).some(function (h) {
+      var v = h && h.signals ? numOrNull(h.signals[key]) : null;
+      return v !== null && test(v);
+    });
+  }
+
+  var MILESTONES = [
+    { id: "first_rep", label: "First rep", desc: "Finish any practice session.",
+      earned: function (h) { return (h || []).length >= 1; } },
+    { id: "range", label: "Range builder", desc: "Practice three different rooms.",
+      earned: function (h) { return distinctTemplates(h).size >= 3; } },
+    { id: "pace", label: "Found your pace", desc: "Three sessions running inside a conversational pace.",
+      earned: hasPaceRun },
+    { id: "plain", label: "Said it plain", desc: "Finish a session with almost no hedging.",
+      earned: function (h) { return anySignal(h, "hedgeRate", function (v) { return v < 0.02; }); } },
+    { id: "floor", label: "Held the floor", desc: "Take ten or more turns in one session.",
+      earned: function (h) { return anySignal(h, "turnCount", function (v) { return v >= 10; }); } },
+    { id: "offscript", label: "Went off-script", desc: "Describe your own scenario instead of picking one.",
+      earned: function (h) { return (h || []).some(function (e) { return e && e.viaFreeText === true; }); } },
+  ];
+
+  function milestoneProgress(history) {
+    var milestones = MILESTONES.map(function (m) {
+      return { id: m.id, label: m.label, desc: m.desc, earned: m.earned(history) };
+    });
+    var earned = milestones.filter(function (m) { return m.earned; }).length;
+    var next = milestones.find(function (m) { return !m.earned; }) || null;
+    return { milestones: milestones, earned: earned, total: milestones.length, next: next };
+  }
+
   root.GreenRoomProgress = {
     MIN_TREND_SESSIONS: MIN_TREND_SESSIONS,
     extractSignals: extractSignals,
     seriesFor: seriesFor,
     trendRows: trendRows,
+    distinctTemplates: distinctTemplates,
+    milestoneProgress: milestoneProgress,
   };
 })(typeof globalThis !== "undefined" ? globalThis : window);

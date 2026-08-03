@@ -126,3 +126,93 @@ test("trendRows handles empty history without throwing", async () => {
   assert.equal(rows.length, 3);
   assert.equal(rows.every((r) => r.ready === false), true);
 });
+
+function spoken(wpm) {
+  return entry({ avgWpm: wpm, turnCount: 4, hedgeRate: 0.05 });
+}
+
+test("distinctTemplates counts unique templates and ignores entries with neither field", async () => {
+  const { distinctTemplates } = await loadProgress();
+  const history = [
+    { templateId: "interview" }, { templateId: "interview" }, { templateId: "pitch" },
+    { templateName: "Casual chat" }, { date: "x" },
+  ];
+  assert.equal(distinctTemplates(history).size, 3);
+});
+
+test("First rep is earned by a single session", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const byId = (h, id) => milestoneProgress(h).milestones.find((m) => m.id === id);
+  assert.equal(byId([], "first_rep").earned, false);
+  assert.equal(byId([entry({})], "first_rep").earned, true);
+});
+
+test("Range builder needs three different templates", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const byId = (h) => milestoneProgress(h).milestones.find((m) => m.id === "range").earned;
+  assert.equal(byId([{ templateId: "a" }, { templateId: "b" }]), false);
+  assert.equal(byId([{ templateId: "a" }, { templateId: "b" }, { templateId: "c" }]), true);
+});
+
+test("Found your pace needs three adjacent in-band spoken sessions", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const earned = (h) => milestoneProgress(h).milestones.find((m) => m.id === "pace").earned;
+  assert.equal(earned([spoken(130), spoken(140), spoken(135)]), true);
+  assert.equal(earned([spoken(130), spoken(190), spoken(135)]), false);
+  assert.equal(earned([spoken(120), spoken(160), spoken(140)]), true, "band edges are inclusive");
+});
+
+test("Found your pace is not broken by typed sessions between spoken ones", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const history = [spoken(135), entry({ avgWpm: null, turnCount: 3 }), spoken(140), spoken(130)];
+  assert.equal(milestoneProgress(history).milestones.find((m) => m.id === "pace").earned, true);
+});
+
+test("Said it plain needs one session under a two percent hedge rate", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const earned = (h) => milestoneProgress(h).milestones.find((m) => m.id === "plain").earned;
+  assert.equal(earned([entry({ hedgeRate: 0.02 })]), false, "the threshold is exclusive");
+  assert.equal(earned([entry({ hedgeRate: 0.019 })]), true);
+  assert.equal(earned([entry({ hedgeRate: null })]), false);
+});
+
+test("Held the floor needs one session of ten or more turns", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const earned = (h) => milestoneProgress(h).milestones.find((m) => m.id === "floor").earned;
+  assert.equal(earned([entry({ turnCount: 9 })]), false);
+  assert.equal(earned([entry({ turnCount: 10 })]), true);
+});
+
+test("Went off-script requires an explicit viaFreeText flag", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const earned = (h) => milestoneProgress(h).milestones.find((m) => m.id === "offscript").earned;
+  assert.equal(earned([entry({})]), false, "entries predating the flag must not earn it");
+  assert.equal(earned([entry({}, { viaFreeText: true })]), true);
+});
+
+test("milestoneProgress reports counts and the first unearned milestone", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const p = milestoneProgress([entry({ turnCount: 12 })]);
+  assert.equal(p.total, 6);
+  assert.equal(p.earned, 2);
+  assert.equal(p.next.id, "range");
+});
+
+test("milestoneProgress reports next as null when everything is earned", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const history = [
+    entry({ avgWpm: 130, turnCount: 12, hedgeRate: 0.01 }, { templateId: "a", viaFreeText: true }),
+    entry({ avgWpm: 140, turnCount: 4, hedgeRate: 0.05 }, { templateId: "b" }),
+    entry({ avgWpm: 135, turnCount: 4, hedgeRate: 0.05 }, { templateId: "c" }),
+  ];
+  const p = milestoneProgress(history);
+  assert.equal(p.earned, 6);
+  assert.equal(p.next, null);
+});
+
+test("milestoneProgress handles empty history without throwing", async () => {
+  const { milestoneProgress } = await loadProgress();
+  const p = milestoneProgress([]);
+  assert.equal(p.earned, 0);
+  assert.equal(p.next.id, "first_rep");
+});
