@@ -506,6 +506,7 @@
   </div>
 
 <script src="/micTranscriptAccumulator.js"></script>
+<script src="/sessionProgress.js"></script>
 <script>
 const S = {
   token: localStorage.getItem("greenRoomToken") || "",
@@ -635,6 +636,8 @@ function logout() {
   S.micOn = false;
   S.sending = false;
   S.rubric = null;
+  S.bestLine = null;
+  S.whyItLanded = null;
   S.viaFreeText = false;
   S.slides = [];
   S.slideIndex = 0;
@@ -1653,6 +1656,8 @@ async function endPracticeSession() {
     const j = await api("/api/practice/end", { studentId: S.token });
     stopCamPreview();
     S.rubric = j.rubric;
+    S.bestLine = j.bestLine || null;
+    S.whyItLanded = j.whyItLanded || null;
     S.screen = "practiceEnd";
     incrementSessionCount();
     pushSessionHistory({
@@ -1661,6 +1666,9 @@ async function endPracticeSession() {
       date: new Date().toISOString(),
       takeaway: firstSentence(j.rubric?.contentCorrespondence || j.rubric?.articulation || "", 90),
       rubric: j.rubric,
+      signals: GreenRoomProgress.extractSignals(j.raw),
+      viaFreeText: S.viaFreeText === true,
+      bestLine: j.bestLine || null,
     });
     render();
     renderHeaderUser();
@@ -1689,6 +1697,8 @@ function renderPracticeEnd() {
     S.screen = "picker";
     S.practiceLog = [];
     S.rubric = null;
+    S.bestLine = null;
+    S.whyItLanded = null;
     render();
   };
 }
