@@ -585,14 +585,14 @@ function renderHeaderUser() {
     return;
   }
   const count = getSessionCount();
-  const level = getCareerLevel(count);
+  const badges = GreenRoomProgress.milestoneProgress(getSessionHistory());
   el.hidden = false;
   el.innerHTML = `
     <div class="header-user-main">
       <button class="logout-link" id="logoutBtn" type="button">Log out</button>
       <b>${esc(S.student.name || "")}</b>
     </div>
-    <span>Level ${level} · ${count} session${count === 1 ? "" : "s"}</span>`;
+    <span>${badges.earned} of ${badges.total} badges · ${count} session${count === 1 ? "" : "s"}</span>`;
   $("#logoutBtn", el).onclick = logout;
 }
 
@@ -863,14 +863,6 @@ const CARD_TEMPLATES = [
 ];
 
 const HERO_TEMPLATE_IDS = ["public_speech", "pitch", "interview"];
-const CAREER_MILESTONES = [
-  { count: 1, label: "First rep", desc: "Finish any practice session." },
-  { count: 3, label: "Warm-up streak", desc: "Complete three sessions." },
-  { count: 5, label: "Range builder", desc: "Try at least two practice modes." },
-  { count: 8, label: "Pressure proof", desc: "Complete eight sessions." },
-  { count: 12, label: "Green Room regular", desc: "Build a real rehearsal habit." },
-  { count: 18, label: "Stage ready", desc: "Keep sharpening across scenarios." },
-];
 const SCENE_BY_ID = {
   exam_viva: sceneClassroom,
   pitch: sceneWhiteboard,
@@ -879,26 +871,16 @@ const SCENE_BY_ID = {
   casual: sceneCasual,
 };
 
-function getCareerLevel(count) {
-  return Math.floor(count / 3) + 1;
-}
-
-function distinctTemplates(history) {
-  return new Set(history.map((h) => h.templateId || h.templateName).filter(Boolean));
-}
-
 function careerProgress(history = getSessionHistory()) {
-  const count = getSessionCount();
-  const uniqueTemplates = distinctTemplates(history).size;
-  const completed = CAREER_MILESTONES.filter((m) => {
-    if (m.count === 5) return count >= m.count && uniqueTemplates >= 2;
-    return count >= m.count;
-  }).length;
-  const next = CAREER_MILESTONES.find((m) => {
-    if (m.count === 5) return count < m.count || uniqueTemplates < 2;
-    return count < m.count;
-  }) || CAREER_MILESTONES[CAREER_MILESTONES.length - 1];
-  return { count, level: getCareerLevel(count), uniqueTemplates, completed, next };
+  const p = GreenRoomProgress.milestoneProgress(history);
+  return {
+    count: getSessionCount(),
+    uniqueTemplates: GreenRoomProgress.distinctTemplates(history).size,
+    earned: p.earned,
+    total: p.total,
+    milestones: p.milestones,
+    next: p.next,
+  };
 }
 
 function tabButtonHtml(id, label) {
@@ -916,12 +898,12 @@ function renderPicker() {
       <div class="rm-picker-head">
         <div>
           <h2 class="rm-h2">Hi ${esc(S.student?.name || "")}, ${S.pickerTab === "practice" ? "what are you rehearsing?" : S.pickerTab === "career" ? "here's your practice path." : "here's what you've practiced."}</h2>
-          <p class="rm-sub">${S.pickerTab === "practice" ? "Pick a stage to walk onto, or start smaller below." : S.pickerTab === "career" ? "Complete sessions to unlock milestones and broaden your scenario range." : "Review your recent feedback and spot patterns across sessions."}</p>
+          <p class="rm-sub">${S.pickerTab === "practice" ? "Pick a stage to walk onto, or start smaller below." : S.pickerTab === "career" ? "Milestones you earn from how you practice, not how often." : "Review your recent feedback and spot patterns across sessions."}</p>
         </div>
         <div class="rm-level-card">
-          <span>Level</span>
-          <b>${progress.level}</b>
-          <em>${progress.count} session${progress.count === 1 ? "" : "s"}</em>
+          <span>Badges</span>
+          <b>${progress.earned}</b>
+          <em>of ${progress.total}</em>
         </div>
       </div>
       <div class="rm-tabs" role="tablist" aria-label="Practice sections">
@@ -986,20 +968,21 @@ function careerPathHtml(history, progress) {
       <div class="rm-path-stats">
         <div><b>${progress.count}</b><span>sessions</span></div>
         <div><b>${progress.uniqueTemplates}</b><span>modes tried</span></div>
-        <div><b>${progress.completed}</b><span>badges</span></div>
+        <div><b>${progress.earned}</b><span>badges</span></div>
       </div>
       <div class="rm-path">
-        ${CAREER_MILESTONES.map((m, i) => {
-          const complete = i < progress.completed;
-          const current = i === progress.completed;
-          return `<div class="rm-path-node ${complete ? "done" : ""} ${current ? "current" : ""}">
-            <span class="dot">${complete ? "✓" : i + 1}</span>
+        ${progress.milestones.map((m) => {
+          const current = progress.next && m.id === progress.next.id;
+          return `<div class="rm-path-node ${m.earned ? "done" : ""} ${current ? "current" : ""}">
+            <span class="dot">${m.earned ? "✓" : ""}</span>
             <b>${esc(m.label)}</b>
             <em>${esc(m.desc)}</em>
           </div>`;
         }).join("")}
       </div>
-      <p class="rm-next-step">Next: ${esc(progress.next.label)} · ${esc(progress.next.desc)}</p>
+      <p class="rm-next-step">${progress.next
+        ? `Not yet: ${esc(progress.next.label)} — ${esc(progress.next.desc)}`
+        : "Every milestone earned. Keep practicing."}</p>
     </div>`;
 }
 
