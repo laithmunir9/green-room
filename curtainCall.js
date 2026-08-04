@@ -1,5 +1,6 @@
 const MIN_TURNS = 2;
 const MIN_WORDS = 15;
+const MIN_QUOTE_WORDS = 3;
 
 export function normalizeForMatch(text) {
   return String(text ?? "")
@@ -25,12 +26,20 @@ export function hasEnoughSubstance(studentTexts) {
   return words >= MIN_WORDS;
 }
 
+/** A turn contributes itself plus each of its sentences. Quoting is whole-sentence
+ *  only: a substring of a sentence can carry the student's words while inverting
+ *  their meaning ("we should ship this" out of "I do not think we should ship this"). */
+function quotableFrom(turn) {
+  return [turn, ...turn.split(/(?<=[.!?])\s+/)]
+    .map(normalizeForMatch)
+    .filter(Boolean);
+}
+
 export function isVerbatim(bestLine, studentTexts) {
   const needle = normalizeForMatch(bestLine);
   if (!needle) return false;
-  const haystack = normalizeForMatch(cleanTurns(studentTexts).join(" "));
-  if (!haystack) return false;
-  return haystack.includes(needle);
+  if (needle.split(" ").filter(Boolean).length < MIN_QUOTE_WORDS) return false;
+  return cleanTurns(studentTexts).some((turn) => quotableFrom(turn).includes(needle));
 }
 
 export function resolveCurtainCall({ bestLine, whyItLanded, studentTexts }) {

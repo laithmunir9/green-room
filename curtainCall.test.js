@@ -102,6 +102,43 @@ test("resolveCurtainCall keeps a valid quote when whyItLanded is missing", () =>
   assert.equal(out.whyItLanded, null);
 });
 
+const SHIP_TURNS = [
+  "I do not think we should ship this on Friday.",
+  "The migration is the risky part.",
+];
+
+test("isVerbatim rejects a fragment that inverts the student's meaning", () => {
+  assert.equal(isVerbatim("we should ship this on Friday", SHIP_TURNS), false);
+});
+
+test("isVerbatim rejects a quote spanning two turns", () => {
+  assert.equal(isVerbatim("ship this on Friday. The migration is the risky part", SHIP_TURNS), false);
+});
+
+test("isVerbatim rejects a quote shorter than three words", () => {
+  assert.equal(isVerbatim("I", SHIP_TURNS), false);
+  assert.equal(isVerbatim("the migration", SHIP_TURNS), false);
+});
+
+test("isVerbatim accepts one whole sentence out of a multi-sentence turn", () => {
+  const turns = ["We shipped it late. The migration was the risky part. I owned that call.", "Yes."];
+  assert.equal(isVerbatim("The migration was the risky part.", turns), true);
+  assert.equal(isVerbatim("I owned that call.", turns), true);
+});
+
+test("isVerbatim still accepts a turn that is a single unpunctuated sentence", () => {
+  assert.equal(isVerbatim("so I'd get up to speed fast", ["so I'd get up to speed fast", "yes"]), true);
+});
+
+test("resolveCurtainCall flags a meaning-inverting fragment as rejected", () => {
+  const out = resolveCurtainCall({
+    bestLine: "we should ship this on Friday",
+    whyItLanded: "Decisive.",
+    studentTexts: SHIP_TURNS,
+  });
+  assert.deepEqual(out, { bestLine: null, whyItLanded: null, rejected: true });
+});
+
 test("normalizeForMatch converts curly apostrophes to straight ones", () => {
   assert.equal(normalizeForMatch("I’d"), "i'd");
 });
