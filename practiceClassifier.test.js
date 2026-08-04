@@ -166,7 +166,7 @@ test("summarizeDelivery aggregates hedge rate and ramble rate across turns", () 
 
 test("summarizeDelivery returns zero rates for an empty transcript", () => {
   const result = summarizeDelivery([]);
-  assert.deepEqual(result, { turnCount: 0, hedgeRate: 0, rambleRate: 0, avgWpm: null, pacedTurnCount: 0 });
+  assert.deepEqual(result, { turnCount: 0, wordCount: 0, hedgeRate: 0, rambleRate: 0, avgWpm: null, pacedTurnCount: 0 });
 });
 
 test("summarizeDelivery computes real wpm from voice turn word counts and durations", () => {

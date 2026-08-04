@@ -87,7 +87,7 @@ export function selectResponders(signals, rng = Math.random) {
 
 export function summarizeDelivery(studentTexts, voiceTurns = []) {
   const turnCount = studentTexts.length;
-  if (turnCount === 0) return { turnCount: 0, hedgeRate: 0, rambleRate: 0, avgWpm: null, pacedTurnCount: 0 };
+  if (turnCount === 0) return { turnCount: 0, wordCount: 0, hedgeRate: 0, rambleRate: 0, avgWpm: null, pacedTurnCount: 0 };
   let totalWords = 0;
   let totalHedges = 0;
   let vagueTurns = 0;
@@ -105,6 +105,7 @@ export function summarizeDelivery(studentTexts, voiceTurns = []) {
   }
   return {
     turnCount,
+    wordCount: totalWords,
     hedgeRate: totalWords > 0 ? totalHedges / totalWords : 0,
     rambleRate: vagueTurns / turnCount,
     avgWpm,

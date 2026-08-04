@@ -11,6 +11,7 @@
     var e = (raw && raw.engagement) || {};
     return {
       turnCount: numOrNull(d.turnCount),
+      wordCount: numOrNull(d.wordCount),
       hedgeRate: numOrNull(d.hedgeRate),
       rambleRate: numOrNull(d.rambleRate),
       avgWpm: numOrNull(d.avgWpm),
@@ -93,26 +94,59 @@
     return false;
   }
 
-  function anySignal(history, key, test) {
-    return (history || []).some(function (h) {
-      var v = h && h.signals ? numOrNull(h.signals[key]) : null;
-      return v !== null && test(v);
-    });
+  // A milestone is a claim about something the student did, so it needs evidence
+  // that they actually spoke. These mirror the curtain call's substance gate: a
+  // session of "hi" / "ok" has a hedge rate of 0, but nothing was said plainly
+  // because nothing was said. A session with no wordCount (written before the
+  // field existed) cannot be verified, so it fails closed.
+  var MIN_SESSION_TURNS = 2;
+  var MIN_SESSION_WORDS = 15;
+  // A rate is only meaningful once its denominator is.
+  var MIN_RATE_WORDS = 50;
+  // "Held the floor" claims sustained speech, not ten one-word turns.
+  var MIN_FLOOR_WORDS = 100;
+
+  function isSubstantive(entry) {
+    var s = entry && entry.signals;
+    if (!s) return false;
+    var turns = numOrNull(s.turnCount);
+    var words = numOrNull(s.wordCount);
+    if (turns === null || words === null) return false;
+    return turns >= MIN_SESSION_TURNS && words >= MIN_SESSION_WORDS;
+  }
+
+  function substantive(history) {
+    return (history || []).filter(isSubstantive);
+  }
+
+  function anySubstantive(history, test) {
+    return substantive(history).some(function (e) { return test(e.signals, e); });
   }
 
   var MILESTONES = [
     { id: "first_rep", label: "First rep", desc: "Finish any practice session.",
-      earned: function (h) { return (h || []).length >= 1; } },
+      earned: function (h) { return substantive(h).length >= 1; } },
     { id: "range", label: "Range builder", desc: "Practice three different rooms.",
-      earned: function (h) { return distinctTemplates(h).size >= 3; } },
+      earned: function (h) { return distinctTemplates(substantive(h)).size >= 3; } },
     { id: "pace", label: "Found your pace", desc: "Three sessions running inside a conversational pace.",
-      earned: hasPaceRun },
+      earned: function (h) { return hasPaceRun(substantive(h)); } },
     { id: "plain", label: "Said it plain", desc: "Finish a session with almost no hedging.",
-      earned: function (h) { return anySignal(h, "hedgeRate", function (v) { return v < 0.02; }); } },
+      earned: function (h) {
+        return anySubstantive(h, function (s) {
+          var rate = numOrNull(s.hedgeRate);
+          return s.wordCount >= MIN_RATE_WORDS && rate !== null && rate < 0.02;
+        });
+      } },
     { id: "floor", label: "Held the floor", desc: "Take ten or more turns in one session.",
-      earned: function (h) { return anySignal(h, "turnCount", function (v) { return v >= 10; }); } },
+      earned: function (h) {
+        return anySubstantive(h, function (s) {
+          return s.turnCount >= 10 && s.wordCount >= MIN_FLOOR_WORDS;
+        });
+      } },
     { id: "offscript", label: "Went off-script", desc: "Describe your own scenario instead of picking one.",
-      earned: function (h) { return (h || []).some(function (e) { return e && e.viaFreeText === true; }); } },
+      earned: function (h) {
+        return anySubstantive(h, function (_s, e) { return e.viaFreeText === true; });
+      } },
   ];
 
   function milestoneProgress(history) {
