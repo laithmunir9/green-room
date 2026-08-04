@@ -597,7 +597,7 @@ function renderHeaderUser() {
     return;
   }
   const count = getSessionCount();
-  const badges = GreenRoomProgress.milestoneProgress(getSessionHistory());
+  const badges = milestoneProgress();
   el.hidden = false;
   el.innerHTML = `
     <div class="header-user-main">
@@ -883,8 +883,31 @@ const SCENE_BY_ID = {
   casual: sceneCasual,
 };
 
+// History is capped at 20 entries, so a milestone's evidence eventually falls off
+// the end. Earning is permanent: remember the ids so an old badge is never revoked.
+const EARNED_MILESTONES_KEY = "greenRoomEarnedMilestones";
+function rememberedMilestoneIds() {
+  try {
+    const v = JSON.parse(localStorage.getItem(EARNED_MILESTONES_KEY) || "[]");
+    return Array.isArray(v) ? v.filter((id) => typeof id === "string") : [];
+  } catch { return []; }
+}
+function milestoneProgress(history = getSessionHistory()) {
+  const remembered = new Set(rememberedMilestoneIds());
+  const milestones = GreenRoomProgress.milestoneProgress(history).milestones
+    .map((m) => ({ ...m, earned: m.earned || remembered.has(m.id) }));
+  const earnedIds = milestones.filter((m) => m.earned).map((m) => m.id);
+  try { localStorage.setItem(EARNED_MILESTONES_KEY, JSON.stringify(earnedIds)); } catch {}
+  return {
+    milestones,
+    earned: earnedIds.length,
+    total: milestones.length,
+    next: milestones.find((m) => !m.earned) || null,
+  };
+}
+
 function careerProgress(history = getSessionHistory()) {
-  const p = GreenRoomProgress.milestoneProgress(history);
+  const p = milestoneProgress(history);
   return {
     count: getSessionCount(),
     uniqueTemplates: GreenRoomProgress.distinctTemplates(history).size,
