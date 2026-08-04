@@ -439,6 +439,18 @@
     .rm-rubric .blk h4 { margin: 0 0 8px; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); font-size: 15px; }
     .rm-rubric .blk p { margin: 0; color: var(--rm-ink); font-size: 14px; line-height: 1.6; }
     .rm-rubric .blk.progress::before { background: linear-gradient(135deg, rgba(159,187,148,.22), rgba(231,196,143,.2)), var(--rm-panel); }
+    .rm-curtain { position: relative; z-index: 0; max-width: 640px; margin: 0 auto 18px; padding: 22px 24px; }
+    .rm-curtain::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 16px;
+      background: var(--rm-panel); border: 2.5px solid var(--ink); filter: url(#sketchWobbleBold);
+    }
+    .rm-curtain-eyebrow { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--rm-muted); margin-bottom: 14px; }
+    .rm-curtain-quote {
+      margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 22px;
+      line-height: 1.35; color: var(--rm-teal-dark); border-left: 3px solid var(--rm-tan); padding-left: 16px;
+    }
+    .rm-curtain-why { margin: 14px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--rm-muted); }
+    @media (max-width: 640px) { .rm-curtain-quote { font-size: 19px; } }
     .rm-cam { position: fixed; width: 160px; border-radius: 14px; overflow: hidden; border: 2px solid var(--rm-teal); box-shadow: 0 10px 30px rgba(0,0,0,.3); background:#000; z-index: 50; }
     .rm-cam.pos-br { right: 18px; bottom: 18px; }
     .rm-cam.pos-bl { left: 18px; bottom: 18px; }
@@ -853,13 +865,13 @@ function sceneCasual() {
 }
 
 const CARD_TEMPLATES = [
-  { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva.",
+  { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva.", listener: "examiner",
     setupQuestion: "What's the exam subject/topic?", setupPlaceholder: "e.g. Cell biology — mitosis and meiosis" },
-  { id: "pitch", icon: "💡", label: "Investor Pitch", desc: "Sell your idea, whiteboard and all.", defaultDescription: "Practicing pitching an idea to investors." },
-  { id: "interview", icon: "💼", label: "Job Interview", desc: "Answer questions, one on one.", defaultDescription: "Practicing for a job interview.",
+  { id: "pitch", icon: "💡", label: "Investor Pitch", desc: "Sell your idea, whiteboard and all.", defaultDescription: "Practicing pitching an idea to investors.", listener: "investor" },
+  { id: "interview", icon: "💼", label: "Job Interview", desc: "Answer questions, one on one.", defaultDescription: "Practicing for a job interview.", listener: "hiring manager",
     setupQuestion: "What role are you interviewing for?", setupPlaceholder: "e.g. Senior frontend engineer at a startup" },
-  { id: "public_speech", icon: "🎤", label: "Public Speech", desc: "Present to a room, out loud.", defaultDescription: "Practicing a public speech or presentation." },
-  { id: "casual", icon: "💬", label: "Casual chat", desc: "Low-stakes conversation practice.", defaultDescription: "Practicing casual conversation." },
+  { id: "public_speech", icon: "🎤", label: "Public Speech", desc: "Present to a room, out loud.", defaultDescription: "Practicing a public speech or presentation.", listener: "room" },
+  { id: "casual", icon: "💬", label: "Casual chat", desc: "Low-stakes conversation practice.", defaultDescription: "Practicing casual conversation.", listener: "person across from you" },
 ];
 
 const HERO_TEMPLATE_IDS = ["public_speech", "pitch", "interview"];
@@ -1038,7 +1050,7 @@ function fullHistoryHtml(history) {
         <b>${esc(h.templateName || "Practice session")}</b>
         <span>${esc(fmtDate(h.date))}</span>
       </div>
-      <p>${esc(h.takeaway || "Session completed.")}</p>
+      <p>${esc(h.bestLine ? `“${h.bestLine}”` : (h.takeaway || "Session completed."))}</p>
       <dl>
         <div><dt>Articulation</dt><dd>${esc(h.rubric?.articulation || "—")}</dd></div>
         <div><dt>Engagement</dt><dd>${esc(h.rubric?.engagement || "—")}</dd></div>
@@ -1704,6 +1716,19 @@ async function endPracticeSession() {
   } catch (e) { err(e); }
 }
 
+function curtainCallHtml() {
+  const line = (S.bestLine || "").trim();
+  if (!line) return "";
+  const tpl = CARD_TEMPLATES.find((t) => t.id === S.practiceTemplate?.templateId);
+  const listener = tpl?.listener || "room";
+  const why = (S.whyItLanded || "").trim();
+  return `<div class="rm-curtain">
+    <div class="rm-curtain-eyebrow">What the ${esc(listener)} heard</div>
+    <blockquote class="rm-curtain-quote">“${esc(line)}”</blockquote>
+    ${why ? `<p class="rm-curtain-why">${esc(why)}</p>` : ""}
+  </div>`;
+}
+
 function renderPracticeEnd() {
   const r = S.rubric || {};
   const progressNote = improvementNote(getSessionHistory());
@@ -1712,6 +1737,7 @@ function renderPracticeEnd() {
       <div class="rm-topbar"><b>How it went</b></div>
       <h2 class="rm-h2">Nice work, ${esc(S.student?.name || "")}</h2>
       <p class="rm-sub">Here's how your practice session went — no scores, just notes to build on.</p>
+      ${curtainCallHtml()}
       <div class="rm-rubric">
         ${progressNote ? `<div class="blk progress"><h4>Progress over time</h4><p>${esc(progressNote)}</p></div>` : ""}
         <div class="blk"><h4>Articulation</h4><p>${esc(r.articulation || "—")}</p></div>
