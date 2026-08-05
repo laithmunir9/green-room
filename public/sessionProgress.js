@@ -124,8 +124,13 @@
   }
 
   var MILESTONES = [
+    // "First rep" is deliberately NOT substance-gated, unlike every milestone
+    // below it. The others are claims about how someone practiced, so they need
+    // evidence. This one only marks that they showed up and finished, which is
+    // the hardest part for a nervous speaker and worth acknowledging even if the
+    // session was short. Walking in counts once; it does not count twice.
     { id: "first_rep", label: "First rep", desc: "Finish any practice session.",
-      earned: function (h) { return substantive(h).length >= 1; } },
+      earned: function (h) { return (h || []).length >= 1; } },
     { id: "range", label: "Range builder", desc: "Practice three different rooms.",
       earned: function (h) { return distinctTemplates(substantive(h)).size >= 3; } },
     { id: "pace", label: "Found your pace", desc: "Three sessions running inside a conversational pace.",

@@ -146,32 +146,43 @@ test("distinctTemplates counts unique templates and ignores entries with neither
   assert.equal(distinctTemplates(history).size, 3);
 });
 
-test("a trivial session earns nothing at all", async () => {
+test("a trivial session earns First rep and nothing else", async () => {
   const { milestoneProgress } = await loadProgress();
   const p = milestoneProgress([entry(TRIVIAL, { viaFreeText: true })]);
-  assert.equal(p.earned, 0, '"hi" / "ok" is not evidence of anything');
-  assert.equal(p.next.id, "first_rep");
+  assert.equal(p.earned, 1, '"hi" / "ok" is showing up, but it is not evidence of anything');
+  assert.equal(p.milestones.find((m) => m.id === "first_rep").earned, true);
+  assert.equal(p.next.id, "range");
 });
 
-test("a session with no wordCount cannot be verified and earns nothing", async () => {
+test("a session with no wordCount cannot be verified and earns nothing beyond First rep", async () => {
   const { milestoneProgress } = await loadProgress();
   const legacy = entry({ turnCount: 12, hedgeRate: 0.01, avgWpm: 130 }, { viaFreeText: true });
-  assert.equal(milestoneProgress([legacy]).earned, 0, "fails closed on unverifiable evidence");
+  const p = milestoneProgress([legacy]);
+  assert.equal(p.earned, 1, "fails closed on unverifiable evidence");
+  assert.equal(p.milestones.find((m) => m.id === "first_rep").earned, true);
 });
 
 test("substance needs both enough turns and enough words", async () => {
   const { milestoneProgress } = await loadProgress();
-  const earned = (s) => milestoneProgress([entry(s)]).milestones.find((m) => m.id === "first_rep").earned;
+  // Probed through a gated milestone: First rep deliberately skips this check.
+  const earned = (s) =>
+    milestoneProgress([entry(s, { viaFreeText: true })]).milestones.find((m) => m.id === "offscript").earned;
   assert.equal(earned({ turnCount: 1, wordCount: 60 }), false, "one turn is a statement, not a session");
   assert.equal(earned({ turnCount: 2, wordCount: 14 }), false);
   assert.equal(earned({ turnCount: 2, wordCount: 15 }), true, "the word floor is inclusive");
 });
 
-test("First rep is earned by a single substantive session", async () => {
+test("First rep is earned by finishing any session, however short", async () => {
   const { milestoneProgress } = await loadProgress();
   const byId = (h, id) => milestoneProgress(h).milestones.find((m) => m.id === id);
   assert.equal(byId([], "first_rep").earned, false);
   assert.equal(byId([real()], "first_rep").earned, true);
+  assert.equal(byId([entry(TRIVIAL)], "first_rep").earned, true, "showing up is the whole claim");
+  assert.equal(
+    byId([entry({ turnCount: 1 })], "first_rep").earned,
+    true,
+    "participation does not depend on signals being recorded",
+  );
 });
 
 test("Range builder counts only rooms that were really practiced", async () => {
