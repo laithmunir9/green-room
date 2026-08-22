@@ -736,7 +736,7 @@ function renderGate() {
           : "Sign back in to pick up where you left off."}</p>
         ${S.authMode === "register" ? `<label>Name <div class="input-wrap"><input id="name" placeholder="Your name" autocomplete="name" /></div></label>` : ""}
         <label>Email <div class="input-wrap"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div></label>
-        <label>Password (optional) <div class="input-wrap"><input id="pass" type="password" placeholder="••••••••" autocomplete="current-password" /></div></label>
+        <label>Password <div class="input-wrap"><input id="pass" type="password" placeholder="At least 8 characters" autocomplete="current-password" /></div></label>
         <div class="actions">
           <button class="btn primary" id="go">${S.authMode === "register" ? "Check in" : "Sign in"}</button>
           <button class="btn ghost" id="sw">${S.authMode === "register" ? "I have an account" : "Create account"}</button>
@@ -752,6 +752,7 @@ function renderGate() {
       const email = $("#email").value.trim();
       const password = $("#pass").value;
       if (!email) throw new Error("Please enter your email");
+      if (password.length < 8) throw new Error("Please enter a password with at least 8 characters");
       let j;
       if (S.authMode === "register") {
         const name = $("#name").value.trim();

@@ -2,7 +2,7 @@ import express from "express";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
-import { randomUUID } from "crypto";
+import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "crypto";
 import { aiOpenAIJson } from "./openaiChatClient.js";
 import { PERSONA_OPENAI_VOICES, synthesizeOpenAISpeech } from "./openaiSpeechClient.js";
 import { PRACTICE_TEMPLATES, TEMPLATE_IDS, findPersona } from "./practiceTemplates.js";
@@ -46,8 +46,40 @@ function loadDb() {
 function saveDb(db) {
   writeFileSync(dbPath, JSON.stringify(db, null, 2));
 }
-function getStudent(id) {
-  return loadDb().students[id] || null;
+const PASSWORD_KEYLEN = 64;
+const PASSWORD_SALT_BYTES = 16;
+const SESSION_TOKEN_BYTES = 32;
+
+function hashPassword(password) {
+  const salt = randomBytes(PASSWORD_SALT_BYTES).toString("base64url");
+  const hash = scryptSync(String(password), salt, PASSWORD_KEYLEN).toString("base64url");
+  return `scrypt:${salt}:${hash}`;
+}
+
+function verifyPassword(s, password) {
+  if (!s.passwordHash && !s.password) return false;
+  if (s.passwordHash) {
+    const [scheme, salt, expected] = String(s.passwordHash).split(":");
+    if (scheme !== "scrypt" || !salt || !expected) return false;
+    const actual = scryptSync(String(password), salt, PASSWORD_KEYLEN);
+    const expectedBuffer = Buffer.from(expected, "base64url");
+    return actual.length === expectedBuffer.length && timingSafeEqual(actual, expectedBuffer);
+  }
+  return s.password === password;
+}
+
+function requiresPasswordMigration(s) {
+  return Boolean(s.password && !s.passwordHash);
+}
+
+function issueSessionToken(s) {
+  s.sessionToken = randomBytes(SESSION_TOKEN_BYTES).toString("base64url");
+  return s.sessionToken;
+}
+
+function getStudent(idOrToken) {
+  const db = loadDb();
+  return db.students[idOrToken] || Object.values(db.students).find((s) => s.sessionToken === idOrToken) || null;
 }
 
 function putStudent(s) {
@@ -62,7 +94,6 @@ function newStudent(name, email) {
     id: randomUUID(),
     name: (name || "Learner").slice(0, 48),
     email: (email || "").trim().toLowerCase().slice(0, 254),
-    password: "", // optional simple gate
     createdAt: new Date().toISOString(),
   };
 }
@@ -83,6 +114,10 @@ function cleanStudentText(s) {
 
 function publicStudent(s) {
   return { id: s.id, name: s.name };
+}
+
+function cleanPasswordInput(password) {
+  return String(password || "");
 }
 
 function localFallbackReply(persona, signals) {
@@ -112,21 +147,30 @@ app.post("/api/auth/register", (req, res) => {
   const exists = Object.values(db.students).some((s) => (s.email || "").toLowerCase() === email);
   if (exists) return res.status(409).json({ error: "An account with that email already exists" });
   const s = newStudent(name, email);
-  const pass = String(req.body?.password || "");
-  if (pass) s.password = pass;
+  const pass = cleanPasswordInput(req.body?.password);
+  if (pass.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
+  s.passwordHash = hashPassword(pass);
+  const token = issueSessionToken(s);
   putStudent(s);
-  res.json({ student: publicStudent(s), token: s.id });
+  res.json({ student: publicStudent(s), token });
 });
 
 app.post("/api/auth/login", (req, res) => {
   const email = String(req.body?.email || "").trim().toLowerCase();
-  const pass = String(req.body?.password || "");
+  const pass = cleanPasswordInput(req.body?.password);
   const db = loadDb();
   const found = Object.values(db.students).find(
-    (s) => (s.email || "").toLowerCase() === email && (!s.password || s.password === pass)
+    (s) => (s.email || "").toLowerCase() === email && verifyPassword(s, pass)
   );
   if (!found) return res.status(401).json({ error: "No matching account (check email/password)" });
-  res.json({ student: publicStudent(found), token: found.id });
+  if (requiresPasswordMigration(found)) {
+    found.passwordHash = hashPassword(pass);
+    delete found.password;
+  }
+  const token = issueSessionToken(found);
+  db.students[found.id] = found;
+  saveDb(db);
+  res.json({ student: publicStudent(found), token });
 });
 
 app.get("/api/student/:id", (req, res) => {
@@ -482,9 +526,13 @@ app.post("/api/practice/speak", async (req, res) => {
   }
 });
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Green Room → http://localhost:${PORT}`);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Green Room → http://localhost:${PORT}`);
+  });
+}
 
 process.on("uncaughtException", (e) => console.error("[uncaught]", e?.message || e));
 process.on("unhandledRejection", (e) => console.error("[rejection]", e?.message || e));
+
+export { app, hashPassword, issueSessionToken, publicStudent, verifyPassword };
