@@ -77,9 +77,15 @@ function issueSessionToken(s) {
   return s.sessionToken;
 }
 
-function getStudent(idOrToken) {
+function getStudentById(id) {
   const db = loadDb();
-  return db.students[idOrToken] || Object.values(db.students).find((s) => s.sessionToken === idOrToken) || null;
+  return db.students[id] || null;
+}
+
+function getStudentBySessionToken(token) {
+  if (!token || typeof token !== "string") return null;
+  const db = loadDb();
+  return Object.values(db.students).find((s) => s.sessionToken === token) || null;
 }
 
 function putStudent(s) {
@@ -174,7 +180,7 @@ app.post("/api/auth/login", (req, res) => {
 });
 
 app.get("/api/student/:id", (req, res) => {
-  const s = getStudent(req.params.id);
+  const s = getStudentBySessionToken(req.params.id);
   if (!s) return res.status(404).json({ error: "not found" });
   res.json({ student: publicStudent(s) });
 });
@@ -183,7 +189,7 @@ app.get("/api/student/:id", (req, res) => {
 
 app.post("/api/practice/infer-scenario", async (req, res) => {
   try {
-    const s = getStudent(req.body?.studentId);
+    const s = getStudentBySessionToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     const description = cleanStudentText(req.body?.description || "").slice(0, 2000);
     if (!description) return res.status(400).json({ error: "Scenario description required" });
@@ -232,7 +238,7 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
 
 app.post("/api/practice/start", (req, res) => {
   try {
-    const s = getStudent(req.body?.studentId);
+    const s = getStudentBySessionToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     const { templateId } = req.body || {};
     const template = PRACTICE_TEMPLATES[templateId];
@@ -282,7 +288,7 @@ app.post("/api/practice/start", (req, res) => {
 
 app.post("/api/practice/message", async (req, res) => {
   try {
-    const s = getStudent(req.body?.studentId);
+    const s = getStudentBySessionToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     if (!s.practice) return res.status(400).json({ error: "No active practice session — call /api/practice/start first" });
 
@@ -377,7 +383,7 @@ app.post("/api/practice/message", async (req, res) => {
 
 app.post("/api/practice/polish-transcript", (req, res) => {
   try {
-    const s = getStudent(req.body?.studentId);
+    const s = getStudentBySessionToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
 
     const rawTranscript = applyLikelyAsrCorrections(cleanStudentText(req.body?.text || "")).slice(0, 2000);
@@ -393,7 +399,7 @@ app.post(
   express.raw({ type: ["audio/webm", "audio/mp4", "audio/wav", "application/octet-stream"], limit: "12mb" }),
   async (req, res) => {
     try {
-      const s = getStudent(req.query?.studentId);
+      const s = getStudentBySessionToken(req.query?.studentId);
       if (!s) return res.status(404).json({ error: "Student not found" });
       if (!Buffer.isBuffer(req.body) || req.body.length < 1000) return res.status(400).json({ error: "Audio required" });
 
@@ -427,7 +433,7 @@ app.post(
 
 app.post("/api/practice/end", async (req, res) => {
   try {
-    const s = getStudent(req.body?.studentId);
+    const s = getStudentBySessionToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     if (!s.practice) return res.status(400).json({ error: "No active practice session" });
 
@@ -512,6 +518,8 @@ app.post("/api/practice/end", async (req, res) => {
 
 app.post("/api/practice/speak", async (req, res) => {
   try {
+    const s = getStudentBySessionToken(req.body?.studentId);
+    if (!s) return res.status(404).json({ error: "Student not found" });
     const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
     if (!text) return res.status(400).json({ error: "Text required" });
     const personaId = String(req.body?.personaId || "facilitator");

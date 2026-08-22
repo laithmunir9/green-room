@@ -48,7 +48,7 @@ npm install
 cp .env.example .env
 ```
 
-Edit `.env` and set `OPENAI_API_KEY`. Optional model and rate-limit settings are documented in `.env.example`.
+Edit `.env` and set `OPENAI_API_KEY`. The server also supports optional model, audio, and rate-limit environment variables.
 
 Start the app:
 
@@ -66,11 +66,11 @@ Run the full test suite:
 npm test
 ```
 
-The tests cover scenario templates, classifier signals, transcript corrections, microphone transcript accumulation, curtain call validation, session progress milestones, public text punctuation checks, and local authentication behavior.
+The tests cover scenario templates, classifier signals, transcript corrections, microphone transcript accumulation, curtain call validation, session progress milestones, and local authentication behavior, including route-level session-token checks.
 
 ## Security and Limitations
 
-Green Room currently uses lightweight local/demo authentication and JSON-file persistence. Passwords are stored as salted scrypt hashes, login returns an opaque local session token, and password hashes are not returned by API responses.
+Green Room currently uses lightweight local/demo authentication and JSON-file persistence. New passwords are stored as salted scrypt hashes, login returns an opaque session token, and protected routes accept only that token. A temporary legacy-login path migrates old plaintext records to scrypt hashes after a successful login.
 
 This is not production authentication. A deployed multi-user version should move sessions, users, and practice history to a managed database, add secure cookie-based session handling, CSRF protection where needed, password reset flows, and operational monitoring.
 

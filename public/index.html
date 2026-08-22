@@ -1701,7 +1701,7 @@ async function speak(text, personaId) {
     const res = await fetch("/api/practice/speak", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, personaId: personaId || "facilitator" }),
+      body: JSON.stringify({ studentId: S.token, text, personaId: personaId || "facilitator" }),
     });
     if (!res.ok) return;
     const blob = await res.blob();
