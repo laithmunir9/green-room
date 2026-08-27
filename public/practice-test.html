@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Practice Sessions — Test Harness</title>
+<title>Practice Sessions - Test Harness</title>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
   select, input, button, textarea { font: inherit; padding: 6px 8px; }
@@ -22,7 +22,7 @@
 </style>
 </head>
 <body>
-<h2>Practice Sessions — Test Harness</h2>
+<h2>Practice Sessions - Test Harness</h2>
 <p style="color:#888">Throwaway test page, no shared state with the main app.</p>
 
 <fieldset id="step1">
@@ -100,7 +100,7 @@ el("inferBtn").onclick = async () => {
     if (!description) { alert("Enter a scenario description first"); return; }
     const j = await api("/api/practice/infer-scenario", { studentId: token, description });
     el("inferResult").textContent =
-      `Inferred: ${j.templateName} (${j.confidence}) — ${j.reason}`;
+      `Inferred: ${j.templateName} (${j.confidence}) - ${j.reason}`;
     el("template").value = j.templateId;
     el("step2").style.display = "block";
   } catch (e) {

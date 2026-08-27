@@ -98,7 +98,7 @@ test("the hedging row reports a mean percentage to one decimal", async () => {
   const rows = trendRows([entry({ hedgeRate: 0.04 }), entry({ hedgeRate: 0.02 }), entry({ hedgeRate: 0.03 })]);
   const hedging = rows.find((r) => r.key === "hedging");
   assert.equal(hedging.ready, true);
-  assert.equal(hedging.sentence, "Hedge words — kind of, maybe, I think — were about 3.0% of what you said.");
+  assert.equal(hedging.sentence, "Hedge words - kind of, maybe, I think - were about 3.0% of what you said.");
   assert.equal(hedging.band, undefined);
 });
 

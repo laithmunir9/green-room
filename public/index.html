@@ -108,7 +108,7 @@
        an empty ::before, and only that pseudo-element gets the wobble filter.
        CSS filters rasterize the whole subtree they're applied to, so putting
        the filter directly on an element with text children would blur/warp
-       the text itself — the element with real content stays filter-free and
+       the text itself - the element with real content stays filter-free and
        sits on top (z-index) of its own decorative ::before. */
     .card {
       position: relative; z-index: 0;
@@ -461,7 +461,7 @@
       border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; line-height: 20px;
       cursor: pointer; padding: 0;
     }
-    /* Vertically centered on the right edge — never competes with the topbar
+    /* Vertically centered on the right edge - never competes with the topbar
        (Exit button, top) or End session/camera (bottom) on any template,
        regardless of which corner that template's camera happens to use. */
     .rm-wpm-badge {
@@ -737,6 +737,7 @@ function renderGate() {
         ${S.authMode === "register" ? `<label>Name <div class="input-wrap"><input id="name" placeholder="Your name" autocomplete="name" /></div></label>` : ""}
         <label>Email <div class="input-wrap"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div></label>
         <label>Password <div class="input-wrap"><input id="pass" type="password" placeholder="At least 8 characters" autocomplete="current-password" /></div></label>
+        ${S.authMode === "register" ? `<label>Invite code <div class="input-wrap"><input id="inviteCode" placeholder="Only needed for private launch" autocomplete="off" /></div></label>` : ""}
         <div class="actions">
           <button class="btn primary" id="go">${S.authMode === "register" ? "Check in" : "Sign in"}</button>
           <button class="btn ghost" id="sw">${S.authMode === "register" ? "I have an account" : "Create account"}</button>
@@ -756,8 +757,9 @@ function renderGate() {
       let j;
       if (S.authMode === "register") {
         const name = $("#name").value.trim();
+        const inviteCode = $("#inviteCode").value.trim();
         if (!name) throw new Error("Please enter your name");
-        j = await api("/api/auth/register", { name, email, password });
+        j = await api("/api/auth/register", { name, email, password, inviteCode });
       } else {
         j = await api("/api/auth/login", { email, password });
       }
@@ -867,7 +869,7 @@ function sceneCasual() {
 
 const CARD_TEMPLATES = [
   { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva.", listener: "examiner",
-    setupQuestion: "What's the exam subject/topic?", setupPlaceholder: "e.g. Cell biology — mitosis and meiosis" },
+    setupQuestion: "What's the exam subject/topic?", setupPlaceholder: "e.g. Cell biology - mitosis and meiosis" },
   { id: "pitch", icon: "💡", label: "Investor Pitch", desc: "Sell your idea, whiteboard and all.", defaultDescription: "Practicing pitching an idea to investors.", listener: "investor" },
   { id: "interview", icon: "💼", label: "Job Interview", desc: "Answer questions, one on one.", defaultDescription: "Practicing for a job interview.", listener: "hiring manager",
     setupQuestion: "What role are you interviewing for?", setupPlaceholder: "e.g. Senior frontend engineer at a startup" },
@@ -1017,7 +1019,7 @@ function careerPathHtml(history, progress) {
         }).join("")}
       </div>
       <p class="rm-next-step">${progress.next
-        ? `Not yet: ${esc(progress.next.label)} — ${esc(progress.next.desc)}`
+        ? `Not yet: ${esc(progress.next.label)} - ${esc(progress.next.desc)}`
         : "Every milestone earned. Keep practicing."}</p>
     </div>`;
 }
@@ -1076,9 +1078,9 @@ function fullHistoryHtml(history) {
       </div>
       <p>${esc(h.bestLine ? `“${h.bestLine}”` : (h.takeaway || "Session completed."))}</p>
       <dl>
-        <div><dt>Articulation</dt><dd>${esc(h.rubric?.articulation || "—")}</dd></div>
-        <div><dt>Engagement</dt><dd>${esc(h.rubric?.engagement || "—")}</dd></div>
-        <div><dt>Content</dt><dd>${esc(h.rubric?.contentCorrespondence || "—")}</dd></div>
+        <div><dt>Articulation</dt><dd>${esc(h.rubric?.articulation || "-")}</dd></div>
+        <div><dt>Engagement</dt><dd>${esc(h.rubric?.engagement || "-")}</dd></div>
+        <div><dt>Content</dt><dd>${esc(h.rubric?.contentCorrespondence || "-")}</dd></div>
       </dl>
     </article>`).join("")}
   </div>`;
@@ -1113,7 +1115,7 @@ function renderSoundcheck() {
     <div class="rm-page">
       <div class="rm-topbar"><b>Quick sound check</b></div>
       <h2 class="rm-h2">Let's make sure you're heard</h2>
-      <p class="rm-sub">Optional — say hello, and we'll show you what came through before your first real session.</p>
+      <p class="rm-sub">Optional - say hello, and we'll show you what came through before your first real session.</p>
       <div class="rm-freeform">
         <div class="rm-mic-hero" style="padding:6px 0 2px">
           <button class="rm-mic-big ${S.micOn ? "on" : ""}" id="soundcheckMic" title="${S.micOn ? "Stop" : "Tap and say hello"}">${S.micOn ? "⏹" : "🎤"}</button>
@@ -1154,7 +1156,7 @@ function renderSetup() {
   inputEl.focus();
   const go = () => {
     const answer = inputEl.value.trim();
-    if (!answer) { err(new Error("This helps the session ask something specific — give it a quick answer.")); return; }
+    if (!answer) { err(new Error("This helps the session ask something specific - give it a quick answer.")); return; }
     startPracticeDirect(t.id, answer);
   };
   $("#setupGo").onclick = go;
@@ -1204,7 +1206,7 @@ let camRequesting = false;
 
 function wpmBadgeHtml() {
   return `<div class="rm-wpm-badge" title="Your pace on your last spoken turn">
-    <b>${S.liveWpm ?? "—"}</b>
+    <b>${S.liveWpm ?? "-"}</b>
     <span>wpm</span>
     <em>last turn</em>
   </div>`;
@@ -1281,7 +1283,7 @@ function handleSlideFiles(files) {
   const images = all.filter((f) => f.type.startsWith("image/"));
   if (!all.length) return;
   if (!images.length) {
-    err(new Error("That file type isn't supported here — export your slides as images (PNG or JPG) and upload those instead."));
+    err(new Error("That file type isn't supported here - export your slides as images (PNG or JPG) and upload those instead."));
     return;
   }
   const urls = images.map((f) => URL.createObjectURL(f));
@@ -1419,7 +1421,7 @@ function renderPracticeChat() {
           <div class="input-wrap pill" style="flex:1"><input type="text" id="textIn" placeholder="Or type here…" /></div>
           <button class="rm-btn primary" id="sendBtn">Send</button>
         </div>
-        <p class="rm-mic-state">${S.micOn ? "Listening…" : "Mic is off — tap to speak, or type instead"}</p>
+        <p class="rm-mic-state">${S.micOn ? "Listening…" : "Mic is off - tap to speak, or type instead"}</p>
         <div class="actions" style="justify-content:center">
           <button class="rm-btn ghost" id="endBtn">End session</button>
         </div>
@@ -1503,6 +1505,8 @@ let micRecorder = null;
 let micRecordingStream = null;
 let micAudioChunks = [];
 let micCancelTurn = false;
+let micAutoStopTimer = null;
+const MAX_RECORDING_SECONDS = 45;
 const micTranscriptAccumulator = createMicTranscriptAccumulator();
 
 function toggleMic() {
@@ -1523,9 +1527,14 @@ function recorderMimeType() {
 
 async function transcribeRecordedAudio(blob) {
   status("Transcribing audio...");
-  const res = await fetch(`/api/practice/transcribe-audio?studentId=${encodeURIComponent(S.token)}`, {
+  const durationSec = S.lastMicDurationSec || 0;
+  const qs = new URLSearchParams({ studentId: S.token, durationSec: String(Math.round(durationSec * 10) / 10) });
+  const res = await fetch(`/api/practice/transcribe-audio?${qs.toString()}`, {
     method: "POST",
-    headers: { "Content-Type": blob.type || "audio/webm" },
+    headers: {
+      "Content-Type": blob.type || "audio/webm",
+      "X-Green-Room-Duration-Sec": String(durationSec),
+    },
     body: blob,
   });
   const j = await res.json().catch(() => ({}));
@@ -1545,6 +1554,10 @@ async function finishMicTurnFromText(rawText, durationSec) {
 }
 
 function stopMicTracks() {
+  if (micAutoStopTimer) {
+    clearTimeout(micAutoStopTimer);
+    micAutoStopTimer = null;
+  }
   if (micRecordingStream) {
     micRecordingStream.getTracks().forEach((t) => t.stop());
     micRecordingStream = null;
@@ -1588,6 +1601,7 @@ async function startMicCapture() {
       };
       micRecorder.onstop = async () => {
         const durationSec = S.micStartedAt ? (performance.now() - S.micStartedAt) / 1000 : 0;
+        S.lastMicDurationSec = durationSec;
         const blob = new Blob(micAudioChunks, { type: micRecorder.mimeType || mimeType || "audio/webm" });
         S.micOn = false;
         S.micStartedAt = 0;
@@ -1620,6 +1634,12 @@ async function startMicCapture() {
       S.micStartedAt = performance.now();
       render();
       micRecorder.start(250);
+      micAutoStopTimer = setTimeout(() => {
+        if (S.micOn) {
+          status(`Stopping at ${MAX_RECORDING_SECONDS} seconds to keep audio costs under control...`);
+          stopMicCapture();
+        }
+      }, MAX_RECORDING_SECONDS * 1000);
       return;
     } catch (e) {
       console.error("audio recorder unavailable", e);
@@ -1655,7 +1675,7 @@ function startRecognition({ backupOnly = false } = {}) {
   };
   recognition.onerror = (e) => {
     console.error("speech recognition error", e.error);
-    // Permission/device errors are fatal — don't loop restarting forever.
+    // Permission/device errors are fatal - don't loop restarting forever.
     // Everything else (no-speech, network blips, aborted) is transient;
     // onend decides whether to restart.
     if (["not-allowed", "service-not-allowed", "audio-capture"].includes(e.error)) {
@@ -1673,7 +1693,7 @@ function startRecognition({ backupOnly = false } = {}) {
       const text = micTranscriptAccumulator.text();
       finishMicTurnFromText(text, durationSec);
     } else {
-      // Unexpected auto-stop mid-thought — restart without the student noticing.
+      // Unexpected auto-stop mid-thought - restart without the student noticing.
       // A short delay avoids some browsers throwing if start() is called too
       // soon after the previous session's onend.
       setTimeout(() => {
@@ -1760,13 +1780,13 @@ function renderPracticeEnd() {
     <div class="rm-page">
       <div class="rm-topbar"><b>How it went</b></div>
       <h2 class="rm-h2">Nice work, ${esc(S.student?.name || "")}</h2>
-      <p class="rm-sub">Here's how your practice session went — no scores, just notes to build on.</p>
+      <p class="rm-sub">Here's how your practice session went - no scores, just notes to build on.</p>
       ${curtainCallHtml()}
       <div class="rm-rubric">
         ${progressNote ? `<div class="blk progress"><h4>Progress over time</h4><p>${esc(progressNote)}</p></div>` : ""}
-        <div class="blk"><h4>Articulation</h4><p>${esc(r.articulation || "—")}</p></div>
-        <div class="blk"><h4>Engagement</h4><p>${esc(r.engagement || "—")}</p></div>
-        <div class="blk"><h4>Content correspondence</h4><p>${esc(r.contentCorrespondence || "—")}</p></div>
+        <div class="blk"><h4>Articulation</h4><p>${esc(r.articulation || "-")}</p></div>
+        <div class="blk"><h4>Engagement</h4><p>${esc(r.engagement || "-")}</p></div>
+        <div class="blk"><h4>Content correspondence</h4><p>${esc(r.contentCorrespondence || "-")}</p></div>
       </div>
       <div class="actions" style="justify-content:center;margin-top:20px">
         <button class="rm-btn primary" id="again">Practice again</button>

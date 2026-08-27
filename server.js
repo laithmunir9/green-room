@@ -1,7 +1,7 @@
 import express from "express";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { dirname, join, resolve } from "path";
 import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "crypto";
 import { aiOpenAIJson } from "./openaiChatClient.js";
 import { PERSONA_OPENAI_VOICES, synthesizeOpenAISpeech } from "./openaiSpeechClient.js";
@@ -22,7 +22,7 @@ async function aiJsonWithRetry(opts, retries = 1) {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const envPath = join(__dirname, ".env");
-const dataDir = join(__dirname, "data");
+const dataDir = process.env.GREEN_ROOM_DATA_DIR ? resolve(process.env.GREEN_ROOM_DATA_DIR) : join(__dirname, "data");
 const dbPath = join(dataDir, "students.json");
 
 if (existsSync(envPath)) {
@@ -34,6 +34,26 @@ if (existsSync(envPath)) {
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
 const PORT = Number(process.env.PORT || 3848);
+const INVITE_CODE = (process.env.GREEN_ROOM_INVITE_CODE || "").trim();
+const AUDIO_MAX_BYTES = Number(process.env.AUDIO_MAX_BYTES || 6 * 1024 * 1024);
+const AUDIO_MAX_SECONDS = Number(process.env.AUDIO_MAX_SECONDS || 45);
+const DAILY_LIMITS = {
+  scenarioInference: Number(process.env.DAILY_SCENARIO_INFERENCE_LIMIT || 20),
+  messages: Number(process.env.DAILY_MESSAGE_LIMIT || 60),
+  transcriptPolish: Number(process.env.DAILY_TRANSCRIPT_POLISH_LIMIT || 80),
+  transcriptions: Number(process.env.DAILY_TRANSCRIPTION_LIMIT || 12),
+  sessionReviews: Number(process.env.DAILY_SESSION_REVIEW_LIMIT || 12),
+  tts: Number(process.env.DAILY_TTS_LIMIT || 40),
+};
+const IP_LIMITS = [
+  { path: "/api/practice/transcribe-audio", windowMs: 60 * 60 * 1000, max: Number(process.env.IP_AUDIO_HOURLY_LIMIT || 20) },
+  { path: "/api/practice/speak", windowMs: 60 * 60 * 1000, max: Number(process.env.IP_TTS_HOURLY_LIMIT || 80) },
+  { path: "/api/practice/message", windowMs: 60 * 60 * 1000, max: Number(process.env.IP_MESSAGE_HOURLY_LIMIT || 120) },
+  { path: "/api/practice/end", windowMs: 60 * 60 * 1000, max: Number(process.env.IP_REVIEW_HOURLY_LIMIT || 40) },
+  { path: "/api/practice/infer-scenario", windowMs: 60 * 60 * 1000, max: Number(process.env.IP_INFERENCE_HOURLY_LIMIT || 60) },
+  { path: "/api/auth/", windowMs: 15 * 60 * 1000, max: Number(process.env.IP_AUTH_15M_LIMIT || 25) },
+];
+const ipBuckets = new Map();
 
 function loadDb() {
   if (!existsSync(dbPath)) return { students: {} };
@@ -46,6 +66,11 @@ function loadDb() {
 function saveDb(db) {
   writeFileSync(dbPath, JSON.stringify(db, null, 2));
 }
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const PASSWORD_KEYLEN = 64;
 const PASSWORD_SALT_BYTES = 16;
 const SESSION_TOKEN_BYTES = 32;
@@ -77,6 +102,35 @@ function issueSessionToken(s) {
   return s.sessionToken;
 }
 
+function resetDailyUsageIfNeeded(s) {
+  const date = todayKey();
+  if (!s.usage || s.usage.date !== date) s.usage = { date };
+}
+
+function consumeDailyUsage(s, key) {
+  resetDailyUsageIfNeeded(s);
+  const limit = DAILY_LIMITS[key];
+  const used = Number(s.usage[key] || 0);
+  if (Number.isFinite(limit) && limit >= 0 && used >= limit) {
+    const err = new Error(`Daily limit reached for this feature. Try again tomorrow.`);
+    err.status = 429;
+    err.limitKey = key;
+    throw err;
+  }
+  s.usage[key] = used + 1;
+}
+
+function clientIp(req) {
+  return req.ip || req.socket?.remoteAddress || "unknown";
+}
+
+function rateLimitFor(path) {
+  return IP_LIMITS.find((rule) => path.startsWith(rule.path));
+}
+
+function errorStatus(e, fallback = 500) {
+  return Number.isInteger(e?.status) ? e.status : fallback;
+}
 function getStudentById(id) {
   const db = loadDb();
   return db.students[id] || null;
@@ -136,7 +190,27 @@ function localFallbackReply(persona, signals) {
 }
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
+app.use((req, res, next) => {
+  const rule = rateLimitFor(req.path);
+  if (!rule) return next();
+
+  const now = Date.now();
+  const key = `${req.method}:${rule.path}:${clientIp(req)}`;
+  const bucket = ipBuckets.get(key);
+  if (!bucket || now >= bucket.resetAt) {
+    ipBuckets.set(key, { count: 1, resetAt: now + rule.windowMs });
+    return next();
+  }
+  if (bucket.count >= rule.max) {
+    const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+    res.set("Retry-After", String(retryAfter));
+    return res.status(429).json({ error: "Too many requests. Please wait a bit and try again." });
+  }
+  bucket.count += 1;
+  next();
+});
 app.use(express.static(join(__dirname, "public")));
 
 app.get("/api/health", (_req, res) => {
@@ -149,6 +223,9 @@ app.post("/api/auth/register", (req, res) => {
   if (!name) return res.status(400).json({ error: "Name required" });
   if (!email) return res.status(400).json({ error: "Email required" });
   if (!EMAIL_RE.test(email)) return res.status(400).json({ error: "Enter a valid email" });
+  if (INVITE_CODE && String(req.body?.inviteCode || "").trim() !== INVITE_CODE) {
+    return res.status(403).json({ error: "Invite code required" });
+  }
   const db = loadDb();
   const exists = Object.values(db.students).some((s) => (s.email || "").toLowerCase() === email);
   if (exists) return res.status(409).json({ error: "An account with that email already exists" });
@@ -193,6 +270,8 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
     if (!s) return res.status(404).json({ error: "Student not found" });
     const description = cleanStudentText(req.body?.description || "").slice(0, 2000);
     if (!description) return res.status(400).json({ error: "Scenario description required" });
+    consumeDailyUsage(s, "scenarioInference");
+    putStudent(s);
 
     const templateSummaries = TEMPLATE_IDS.map(
       (id) => `- "${id}": ${PRACTICE_TEMPLATES[id].description}`
@@ -211,7 +290,7 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
       parsed = await aiJsonWithRetry({ system, user: description, max_tokens: 800, temperature: 0.2 });
     } catch (e) {
       console.error("[ai] scenario inference failed:", e.message || e);
-      return res.status(503).json({ error: "Couldn't classify that scenario right now — please try again." });
+      return res.status(503).json({ error: "Couldn't classify that scenario right now - please try again." });
     }
 
     let templateId = parsed.templateId;
@@ -220,7 +299,7 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
     if (!TEMPLATE_IDS.includes(templateId)) {
       templateId = "casual";
       confidence = "low";
-      reason = "Couldn't confidently match a specific template — defaulting to casual conversation practice.";
+      reason = "Couldn't confidently match a specific template - defaulting to casual conversation practice.";
     }
 
     const template = PRACTICE_TEMPLATES[templateId];
@@ -232,7 +311,7 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
       personas: template.personas.map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
     });
   } catch (e) {
-    res.status(500).json({ error: String(e.message || e) });
+    res.status(errorStatus(e)).json({ error: String(e.message || e) });
   }
 });
 
@@ -253,11 +332,11 @@ app.post("/api/practice/start", (req, res) => {
     // start explaining unprompted. The other templates stay student-led.
     let opener;
     if (templateId === "exam_viva" && setupAnswer) {
-      opener = `Alright ${s.name}, let's begin. Walk me through ${setupAnswer} — start wherever makes the most sense to you.`;
+      opener = `Alright ${s.name}, let's begin. Walk me through ${setupAnswer} - start wherever makes the most sense to you.`;
     } else if (templateId === "interview" && setupAnswer) {
       opener = `Thanks for coming in, ${s.name}. Let's start here: what draws you to the ${setupAnswer} role, and what relevant experience do you bring?`;
     } else {
-      opener = `Alright ${s.name}, whenever you're ready — go ahead.`;
+      opener = `Alright ${s.name}, whenever you're ready - go ahead.`;
     }
 
     s.practice = {
@@ -282,7 +361,7 @@ app.post("/api/practice/start", (req, res) => {
       opener,
     });
   } catch (e) {
-    res.status(500).json({ error: String(e.message || e) });
+    res.status(errorStatus(e)).json({ error: String(e.message || e) });
   }
 });
 
@@ -290,13 +369,14 @@ app.post("/api/practice/message", async (req, res) => {
   try {
     const s = getStudentBySessionToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
-    if (!s.practice) return res.status(400).json({ error: "No active practice session — call /api/practice/start first" });
+    if (!s.practice) return res.status(400).json({ error: "No active practice session - call /api/practice/start first" });
 
     const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
     if (!text) return res.status(400).json({ error: "Message required" });
+    consumeDailyUsage(s, "messages");
 
     // Only trust durationSec when it's a real spoken turn (Web Speech API reports
-    // elapsed time) — long enough to rule out browser start/stop timing noise.
+    // elapsed time) - long enough to rule out browser start/stop timing noise.
     const durationSec = Number(req.body?.durationSec);
     const hasSpokenDuration = Number.isFinite(durationSec) && durationSec >= 0.5;
 
@@ -324,7 +404,7 @@ app.post("/api/practice/message", async (req, res) => {
     const system =
       "You are running a short scenario role-play. " + template.description + " " +
       "Multiple distinct characters respond to the student in character. Stay strictly in character for each " +
-      "persona listed below — do not blend their voices together. Keep every reply short (1-3 sentences), plain text, no markdown.\n\n" +
+      "persona listed below - do not blend their voices together. Keep every reply short (1-3 sentences), plain text, no markdown.\n\n" +
       (recentTurns.length ? `Recent conversation:\n${recentTurns.join("\n")}\n\n` : "\n") +
       "Characters responding this turn:\n" +
       personas.map((p) => `- ${p.name} (id: "${p.id}"): ${p.systemPrompt}`).join("\n") +
@@ -377,7 +457,7 @@ app.post("/api/practice/message", async (req, res) => {
       student: publicStudent(s),
     });
   } catch (e) {
-    res.status(500).json({ error: String(e.message || e) });
+    res.status(errorStatus(e)).json({ error: String(e.message || e) });
   }
 });
 
@@ -388,20 +468,29 @@ app.post("/api/practice/polish-transcript", (req, res) => {
 
     const rawTranscript = applyLikelyAsrCorrections(cleanStudentText(req.body?.text || "")).slice(0, 2000);
     if (!rawTranscript) return res.status(400).json({ error: "Transcript required" });
+    consumeDailyUsage(s, "transcriptPolish");
+    putStudent(s);
     res.json({ text: rawTranscript });
   } catch (e) {
-    res.status(500).json({ error: String(e.message || e) });
+    res.status(errorStatus(e)).json({ error: String(e.message || e) });
   }
 });
 
 app.post(
   "/api/practice/transcribe-audio",
-  express.raw({ type: ["audio/webm", "audio/mp4", "audio/wav", "application/octet-stream"], limit: "12mb" }),
+  express.raw({ type: ["audio/webm", "audio/mp4", "audio/wav", "application/octet-stream"], limit: AUDIO_MAX_BYTES }),
   async (req, res) => {
     try {
       const s = getStudentBySessionToken(req.query?.studentId);
       if (!s) return res.status(404).json({ error: "Student not found" });
       if (!Buffer.isBuffer(req.body) || req.body.length < 1000) return res.status(400).json({ error: "Audio required" });
+      if (req.body.length > AUDIO_MAX_BYTES) return res.status(413).json({ error: "That recording is too large. Try a shorter response." });
+      const durationSec = Number(req.query?.durationSec || req.get("x-green-room-duration-sec"));
+      if (Number.isFinite(durationSec) && durationSec > AUDIO_MAX_SECONDS + 2) {
+        return res.status(413).json({ error: `Recordings are limited to ${AUDIO_MAX_SECONDS} seconds. Try a shorter response.` });
+      }
+      consumeDailyUsage(s, "transcriptions");
+      putStudent(s);
 
       const practice = s.practice;
       const prompt = [
@@ -424,7 +513,7 @@ app.post(
       res.json({ text });
     } catch (e) {
       console.error("[audio] transcription failed:", e.message || e);
-      const status = /Missing OPENAI_API_KEY/.test(String(e.message || e)) ? 503 : 500;
+      const status = errorStatus(e, /Missing OPENAI_API_KEY/.test(String(e.message || e)) ? 503 : 500);
       const detail = String(e.message || "").replace(/sk-[A-Za-z0-9_-]+/g, "sk-...");
       res.status(status).json({ error: detail || "Couldn't transcribe that audio right now." });
     }
@@ -440,8 +529,10 @@ app.post("/api/practice/end", async (req, res) => {
     const practice = s.practice;
     const studentTexts = practice.studentTurns || [];
     if (!studentTexts.length) {
-      return res.status(400).json({ error: "Nothing to review yet — send at least one message first" });
+      return res.status(400).json({ error: "Nothing to review yet - send at least one message first" });
     }
+    consumeDailyUsage(s, "sessionReviews");
+    putStudent(s);
 
     const delivery = summarizeDelivery(studentTexts, practice.voiceTurns || []);
     const engagement = summarizeEngagement(studentTexts);
@@ -458,17 +549,17 @@ app.post("/api/practice/end", async (req, res) => {
       `Scenario the student described: "${practice.description}". ` +
       "You will be given the full transcript and two measured signal summaries. Write short (2-4 sentence), " +
       "specific, encouraging coaching feedback for each of three dimensions. Never output a numeric score or grade. " +
-      "For articulation, the delivery signals include avgWpm — a real words-per-minute figure measured from the " +
+      "For articulation, the delivery signals include avgWpm - a real words-per-minute figure measured from the " +
       "student's actual speaking pace (only present when they used the microphone, null otherwise). When it's " +
       "present, weigh in on their pace for this kind of scenario (roughly 120-160 wpm reads as clear and " +
       "conversational for most spoken scenarios; noticeably faster can read as rushed, noticeably slower can read " +
-      "as hesitant) — but don't invent a pace comment when avgWpm is null. " +
+      "as hesitant) - but don't invent a pace comment when avgWpm is null. " +
       "For content correspondence, judge whether what the student actually said stayed relevant and accurate to " +
-      "their stated scenario — you are the only one checking this, read the transcript carefully.\n\n" +
-      `Measured delivery signals (informational — use as context, don't just restate the numbers): ${JSON.stringify(delivery)}\n` +
-      `Measured engagement signals (informational — use as context, don't just restate the numbers): ${JSON.stringify(engagement)}\n\n` +
+      "their stated scenario - you are the only one checking this, read the transcript carefully.\n\n" +
+      `Measured delivery signals (informational - use as context, don't just restate the numbers): ${JSON.stringify(delivery)}\n` +
+      `Measured engagement signals (informational - use as context, don't just restate the numbers): ${JSON.stringify(engagement)}\n\n` +
       "Also pick the single strongest sentence the student actually said and copy it into bestLine " +
-      "EXACTLY as it appears in the transcript — character for character. Do not paraphrase it, tidy it, " +
+      "EXACTLY as it appears in the transcript - character for character. Do not paraphrase it, tidy it, " +
       "fix its grammar, merge two sentences, or compose a new one. If you cannot copy a sentence exactly, " +
       "set bestLine to null. In whyItLanded, write one sentence on what made that line work. " +
       "If the student said too little for any sentence to stand out, set both bestLine and whyItLanded to null.\n\n" +
@@ -486,7 +577,7 @@ app.post("/api/practice/end", async (req, res) => {
       });
     } catch (e) {
       console.error("[ai] practice end-of-session rubric failed:", e.message || e);
-      return res.status(503).json({ error: "Couldn't put together your feedback right now — please try again." });
+      return res.status(503).json({ error: "Couldn't put together your feedback right now - please try again." });
     }
 
     practice.endedAt = new Date().toISOString();
@@ -512,7 +603,7 @@ app.post("/api/practice/end", async (req, res) => {
       raw: { delivery, engagement },
     });
   } catch (e) {
-    res.status(500).json({ error: String(e.message || e) });
+    res.status(errorStatus(e)).json({ error: String(e.message || e) });
   }
 });
 
@@ -522,6 +613,8 @@ app.post("/api/practice/speak", async (req, res) => {
     if (!s) return res.status(404).json({ error: "Student not found" });
     const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
     if (!text) return res.status(400).json({ error: "Text required" });
+    consumeDailyUsage(s, "tts");
+    putStudent(s);
     const personaId = String(req.body?.personaId || "facilitator");
     const voice = PERSONA_OPENAI_VOICES[personaId] || PERSONA_OPENAI_VOICES.facilitator;
     const audio = await synthesizeOpenAISpeech(text, { voice });
@@ -530,13 +623,22 @@ app.post("/api/practice/speak", async (req, res) => {
     res.send(audio);
   } catch (e) {
     console.error("[tts] synthesis failed:", e.message || e);
-    res.status(503).json({ error: "Couldn't generate audio right now." });
+    res.status(errorStatus(e, 503)).json({ error: errorStatus(e) === 429 ? String(e.message || e) : "Couldn't generate audio right now." });
   }
+});
+
+app.use((err, _req, res, next) => {
+  if (!err) return next();
+  if (err.type === "entity.too.large") {
+    return res.status(413).json({ error: "That recording is too large. Try a shorter response." });
+  }
+  console.error("[express]", err.message || err);
+  res.status(500).json({ error: "Something went wrong. Please try again." });
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Green Room → http://localhost:${PORT}`);
+    console.log(`Green Room -> http://localhost:${PORT}`);
   });
 }
 
