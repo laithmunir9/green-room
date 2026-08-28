@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>Practice Sessions — Test Harness</title>
+<title>Practice Sessions - Test Harness</title>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
   select, input, button, textarea { font: inherit; padding: 6px 8px; }
@@ -22,13 +22,17 @@
 </style>
 </head>
 <body>
-<h2>Practice Sessions — Test Harness</h2>
+<h2>Practice Sessions - Test Harness</h2>
 <p style="color:#888">Throwaway test page, no shared state with the main app.</p>
 
 <fieldset id="step1">
   <legend>1. Describe your scenario</legend>
   <label>Student name</label>
   <input id="name" value="PracticeTester" />
+  <label>Email</label>
+  <input id="email" type="email" value="" placeholder="practice@example.com" />
+  <label>Password</label>
+  <input id="password" type="password" value="practice-pass" />
   <label>Scenario description</label>
   <textarea id="description" rows="3" placeholder="e.g. I'm pitching a startup idea to investors next week"></textarea>
   <div style="margin-top:8px"><button id="inferBtn">Infer scenario</button></div>
@@ -86,14 +90,17 @@ async function api(path, body) {
 
 el("inferBtn").onclick = async () => {
   try {
-    const name = (el("name").value.trim() || "PracticeTester") + "_" + Date.now();
-    const reg = await api("/api/auth/register", { name });
+    const stamp = Date.now();
+    const name = (el("name").value.trim() || "PracticeTester") + "_" + stamp;
+    const email = el("email").value.trim() || `practice-${stamp}@example.com`;
+    const password = el("password").value || "practice-pass";
+    const reg = await api("/api/auth/register", { name, email, password });
     token = reg.token;
     description = el("description").value.trim();
     if (!description) { alert("Enter a scenario description first"); return; }
     const j = await api("/api/practice/infer-scenario", { studentId: token, description });
     el("inferResult").textContent =
-      `Inferred: ${j.templateName} (${j.confidence}) — ${j.reason}`;
+      `Inferred: ${j.templateName} (${j.confidence}) - ${j.reason}`;
     el("template").value = j.templateId;
     el("step2").style.display = "block";
   } catch (e) {

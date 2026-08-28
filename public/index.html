@@ -108,7 +108,7 @@
        an empty ::before, and only that pseudo-element gets the wobble filter.
        CSS filters rasterize the whole subtree they're applied to, so putting
        the filter directly on an element with text children would blur/warp
-       the text itself — the element with real content stays filter-free and
+       the text itself - the element with real content stays filter-free and
        sits on top (z-index) of its own decorative ::before. */
     .card {
       position: relative; z-index: 0;
@@ -194,10 +194,11 @@
       --rm-ink: #eef2ea;
       --rm-muted: #9fb3a8;
     }
-    .rm-page { background: var(--rm-bg); flex: 1; min-height: calc(100vh - 76px); padding: 32px; }
+    .rm-page { background: var(--rm-bg); flex: 1; min-height: calc(100vh - 76px); padding: 48px clamp(28px, 6vw, 112px) 64px; }
     .rm-topbar { margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
     .rm-topbar b { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--rm-muted); }
-    .rm-picker-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px; }
+    .rm-picker-head, .rm-topbar, .rm-tabs { width: min(100%, 1520px); margin-left: auto; margin-right: auto; }
+    .rm-picker-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 22px; }
     .rm-level-card {
       position: relative; z-index: 0; min-width: 126px; padding: 12px 16px; text-align: center;
       color: var(--rm-teal-dark); flex-shrink: 0;
@@ -229,7 +230,7 @@
     }
     .rm-exit-btn:hover { color: var(--rm-teal-dark); text-decoration: underline; }
     .rm-exit-btn:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 2px; }
-    .rm-h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 26px; color: var(--rm-teal-dark); margin: 0 0 6px; }
+    .rm-h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 32px; color: var(--rm-teal-dark); margin: 0 0 8px; }
     .rm-sub { color: var(--rm-muted); font-size: 14px; margin: 0 0 22px; max-width: 60ch; line-height: 1.5; }
     .rm-hero-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }
     @media (max-width: 900px) { .rm-hero-grid { grid-template-columns: 1fr; } }
@@ -294,37 +295,59 @@
       filter: url(#sketchWobbleBold);
     }
     .rm-path-panel {
-      position: relative; z-index: 0; padding: 24px; max-width: 860px;
+      position: relative; z-index: 0; padding: 24px;
     }
     .rm-path-panel::before {
       content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 18px;
       background: var(--rm-panel); border: 2.5px solid var(--ink); filter: url(#sketchWobbleBold);
     }
-    .rm-path-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+    .rm-path-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 30px; }
     .rm-path-stats div {
-      border: 2px dashed var(--rm-line); border-radius: 12px; padding: 12px; text-align: center;
+      border: 2px dashed var(--rm-line); border-radius: 12px; padding: 17px 12px; text-align: center;
     }
-    .rm-path-stats b { display: block; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); font-size: 25px; line-height: 1; }
+    .rm-path-stats b { display: block; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); font-size: 31px; line-height: 1; }
     .rm-path-stats span { display: block; margin-top: 5px; color: var(--rm-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
     .rm-path {
-      display: grid; grid-template-columns: repeat(6, minmax(96px, 1fr)); gap: 12px; align-items: start;
+      display: grid; grid-template-columns: repeat(6, minmax(110px, 1fr)); gap: 16px; align-items: start;
     }
-    .rm-path-node { position: relative; min-height: 138px; padding: 46px 12px 12px; text-align: center; }
+    .rm-path-node { position: relative; min-height: 168px; padding: 52px 16px 16px; text-align: center; }
     .rm-path-node::before {
       content: ""; position: absolute; inset: 18px 0 0; z-index: -1; border-radius: 15px;
       background: var(--rm-input-bg); border: 2px solid var(--ink); filter: url(#sketchWobble);
     }
     .rm-path-node .dot {
       position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
+      width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center;
       background: var(--rm-panel); border: 2px solid var(--ink); color: var(--rm-muted);
       font-weight: 800; box-shadow: 0 8px 20px rgba(43,74,64,.12);
     }
     .rm-path-node.done .dot { background: var(--rm-sage); color: #16261d; }
     .rm-path-node.current .dot { background: var(--rm-tan); color: #2b1f0d; }
-    .rm-path-node b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 14px; line-height: 1.2; }
-    .rm-path-node em { display: block; margin-top: 6px; color: var(--rm-muted); font-size: 11.5px; line-height: 1.35; font-style: normal; }
-    .rm-next-step { margin: 20px 0 0; color: var(--rm-muted); font-size: 13px; }
+    .rm-path-node b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 16px; line-height: 1.2; }
+    .rm-path-node em { display: block; margin-top: 8px; color: var(--rm-muted); font-size: 12.5px; line-height: 1.4; font-style: normal; }
+    .rm-next-step { margin: 24px 0 0; color: var(--rm-muted); font-size: 14px; }
+    .rm-career-layout {
+      display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, .8fr);
+      gap: 28px; align-items: stretch; width: min(100%, 1520px); margin: 0 auto;
+    }
+    .rm-practice-snapshot { position: relative; z-index: 0; padding: 22px; min-height: 100%; }
+    .rm-practice-snapshot::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 18px;
+      background: var(--rm-panel); border: 2.5px solid var(--ink); filter: url(#sketchWobbleBold);
+    }
+    .rm-practice-snapshot h3 {
+      margin: 0 0 4px; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 19px;
+    }
+    .rm-practice-snapshot > p { margin: 0 0 20px; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
+    .rm-snapshot-section { border-top: 1px solid var(--rm-line); padding-top: 14px; margin-top: 14px; }
+    .rm-snapshot-label { color: var(--rm-muted); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .rm-snapshot-next { margin: 6px 0 0; color: var(--rm-ink); font-size: 14px; line-height: 1.45; }
+    .rm-snapshot-next b { color: var(--rm-teal-dark); }
+    .rm-snapshot-list { display: grid; gap: 10px; margin-top: 10px; }
+    .rm-snapshot-item { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .rm-snapshot-item b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 14px; }
+    .rm-snapshot-item span { color: var(--rm-muted); font-size: 11px; white-space: nowrap; }
+    .rm-snapshot-empty { margin: 8px 0 0; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
     .rm-history-list { display: grid; gap: 12px; max-width: 860px; }
     .rm-trends { position: relative; z-index: 0; display: grid; gap: 16px; max-width: 860px; padding: 20px; margin-bottom: 14px; }
     .rm-trend-row { display: grid; grid-template-columns: 150px 1fr; gap: 18px; align-items: center; }
@@ -461,7 +484,7 @@
       border: none; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; line-height: 20px;
       cursor: pointer; padding: 0;
     }
-    /* Vertically centered on the right edge — never competes with the topbar
+    /* Vertically centered on the right edge - never competes with the topbar
        (Exit button, top) or End session/camera (bottom) on any template,
        regardless of which corner that template's camera happens to use. */
     .rm-wpm-badge {
@@ -486,6 +509,9 @@
       .rm-path-stats { grid-template-columns: 1fr; }
       .rm-history-card dl div { grid-template-columns: 1fr; gap: 4px; }
       .rm-trend-row { grid-template-columns: 1fr; gap: 8px; }
+    }
+    @media (max-width: 980px) {
+      .rm-career-layout { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -736,7 +762,8 @@ function renderGate() {
           : "Sign back in to pick up where you left off."}</p>
         ${S.authMode === "register" ? `<label>Name <div class="input-wrap"><input id="name" placeholder="Your name" autocomplete="name" /></div></label>` : ""}
         <label>Email <div class="input-wrap"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div></label>
-        <label>Password (optional) <div class="input-wrap"><input id="pass" type="password" placeholder="••••••••" autocomplete="current-password" /></div></label>
+        <label>Password <div class="input-wrap"><input id="pass" type="password" placeholder="At least 8 characters" autocomplete="current-password" /></div></label>
+        ${S.authMode === "register" ? `<label>Invite code <div class="input-wrap"><input id="inviteCode" placeholder="Only needed for private launch" autocomplete="off" /></div></label>` : ""}
         <div class="actions">
           <button class="btn primary" id="go">${S.authMode === "register" ? "Check in" : "Sign in"}</button>
           <button class="btn ghost" id="sw">${S.authMode === "register" ? "I have an account" : "Create account"}</button>
@@ -752,11 +779,13 @@ function renderGate() {
       const email = $("#email").value.trim();
       const password = $("#pass").value;
       if (!email) throw new Error("Please enter your email");
+      if (password.length < 8) throw new Error("Please enter a password with at least 8 characters");
       let j;
       if (S.authMode === "register") {
         const name = $("#name").value.trim();
+        const inviteCode = $("#inviteCode").value.trim();
         if (!name) throw new Error("Please enter your name");
-        j = await api("/api/auth/register", { name, email, password });
+        j = await api("/api/auth/register", { name, email, password, inviteCode });
       } else {
         j = await api("/api/auth/login", { email, password });
       }
@@ -866,7 +895,7 @@ function sceneCasual() {
 
 const CARD_TEMPLATES = [
   { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva.", listener: "examiner",
-    setupQuestion: "What's the exam subject/topic?", setupPlaceholder: "e.g. Cell biology — mitosis and meiosis" },
+    setupQuestion: "What's the exam subject/topic?", setupPlaceholder: "e.g. Cell biology - mitosis and meiosis" },
   { id: "pitch", icon: "💡", label: "Investor Pitch", desc: "Sell your idea, whiteboard and all.", defaultDescription: "Practicing pitching an idea to investors.", listener: "investor" },
   { id: "interview", icon: "💼", label: "Job Interview", desc: "Answer questions, one on one.", defaultDescription: "Practicing for a job interview.", listener: "hiring manager",
     setupQuestion: "What role are you interviewing for?", setupPlaceholder: "e.g. Senior frontend engineer at a startup" },
@@ -999,26 +1028,55 @@ function practicePickerHtml(heroes, secondary) {
 
 function careerPathHtml(history, progress) {
   return `
-    <div class="rm-path-panel">
-      <div class="rm-path-stats">
-        <div><b>${progress.count}</b><span>sessions</span></div>
-        <div><b>${progress.uniqueTemplates}</b><span>modes tried</span></div>
-        <div><b>${progress.earned}</b><span>badges</span></div>
+    <div class="rm-career-layout">
+      <div class="rm-path-panel">
+        <div class="rm-path-stats">
+          <div><b>${progress.count}</b><span>sessions</span></div>
+          <div><b>${progress.uniqueTemplates}</b><span>modes tried</span></div>
+          <div><b>${progress.earned}</b><span>badges</span></div>
+        </div>
+        <div class="rm-path">
+          ${progress.milestones.map((m) => {
+            const current = progress.next && m.id === progress.next.id;
+            return `<div class="rm-path-node ${m.earned ? "done" : ""} ${current ? "current" : ""}">
+              <span class="dot">${m.earned ? "✓" : ""}</span>
+              <b>${esc(m.label)}</b>
+              <em>${esc(m.desc)}</em>
+            </div>`;
+          }).join("")}
+        </div>
+        <p class="rm-next-step">${progress.next
+          ? `Not yet: ${esc(progress.next.label)} - ${esc(progress.next.desc)}`
+          : "Every milestone earned. Keep practicing."}</p>
       </div>
-      <div class="rm-path">
-        ${progress.milestones.map((m) => {
-          const current = progress.next && m.id === progress.next.id;
-          return `<div class="rm-path-node ${m.earned ? "done" : ""} ${current ? "current" : ""}">
-            <span class="dot">${m.earned ? "✓" : ""}</span>
-            <b>${esc(m.label)}</b>
-            <em>${esc(m.desc)}</em>
-          </div>`;
-        }).join("")}
-      </div>
-      <p class="rm-next-step">${progress.next
-        ? `Not yet: ${esc(progress.next.label)} — ${esc(progress.next.desc)}`
-        : "Every milestone earned. Keep practicing."}</p>
+      ${careerSnapshotHtml(history, progress)}
     </div>`;
+}
+
+function careerSnapshotHtml(history, progress) {
+  const recent = history.slice(0, 3);
+  const recentNames = [...new Set(history.map((h) => h.templateName).filter(Boolean))].slice(0, 3);
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `<aside class="rm-practice-snapshot">
+    <h3>Your practice snapshot</h3>
+    <p>A small view of the work behind your progress.</p>
+    <div class="rm-snapshot-section">
+      <div class="rm-snapshot-label">Next milestone</div>
+      <p class="rm-snapshot-next">${progress.next
+        ? `<b>${esc(progress.next.label)}</b><br>${esc(progress.next.desc)}`
+        : "You have completed every milestone."}</p>
+    </div>
+    <div class="rm-snapshot-section">
+      <div class="rm-snapshot-label">Recent rooms</div>
+      ${recent.length ? `<div class="rm-snapshot-list">${recent.map((h) => `
+        <div class="rm-snapshot-item"><b>${esc(h.templateName || "Practice session")}</b><span>${esc(fmtDate(h.date))}</span></div>
+      `).join("")}</div>` : `<p class="rm-snapshot-empty">Your first room is waiting. Choose a scenario to begin.</p>`}
+    </div>
+    <div class="rm-snapshot-section">
+      <div class="rm-snapshot-label">Modes explored</div>
+      <p class="rm-snapshot-next">${recentNames.length ? esc(recentNames.join(" · ")) : "No modes explored yet."}</p>
+    </div>
+  </aside>`;
 }
 
 function sparklineSvg(row) {
@@ -1075,9 +1133,9 @@ function fullHistoryHtml(history) {
       </div>
       <p>${esc(h.bestLine ? `“${h.bestLine}”` : (h.takeaway || "Session completed."))}</p>
       <dl>
-        <div><dt>Articulation</dt><dd>${esc(h.rubric?.articulation || "—")}</dd></div>
-        <div><dt>Engagement</dt><dd>${esc(h.rubric?.engagement || "—")}</dd></div>
-        <div><dt>Content</dt><dd>${esc(h.rubric?.contentCorrespondence || "—")}</dd></div>
+        <div><dt>Articulation</dt><dd>${esc(h.rubric?.articulation || "-")}</dd></div>
+        <div><dt>Engagement</dt><dd>${esc(h.rubric?.engagement || "-")}</dd></div>
+        <div><dt>Content</dt><dd>${esc(h.rubric?.contentCorrespondence || "-")}</dd></div>
       </dl>
     </article>`).join("")}
   </div>`;
@@ -1112,7 +1170,7 @@ function renderSoundcheck() {
     <div class="rm-page">
       <div class="rm-topbar"><b>Quick sound check</b></div>
       <h2 class="rm-h2">Let's make sure you're heard</h2>
-      <p class="rm-sub">Optional — say hello, and we'll show you what came through before your first real session.</p>
+      <p class="rm-sub">Optional - say hello, and we'll show you what came through before your first real session.</p>
       <div class="rm-freeform">
         <div class="rm-mic-hero" style="padding:6px 0 2px">
           <button class="rm-mic-big ${S.micOn ? "on" : ""}" id="soundcheckMic" title="${S.micOn ? "Stop" : "Tap and say hello"}">${S.micOn ? "⏹" : "🎤"}</button>
@@ -1153,7 +1211,7 @@ function renderSetup() {
   inputEl.focus();
   const go = () => {
     const answer = inputEl.value.trim();
-    if (!answer) { err(new Error("This helps the session ask something specific — give it a quick answer.")); return; }
+    if (!answer) { err(new Error("This helps the session ask something specific - give it a quick answer.")); return; }
     startPracticeDirect(t.id, answer);
   };
   $("#setupGo").onclick = go;
@@ -1203,7 +1261,7 @@ let camRequesting = false;
 
 function wpmBadgeHtml() {
   return `<div class="rm-wpm-badge" title="Your pace on your last spoken turn">
-    <b>${S.liveWpm ?? "—"}</b>
+    <b>${S.liveWpm ?? "-"}</b>
     <span>wpm</span>
     <em>last turn</em>
   </div>`;
@@ -1280,7 +1338,7 @@ function handleSlideFiles(files) {
   const images = all.filter((f) => f.type.startsWith("image/"));
   if (!all.length) return;
   if (!images.length) {
-    err(new Error("That file type isn't supported here — export your slides as images (PNG or JPG) and upload those instead."));
+    err(new Error("That file type isn't supported here - export your slides as images (PNG or JPG) and upload those instead."));
     return;
   }
   const urls = images.map((f) => URL.createObjectURL(f));
@@ -1418,7 +1476,7 @@ function renderPracticeChat() {
           <div class="input-wrap pill" style="flex:1"><input type="text" id="textIn" placeholder="Or type here…" /></div>
           <button class="rm-btn primary" id="sendBtn">Send</button>
         </div>
-        <p class="rm-mic-state">${S.micOn ? "Listening…" : "Mic is off — tap to speak, or type instead"}</p>
+        <p class="rm-mic-state">${S.micOn ? "Listening…" : "Mic is off - tap to speak, or type instead"}</p>
         <div class="actions" style="justify-content:center">
           <button class="rm-btn ghost" id="endBtn">End session</button>
         </div>
@@ -1502,6 +1560,8 @@ let micRecorder = null;
 let micRecordingStream = null;
 let micAudioChunks = [];
 let micCancelTurn = false;
+let micAutoStopTimer = null;
+const MAX_RECORDING_SECONDS = 45;
 const micTranscriptAccumulator = createMicTranscriptAccumulator();
 
 function toggleMic() {
@@ -1522,9 +1582,14 @@ function recorderMimeType() {
 
 async function transcribeRecordedAudio(blob) {
   status("Transcribing audio...");
-  const res = await fetch(`/api/practice/transcribe-audio?studentId=${encodeURIComponent(S.token)}`, {
+  const durationSec = S.lastMicDurationSec || 0;
+  const qs = new URLSearchParams({ studentId: S.token, durationSec: String(Math.round(durationSec * 10) / 10) });
+  const res = await fetch(`/api/practice/transcribe-audio?${qs.toString()}`, {
     method: "POST",
-    headers: { "Content-Type": blob.type || "audio/webm" },
+    headers: {
+      "Content-Type": blob.type || "audio/webm",
+      "X-Green-Room-Duration-Sec": String(durationSec),
+    },
     body: blob,
   });
   const j = await res.json().catch(() => ({}));
@@ -1544,6 +1609,10 @@ async function finishMicTurnFromText(rawText, durationSec) {
 }
 
 function stopMicTracks() {
+  if (micAutoStopTimer) {
+    clearTimeout(micAutoStopTimer);
+    micAutoStopTimer = null;
+  }
   if (micRecordingStream) {
     micRecordingStream.getTracks().forEach((t) => t.stop());
     micRecordingStream = null;
@@ -1587,6 +1656,7 @@ async function startMicCapture() {
       };
       micRecorder.onstop = async () => {
         const durationSec = S.micStartedAt ? (performance.now() - S.micStartedAt) / 1000 : 0;
+        S.lastMicDurationSec = durationSec;
         const blob = new Blob(micAudioChunks, { type: micRecorder.mimeType || mimeType || "audio/webm" });
         S.micOn = false;
         S.micStartedAt = 0;
@@ -1619,6 +1689,12 @@ async function startMicCapture() {
       S.micStartedAt = performance.now();
       render();
       micRecorder.start(250);
+      micAutoStopTimer = setTimeout(() => {
+        if (S.micOn) {
+          status(`Stopping at ${MAX_RECORDING_SECONDS} seconds to keep audio costs under control...`);
+          stopMicCapture();
+        }
+      }, MAX_RECORDING_SECONDS * 1000);
       return;
     } catch (e) {
       console.error("audio recorder unavailable", e);
@@ -1654,7 +1730,7 @@ function startRecognition({ backupOnly = false } = {}) {
   };
   recognition.onerror = (e) => {
     console.error("speech recognition error", e.error);
-    // Permission/device errors are fatal — don't loop restarting forever.
+    // Permission/device errors are fatal - don't loop restarting forever.
     // Everything else (no-speech, network blips, aborted) is transient;
     // onend decides whether to restart.
     if (["not-allowed", "service-not-allowed", "audio-capture"].includes(e.error)) {
@@ -1672,7 +1748,7 @@ function startRecognition({ backupOnly = false } = {}) {
       const text = micTranscriptAccumulator.text();
       finishMicTurnFromText(text, durationSec);
     } else {
-      // Unexpected auto-stop mid-thought — restart without the student noticing.
+      // Unexpected auto-stop mid-thought - restart without the student noticing.
       // A short delay avoids some browsers throwing if start() is called too
       // soon after the previous session's onend.
       setTimeout(() => {
@@ -1700,7 +1776,7 @@ async function speak(text, personaId) {
     const res = await fetch("/api/practice/speak", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, personaId: personaId || "facilitator" }),
+      body: JSON.stringify({ studentId: S.token, text, personaId: personaId || "facilitator" }),
     });
     if (!res.ok) return;
     const blob = await res.blob();
@@ -1759,13 +1835,13 @@ function renderPracticeEnd() {
     <div class="rm-page">
       <div class="rm-topbar"><b>How it went</b></div>
       <h2 class="rm-h2">Nice work, ${esc(S.student?.name || "")}</h2>
-      <p class="rm-sub">Here's how your practice session went — no scores, just notes to build on.</p>
+      <p class="rm-sub">Here's how your practice session went - no scores, just notes to build on.</p>
       ${curtainCallHtml()}
       <div class="rm-rubric">
         ${progressNote ? `<div class="blk progress"><h4>Progress over time</h4><p>${esc(progressNote)}</p></div>` : ""}
-        <div class="blk"><h4>Articulation</h4><p>${esc(r.articulation || "—")}</p></div>
-        <div class="blk"><h4>Engagement</h4><p>${esc(r.engagement || "—")}</p></div>
-        <div class="blk"><h4>Content correspondence</h4><p>${esc(r.contentCorrespondence || "—")}</p></div>
+        <div class="blk"><h4>Articulation</h4><p>${esc(r.articulation || "-")}</p></div>
+        <div class="blk"><h4>Engagement</h4><p>${esc(r.engagement || "-")}</p></div>
+        <div class="blk"><h4>Content correspondence</h4><p>${esc(r.contentCorrespondence || "-")}</p></div>
       </div>
       <div class="actions" style="justify-content:center;margin-top:20px">
         <button class="rm-btn primary" id="again">Practice again</button>

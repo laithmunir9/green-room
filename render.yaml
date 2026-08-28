@@ -8,5 +8,21 @@ services:
     envVars:
       - key: OPENAI_API_KEY
         sync: false
+      - key: GREEN_ROOM_INVITE_CODE
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: AUDIO_MAX_SECONDS
+        value: 45
+      - key: AUDIO_MAX_BYTES
+        value: 6291456
+      - key: DAILY_TRANSCRIPTION_LIMIT
+        value: 12
+      - key: DAILY_TTS_LIMIT
+        value: 40
+      - key: DAILY_MESSAGE_LIMIT
+        value: 60
       - key: PORT
         generateValue: true

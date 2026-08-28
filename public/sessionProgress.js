@@ -61,7 +61,7 @@
       return pending("hedging", "Hedging", "A few more sessions and your hedging pattern will show up here.");
     }
     return row("hedging", "Hedging", values,
-      "Hedge words — kind of, maybe, I think — were about " + (mean(values) * 100).toFixed(1) + "% of what you said.");
+      "Hedge words - kind of, maybe, I think - were about " + (mean(values) * 100).toFixed(1) + "% of what you said.");
   }
 
   function turnRow(history) {

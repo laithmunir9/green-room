@@ -2,3 +2,7 @@ node_modules/
 .env
 data/students.json
 .DS_Store
+.codex-tmp/
+.playwright-mcp/
+*.inspect.ndjson
+npm-debug.log*
