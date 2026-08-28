@@ -294,7 +294,7 @@
       filter: url(#sketchWobbleBold);
     }
     .rm-path-panel {
-      position: relative; z-index: 0; padding: 24px; max-width: 860px;
+      position: relative; z-index: 0; padding: 24px;
     }
     .rm-path-panel::before {
       content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 18px;
@@ -325,6 +325,28 @@
     .rm-path-node b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 14px; line-height: 1.2; }
     .rm-path-node em { display: block; margin-top: 6px; color: var(--rm-muted); font-size: 11.5px; line-height: 1.35; font-style: normal; }
     .rm-next-step { margin: 20px 0 0; color: var(--rm-muted); font-size: 13px; }
+    .rm-career-layout {
+      display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, .8fr);
+      gap: 22px; align-items: start; max-width: 1240px;
+    }
+    .rm-practice-snapshot { position: relative; z-index: 0; padding: 22px; min-height: 100%; }
+    .rm-practice-snapshot::before {
+      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 18px;
+      background: var(--rm-panel); border: 2.5px solid var(--ink); filter: url(#sketchWobbleBold);
+    }
+    .rm-practice-snapshot h3 {
+      margin: 0 0 4px; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 19px;
+    }
+    .rm-practice-snapshot > p { margin: 0 0 20px; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
+    .rm-snapshot-section { border-top: 1px solid var(--rm-line); padding-top: 14px; margin-top: 14px; }
+    .rm-snapshot-label { color: var(--rm-muted); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .rm-snapshot-next { margin: 6px 0 0; color: var(--rm-ink); font-size: 14px; line-height: 1.45; }
+    .rm-snapshot-next b { color: var(--rm-teal-dark); }
+    .rm-snapshot-list { display: grid; gap: 10px; margin-top: 10px; }
+    .rm-snapshot-item { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+    .rm-snapshot-item b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 14px; }
+    .rm-snapshot-item span { color: var(--rm-muted); font-size: 11px; white-space: nowrap; }
+    .rm-snapshot-empty { margin: 8px 0 0; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
     .rm-history-list { display: grid; gap: 12px; max-width: 860px; }
     .rm-trends { position: relative; z-index: 0; display: grid; gap: 16px; max-width: 860px; padding: 20px; margin-bottom: 14px; }
     .rm-trend-row { display: grid; grid-template-columns: 150px 1fr; gap: 18px; align-items: center; }
@@ -486,6 +508,9 @@
       .rm-path-stats { grid-template-columns: 1fr; }
       .rm-history-card dl div { grid-template-columns: 1fr; gap: 4px; }
       .rm-trend-row { grid-template-columns: 1fr; gap: 8px; }
+    }
+    @media (max-width: 980px) {
+      .rm-career-layout { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -1002,26 +1027,55 @@ function practicePickerHtml(heroes, secondary) {
 
 function careerPathHtml(history, progress) {
   return `
-    <div class="rm-path-panel">
-      <div class="rm-path-stats">
-        <div><b>${progress.count}</b><span>sessions</span></div>
-        <div><b>${progress.uniqueTemplates}</b><span>modes tried</span></div>
-        <div><b>${progress.earned}</b><span>badges</span></div>
+    <div class="rm-career-layout">
+      <div class="rm-path-panel">
+        <div class="rm-path-stats">
+          <div><b>${progress.count}</b><span>sessions</span></div>
+          <div><b>${progress.uniqueTemplates}</b><span>modes tried</span></div>
+          <div><b>${progress.earned}</b><span>badges</span></div>
+        </div>
+        <div class="rm-path">
+          ${progress.milestones.map((m) => {
+            const current = progress.next && m.id === progress.next.id;
+            return `<div class="rm-path-node ${m.earned ? "done" : ""} ${current ? "current" : ""}">
+              <span class="dot">${m.earned ? "✓" : ""}</span>
+              <b>${esc(m.label)}</b>
+              <em>${esc(m.desc)}</em>
+            </div>`;
+          }).join("")}
+        </div>
+        <p class="rm-next-step">${progress.next
+          ? `Not yet: ${esc(progress.next.label)} - ${esc(progress.next.desc)}`
+          : "Every milestone earned. Keep practicing."}</p>
       </div>
-      <div class="rm-path">
-        ${progress.milestones.map((m) => {
-          const current = progress.next && m.id === progress.next.id;
-          return `<div class="rm-path-node ${m.earned ? "done" : ""} ${current ? "current" : ""}">
-            <span class="dot">${m.earned ? "✓" : ""}</span>
-            <b>${esc(m.label)}</b>
-            <em>${esc(m.desc)}</em>
-          </div>`;
-        }).join("")}
-      </div>
-      <p class="rm-next-step">${progress.next
-        ? `Not yet: ${esc(progress.next.label)} - ${esc(progress.next.desc)}`
-        : "Every milestone earned. Keep practicing."}</p>
+      ${careerSnapshotHtml(history, progress)}
     </div>`;
+}
+
+function careerSnapshotHtml(history, progress) {
+  const recent = history.slice(0, 3);
+  const recentNames = [...new Set(history.map((h) => h.templateName).filter(Boolean))].slice(0, 3);
+  const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `<aside class="rm-practice-snapshot">
+    <h3>Your practice snapshot</h3>
+    <p>A small view of the work behind your progress.</p>
+    <div class="rm-snapshot-section">
+      <div class="rm-snapshot-label">Next milestone</div>
+      <p class="rm-snapshot-next">${progress.next
+        ? `<b>${esc(progress.next.label)}</b><br>${esc(progress.next.desc)}`
+        : "You have completed every milestone."}</p>
+    </div>
+    <div class="rm-snapshot-section">
+      <div class="rm-snapshot-label">Recent rooms</div>
+      ${recent.length ? `<div class="rm-snapshot-list">${recent.map((h) => `
+        <div class="rm-snapshot-item"><b>${esc(h.templateName || "Practice session")}</b><span>${esc(fmtDate(h.date))}</span></div>
+      `).join("")}</div>` : `<p class="rm-snapshot-empty">Your first room is waiting. Choose a scenario to begin.</p>`}
+    </div>
+    <div class="rm-snapshot-section">
+      <div class="rm-snapshot-label">Modes explored</div>
+      <p class="rm-snapshot-next">${recentNames.length ? esc(recentNames.join(" · ")) : "No modes explored yet."}</p>
+    </div>
+  </aside>`;
 }
 
 function sparklineSvg(row) {

@@ -7,7 +7,6 @@ const filesToCheck = [
   "README.txt",
   "server.js",
   "practiceTemplates.js",
-  "elevenLabsVoices.js",
   "public/index.html",
   "public/practice-test.html",
   "public/sessionProgress.js",
