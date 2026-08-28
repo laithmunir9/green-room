@@ -62,7 +62,6 @@
       box-shadow: var(--shadow); opacity: 0; pointer-events: none; transform: translateY(-4px);
       transition: .15s opacity, .15s transform;
     }
-    .header-user-menu:hover .header-user-popover, .header-user-menu:focus-within .header-user-popover,
     .header-user-menu.open .header-user-popover { opacity: 1; pointer-events: auto; transform: translateY(0); }
     .header-user-popover .logout-link { display: block; width: 100%; padding: 5px 4px; text-align: center; }
     .logout-link {
@@ -677,6 +676,12 @@ document.getElementById("founderNoteBtn").onclick = () => {
   S.founderNoteOpen = true;
   renderFounderNote();
 };
+document.addEventListener("pointerdown", (event) => {
+  const menu = document.getElementById("headerUserMenu");
+  if (!menu || menu.contains(event.target)) return;
+  menu.classList.remove("open");
+  document.getElementById("userMenuBtn")?.setAttribute("aria-expanded", "false");
+});
 
 const SESSION_COUNT_KEY = "greenRoomSessionCount";
 function getSessionCount() {
@@ -703,12 +708,11 @@ function renderHeaderUser() {
   el.hidden = false;
   el.innerHTML = `
     <div class="header-user-menu" id="headerUserMenu">
-      <button class="header-user-trigger" id="userMenuBtn" type="button" aria-expanded="false" aria-haspopup="true">
+      <button class="header-user-trigger" id="userMenuBtn" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="userMenuPopover">
         <div class="header-user-main"><b>${esc(S.student.name || "")}</b></div>
         <span>${badges.earned} of ${badges.total} badges · ${count} session${count === 1 ? "" : "s"}</span>
       </button>
       <div class="header-user-popover" id="userMenuPopover">
-        <button class="logout-link" id="aboutBtn" type="button">About Green Room</button>
         <button class="logout-link" id="logoutBtn" type="button">Log out</button>
       </div>
     </div>`;
@@ -717,10 +721,6 @@ function renderHeaderUser() {
   trigger.onclick = () => {
     const open = menu.classList.toggle("open");
     trigger.setAttribute("aria-expanded", String(open));
-  };
-  $("#aboutBtn", el).onclick = () => {
-    S.founderNoteOpen = true;
-    renderFounderNote();
   };
   $("#logoutBtn", el).onclick = logout;
 }
