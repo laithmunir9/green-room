@@ -103,7 +103,7 @@ test("registration stores only a password hash and returns an opaque token", asy
   assert.equal("password" in student, false);
 });
 
-test("protected routes reject UUIDs, accept the session token, and isolate students", async () => {
+test("protected routes reject UUIDs, accept session tokens, and isolate students", async () => {
   const register = async (label) => request("/api/auth/register", {
     method: "POST",
     body: JSON.stringify({
@@ -139,19 +139,29 @@ test("protected routes reject UUIDs, accept the session token, and isolate stude
   });
   assert.equal(secondStart.response.status, 200);
 
-  const firstProfile = await request("/api/student/" + encodeURIComponent(first.token));
+  const firstProfile = await request("/api/student/me", { headers: { authorization: `Bearer ${first.token}` } });
   assert.equal(firstProfile.response.status, 200);
   assert.equal(firstProfile.body.student.id, first.student.id);
+  assert.deepEqual(Object.keys(firstProfile.body.student).sort(), ["id", "name"]);
 
-  const secondProfile = await request("/api/student/" + encodeURIComponent(second.token));
+  const secondProfile = await request("/api/student/me", { headers: { authorization: `Bearer ${second.token}` } });
   assert.equal(secondProfile.response.status, 200);
   assert.equal(secondProfile.body.student.id, second.student.id);
 
-  const secondData = await request("/api/student/" + encodeURIComponent(second.student.id));
-  assert.equal(secondData.response.status, 404);
+  const secondData = await request("/api/student/me", { headers: { authorization: `Bearer ${second.student.id}` } });
+  assert.equal(secondData.response.status, 401);
 
-  const firstProfileWithUuid = await request("/api/student/" + encodeURIComponent(first.student.id));
-  assert.equal(firstProfileWithUuid.response.status, 404);
+  const firstProfileWithUuid = await request("/api/student/me", { headers: { authorization: `Bearer ${first.student.id}` } });
+  assert.equal(firstProfileWithUuid.response.status, 401);
+
+  const missingAuth = await request("/api/student/me");
+  assert.equal(missingAuth.response.status, 401);
+  assert.equal(missingAuth.response.headers.get("www-authenticate"), "Bearer");
+
+  // The removed route is handled by Express's normal 404 response, so it is
+  // intentionally checked without assuming a JSON error body.
+  const urlTokenRoute = await fetch(`${baseUrl}/api/student/${encodeURIComponent(first.token)}`);
+  assert.equal(urlTokenRoute.status, 404);
 
   const db = JSON.parse(await (await import("node:fs/promises")).readFile(`${process.env.GREEN_ROOM_DATA_DIR}/students.json`, "utf8"));
   assert.equal(db.students[first.student.id].practice.description, "A practice scenario");
@@ -171,8 +181,8 @@ test("login rotates the session token and invalidates the old token", async () =
 
   assert.equal(loggedIn.response.status, 200);
   assert.notEqual(loggedIn.body.token, registered.token);
-  assert.equal((await request(`/api/student/${encodeURIComponent(registered.token)}`)).response.status, 404);
-  assert.equal((await request(`/api/student/${encodeURIComponent(loggedIn.body.token)}`)).response.status, 200);
+  assert.equal((await request("/api/student/me", { headers: { authorization: `Bearer ${registered.token}` } })).response.status, 401);
+  assert.equal((await request("/api/student/me", { headers: { authorization: `Bearer ${loggedIn.body.token}` } })).response.status, 200);
 });
 
 test("legacy plaintext login migrates the password immediately", async () => {

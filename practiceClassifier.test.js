@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildScenarioKeywordSet,
   classifyStudentMessage,
+  scenarioFollowUpPolicy,
   selectResponders,
   summarizeDelivery,
   summarizeEngagement,
@@ -151,6 +152,80 @@ test("an explicit topic-shift phrase is flagged off-topic even when it echoes sc
     { keywordSet: new Set(["interview"]) }
   );
   assert.equal(signals.offTopic, true);
+});
+
+test("flags an unsupported impact claim without calling it false", () => {
+  const signals = classifyStudentMessage("Our product cuts customer acquisition costs by a lot.", { scenarioId: "pitch" });
+  assert.equal(signals.unsupportedClaim, true);
+  assert.equal(selectResponders(signals, () => 1, "pitch").includes("skeptical"), true);
+});
+
+test("does not flag an impact claim that includes supporting detail", () => {
+  const signals = classifyStudentMessage("We reduced onboarding time by 40% in a pilot with 18 users.", { scenarioId: "pitch" });
+  assert.equal(signals.unsupportedClaim, false);
+});
+
+test("flags a generic answer to an example question", () => {
+  const signals = classifyStudentMessage(
+    "I've done leadership things at school and it went pretty well.",
+    { scenarioId: "interview", previousQuestion: "Tell me about a time you led a team." }
+  );
+  assert.equal(signals.vagueExample, true);
+  assert.deepEqual(selectResponders(signals, () => 1, "interview"), ["curious"]);
+});
+
+test("does not flag a concrete example with an observable result", () => {
+  const signals = classifyStudentMessage(
+    "In our service club fundraiser, I coordinated five volunteers, changed the outreach plan, and we raised $8,000 more than the previous event.",
+    { scenarioId: "interview", previousQuestion: "Tell me about a time you led a team." }
+  );
+  assert.equal(signals.vagueExample, false);
+});
+
+test("flags an obvious launch-status contradiction but allows beta users before public launch", () => {
+  const contradictory = classifyStudentMessage("We haven't launched yet.", {
+    recentStudentMessages: ["We have 500 users."],
+    scenarioId: "pitch",
+  });
+  assert.equal(contradictory.possibleContradiction, true);
+
+  const compatible = classifyStudentMessage("We haven't launched publicly yet.", {
+    recentStudentMessages: ["We have 500 beta users."],
+    scenarioId: "pitch",
+  });
+  assert.equal(compatible.possibleContradiction, false);
+});
+
+test("flags a short multi-part exam explanation as possibly incomplete", () => {
+  const signals = classifyStudentMessage("Mitosis makes two cells, and the chromosomes separate.", {
+    scenarioId: "exam_viva",
+    previousQuestion: "Explain two mechanisms involved in this process.",
+  });
+  assert.equal(signals.incompleteExplanation, true);
+  assert.deepEqual(selectResponders(signals, () => 1, "exam_viva"), ["curious"]);
+});
+
+test("keeps casual conversation from escalating ordinary vagueness", () => {
+  const signals = classifyStudentMessage("That was pretty good.", {
+    scenarioId: "casual",
+    previousQuestion: "What did you think of the movie?",
+  });
+  assert.equal(signals.vagueExample, false);
+  assert.deepEqual(selectResponders(signals, () => 1, "casual"), ["impressed"]);
+  assert.deepEqual(scenarioFollowUpPolicy("casual"), {
+    evidence: "low", specificity: "low", contradiction: "low", completeness: "low",
+  });
+});
+
+test("keeps a clear interview answer free of forced follow-up signals", () => {
+  const signals = classifyStudentMessage(
+    "At university I led a four person robotics team, split the work, resolved a supplier delay, and we delivered the prototype two weeks early.",
+    { scenarioId: "interview", previousQuestion: "Tell me about a time you led a team." }
+  );
+  assert.equal(signals.unsupportedClaim, false);
+  assert.equal(signals.vagueExample, false);
+  assert.equal(signals.incompleteExplanation, false);
+  assert.deepEqual(selectResponders(signals, () => 1, "interview"), ["impressed"]);
 });
 
 test("summarizeDelivery aggregates hedge rate and ramble rate across turns", () => {

@@ -843,9 +843,11 @@ function esc(s) {
 }
 
 async function api(path, body, method) {
+  const headers = body ? { "Content-Type": "application/json" } : {};
+  if (S.token) headers.Authorization = `Bearer ${S.token}`;
   const res = await fetch(path, {
     method: method || (body ? "POST" : "GET"),
-    headers: body ? { "Content-Type": "application/json" } : undefined,
+    headers,
     body: body ? JSON.stringify(body) : undefined,
   });
   const j = await res.json().catch(() => ({}));
@@ -2126,7 +2128,7 @@ function improvementNote(history) {
 (async () => {
   if (S.token) {
     try {
-      const j = await api("/api/student/" + S.token);
+      const j = await api("/api/student/me");
       S.student = j.student;
       S.screen = "picker";
     } catch {

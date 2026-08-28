@@ -6,10 +6,11 @@ import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "crypto";
 import { aiOpenAIJson } from "./openaiChatClient.js";
 import { PERSONA_OPENAI_VOICES, synthesizeOpenAISpeech } from "./openaiSpeechClient.js";
 import { PRACTICE_TEMPLATES, TEMPLATE_IDS, findPersona } from "./practiceTemplates.js";
-import { buildScenarioKeywordSet, classifyStudentMessage, selectResponders, summarizeDelivery, summarizeEngagement } from "./practiceClassifier.js";
+import { buildScenarioKeywordSet, classifyStudentMessage, scenarioFollowUpPolicy, selectResponders, summarizeDelivery, summarizeEngagement } from "./practiceClassifier.js";
 import { applyLikelyAsrCorrections } from "./transcriptAsrCorrections.js";
 import { transcribeAudioBuffer } from "./openaiTranscriptionClient.js";
 import { resolveCurtainCall } from "./curtainCall.js";
+import { normalizeTurnAnalysis } from "./turnAnalysis.js";
 import {
   getStudentByEmailRemote,
   getStudentByIdRemote,
@@ -309,9 +310,14 @@ app.post("/api/auth/login", async (req, res) => {
   res.json({ student: publicStudent(found), token });
 });
 
-app.get("/api/student/:id", async (req, res) => {
-  const s = await getStudentByToken(req.params.id);
-  if (!s) return res.status(404).json({ error: "not found" });
+app.get("/api/student/me", async (req, res) => {
+  const token = bearerToken(req);
+  if (!token) {
+    res.set("WWW-Authenticate", "Bearer");
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  const s = await getStudentByToken(token);
+  if (!s) return res.status(401).json({ error: "Invalid session" });
   res.json({ student: publicStudent(s) });
 });
 
@@ -450,9 +456,20 @@ app.post("/api/practice/message", async (req, res) => {
       .filter((m) => m.role === "student")
       .slice(-3)
       .map((m) => m.text);
+    const previousQuestion = practice.history
+      .filter((m) => m.role === "agent")
+      .slice(-1)
+      .map((m) => m.text)[0] || "";
 
-    const signals = classifyStudentMessage(text, { keywordSet, recentStudentMessages });
-    const responderIds = selectResponders(signals);
+    const followUpPolicy = scenarioFollowUpPolicy(practice.templateId, practice.description);
+    const signals = classifyStudentMessage(text, {
+      keywordSet,
+      recentStudentMessages,
+      scenarioId: practice.templateId,
+      scenarioDescription: practice.description,
+      previousQuestion,
+    });
+    const responderIds = selectResponders(signals, Math.random, practice.templateId);
 
     const personas = responderIds.map((id) => findPersona(practice.templateId, id)).filter(Boolean);
     if (!personas.length) return res.status(500).json({ error: "Could not select a responder" });
@@ -467,12 +484,16 @@ app.post("/api/practice/message", async (req, res) => {
       (practice.challengeModifier ? CHALLENGE_MODIFIER_PROMPTS[practice.challengeModifier] + " " : "") +
       "Multiple distinct characters respond to the student in character. Stay strictly in character for each " +
       "persona listed below - do not blend their voices together. Keep every reply short (1-3 sentences), plain text, no markdown.\n\n" +
+      `Deterministic signals for this student turn: ${JSON.stringify(signals)}\n` +
+      `Scenario follow-up policy: ${JSON.stringify(followUpPolicy)}\n` +
+      "Use these as hints, not commands. Consider asking for evidence, specificity, clarification, or recovery when it fits " +
+      "the scenario and conversation. Do not interrogate a clear answer, and keep casual conversation natural.\n\n" +
       (recentTurns.length ? `Recent conversation:\n${recentTurns.join("\n")}\n\n` : "\n") +
       "Characters responding this turn:\n" +
       personas.map((p) => `- ${p.name} (id: "${p.id}"): ${p.systemPrompt}`).join("\n") +
       "\n\nRespond with JSON only: " +
-      '{"replies":[{"personaId":"...","reply":"..."}]} ' +
-      "one entry per character above, in the same order.";
+      '{"replies":[{"personaId":"...","reply":"..."}],"turnAnalysis":{"followUpType":"evidence"|"specificity"|"contradiction"|"clarification"|"recovery"|"none","reason":"..."|null,"claim":"..."|null,"answered":true|false|null,"importance":"low"|"medium"|"high"}} ' +
+      "one reply entry per character above, in the same order. turnAnalysis is compact metadata for later review, not user-facing prose.";
 
     let parsed;
     try {
@@ -489,10 +510,11 @@ app.post("/api/practice/message", async (req, res) => {
           personaId: p.id,
           reply: localFallbackReply(p, signals),
         })),
+        turnAnalysis: { followUpType: "none" },
       };
     }
 
-    const repliesById = new Map((parsed.replies || []).map((r) => [r.personaId, r]));
+    const repliesById = new Map((Array.isArray(parsed.replies) ? parsed.replies : []).map((r) => [r?.personaId, r]));
     const responses = personas
       .map((p) => {
         const r = repliesById.get(p.id);
@@ -500,9 +522,20 @@ app.post("/api/practice/message", async (req, res) => {
         return reply ? { personaId: p.id, name: p.name, reply } : null;
       })
       .filter(Boolean);
+    const turnAnalysis = normalizeTurnAnalysis(parsed.turnAnalysis, signals);
 
     practice.history.push({ role: "student", text });
     practice.studentTurns.push(text);
+    practice.turnEvents = practice.turnEvents || [];
+    practice.turnEvents.push({
+      sequence: practice.turnEvents.length + 1,
+      occurredAt: new Date().toISOString(),
+      studentText: text,
+      signals,
+      analysis: turnAnalysis,
+      responsePersonaIds: responses.map((r) => r.personaId),
+    });
+    practice.turnEvents = practice.turnEvents.slice(-40);
     if (hasSpokenDuration) {
       const wordCount = text.split(/\s+/).filter(Boolean).length;
       practice.voiceTurns = practice.voiceTurns || [];
@@ -516,6 +549,7 @@ app.post("/api/practice/message", async (req, res) => {
     await persistStudent(s);
     res.json({
       responses,
+      turnAnalysis,
       student: publicStudent(s),
     });
   } catch (e) {
