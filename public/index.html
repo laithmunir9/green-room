@@ -856,8 +856,8 @@ function renderGate() {
         <img class="rm-landing-logo" src="/logo.png" alt="Green Room" />
         <p class="rm-landing-brand">Green Room</p>
         <div class="rm-live-stage">
-          <div class="rm-live-bubble">I'm ready to begin.</div>
-          ${sceneAuditorium()}
+          <div class="rm-live-bubble">Tell me what you're practicing.</div>
+          ${sceneFacilitator()}
         </div>
         <h2>Practice before the room is real.</h2>
         <p class="rm-landing-copy">A private space to rehearse speaking out loud.</p>
@@ -1015,6 +1015,23 @@ function sceneAuditorium() {
     ${row(134, 5, 1.2)}
     <rect x="128" y="176" width="10" height="34" rx="3" fill="var(--rm-tan)" stroke="var(--ink)" stroke-width="2"/>
     <ellipse cx="133" cy="172" rx="14" ry="6" fill="none" stroke="var(--ink)" stroke-width="2"/>
+  </svg>`;
+}
+
+function sceneFacilitator() {
+  return `<svg viewBox="0 0 300 220" aria-hidden="true" filter="url(#sketchWobble)">
+    <ellipse cx="150" cy="204" rx="72" ry="8" fill="var(--rm-sage)" opacity="0.26"/>
+    <circle cx="150" cy="66" r="31" fill="#fffdf8" stroke="var(--ink)" stroke-width="2.5"/>
+    <path d="M118,62 Q150,27 182,62" fill="var(--rm-teal)" stroke="var(--ink)" stroke-width="2.5"/>
+    <circle cx="139" cy="67" r="2.5" fill="var(--ink)"/>
+    <circle cx="161" cy="67" r="2.5" fill="var(--ink)"/>
+    <path d="M140,82 Q150,89 160,82" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M103,190 Q107,111 150,105 Q193,111 197,190 Z" fill="var(--rm-sage)" stroke="var(--ink)" stroke-width="2.5"/>
+    <path d="M120,126 Q95,144 82,168" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M180,126 Q206,139 224,119" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="227" cy="116" r="4" fill="#fffdf8" stroke="var(--ink)" stroke-width="1.8"/>
+    <path d="M216,92 C231,83 245,83 258,92" fill="none" stroke="var(--rm-tan)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M220,102 C234,94 248,94 262,102" fill="none" stroke="var(--rm-tan)" stroke-width="3" stroke-linecap="round"/>
   </svg>`;
 }
 
