@@ -91,6 +91,37 @@
     .brand-text h1 { margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -.01em; color: var(--rm-teal-dark); }
     .brand-text p { margin: 2px 0 0; color: var(--rm-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; }
     main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    body.landing-page { background: #102117; }
+    body.landing-page header { position: absolute; inset: 0 0 auto; min-height: 0; padding: 20px 28px; border: 0; background: transparent; backdrop-filter: none; justify-content: flex-end; }
+    body.landing-page .brand, body.landing-page .theme-toggle { display: none; }
+    body.landing-page .founder-link { position: static; transform: none; color: rgba(247, 237, 217, .62); font-size: 11px; }
+    .rm-landing { display: grid; min-height: 100vh; place-items: center; padding: 90px 24px 42px; background: #102117; color: #f7edd9; }
+    .rm-landing-inner { width: min(420px, 100%); text-align: center; }
+    .rm-landing-logo { width: 58px; height: 58px; margin: 0 auto 20px; }
+    .rm-landing-brand { margin: 0; color: #f7edd9; font: 600 25px Fraunces, Georgia, serif; }
+    .rm-live-stage { position: relative; width: min(300px, 100%); margin: 30px auto 24px; padding: 24px 20px 12px; }
+    .rm-live-stage::before { content: ""; position: absolute; inset: 0; z-index: -1; border: 2px solid rgba(247, 237, 217, .55); border-radius: 18px; filter: url(#sketchWobble); }
+    .rm-live-stage svg { width: 100%; height: auto; display: block; }
+    .rm-live-bubble { position: absolute; top: -13px; right: -18px; max-width: 132px; padding: 9px 12px; border-radius: 11px; background: #f7edd9; color: #20362a; box-shadow: 0 8px 28px rgba(0,0,0,.18); font-size: 12px; line-height: 1.3; animation: liveFloat 3s ease-in-out infinite; }
+    .rm-live-bubble::after { content: ""; position: absolute; left: 18px; bottom: -7px; border: 7px solid transparent; border-top-color: #f7edd9; border-bottom: 0; }
+    .rm-landing h2 { margin: 0; color: #f7edd9; font: 500 clamp(29px, 4.2vw, 38px)/1.12 Fraunces, Georgia, serif; }
+    .rm-landing-copy { margin: 13px auto 0; color: rgba(247, 237, 217, .72); font-size: 14px; line-height: 1.55; }
+    .rm-landing-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 25px; }
+    .rm-landing-btn { min-height: 46px; border: 1px solid rgba(247, 237, 217, .58); border-radius: 7px; padding: 0 16px; background: transparent; color: #f7edd9; cursor: pointer; font: 600 14px "IBM Plex Sans", sans-serif; }
+    .rm-landing-btn.primary { border-color: #f3d19c; background: #f3d19c; color: #1d2d22; }
+    .rm-landing-btn:hover { transform: translateY(-1px); }
+    .rm-landing-note { margin: 16px 0 0; color: rgba(247, 237, 217, .45); font-size: 11px; }
+    .rm-auth-backdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(8, 20, 13, .76); backdrop-filter: blur(7px); }
+    .rm-auth-dialog { width: min(420px, 100%); position: relative; padding: 28px; background: #f7edd9; color: #20362a; border: 2px solid rgba(32, 54, 42, .75); border-radius: 12px; box-shadow: 0 28px 80px rgba(0,0,0,.36); }
+    .rm-auth-dialog h2 { margin: 0; color: #20362a; font-size: 28px; }
+    .rm-auth-dialog .sub { margin: 8px 0 20px; color: rgba(32, 54, 42, .72); line-height: 1.5; }
+    .rm-auth-dialog label { color: rgba(32, 54, 42, .78); }
+    .rm-auth-dialog .input-wrap input { background: #fffdf7; border-color: rgba(32, 54, 42, .45); }
+    .rm-auth-dialog .actions { margin-top: 20px; }
+    .rm-auth-dialog .btn.primary { background: #20362a; color: #fff9ec; border-color: #20362a; }
+    .rm-auth-dialog .btn.ghost { color: #20362a; border-color: rgba(32, 54, 42, .55); }
+    .rm-auth-close { position: absolute; top: 10px; right: 12px; width: 34px; height: 34px; border: 0; background: transparent; color: #20362a; cursor: pointer; font-size: 22px; }
+    @keyframes liveFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
     .rm-modal-backdrop {
       position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
       padding: 24px; background: rgba(27,36,32,.42); backdrop-filter: blur(6px);
@@ -543,6 +574,11 @@
       .rm-stage-next .rm-btn { justify-self: start; }
       .rm-history-card summary { display: block; padding-right: 0; }
       .rm-history-card-meta { margin-top: 5px; }
+      body.landing-page header { padding: 18px 16px; }
+      .rm-landing { padding: 78px 20px 36px; }
+      .rm-live-stage { width: min(278px, 100%); }
+      .rm-live-bubble { right: -5px; }
+      .rm-auth-dialog { padding: 28px 22px; }
     }
   </style>
 </head>
@@ -613,6 +649,7 @@ const S = {
   soundcheckText: "",
   pickerTab: "practice",
   founderNoteOpen: false,
+  authOpen: false,
 };
 
 const main = document.getElementById("main");
@@ -652,12 +689,15 @@ function incrementSessionCount() {
 }
 function renderHeaderUser() {
   const el = document.getElementById("headerUser");
+  const founderLink = document.getElementById("founderNoteBtn");
   if (!el) return;
   if (!S.student) {
     el.hidden = true;
     el.innerHTML = "";
+    if (founderLink) founderLink.hidden = false;
     return;
   }
+  if (founderLink) founderLink.hidden = true;
   const count = getSessionCount();
   const badges = milestoneProgress();
   el.hidden = false;
@@ -668,6 +708,7 @@ function renderHeaderUser() {
         <span>${badges.earned} of ${badges.total} badges · ${count} session${count === 1 ? "" : "s"}</span>
       </button>
       <div class="header-user-popover" id="userMenuPopover">
+        <button class="logout-link" id="aboutBtn" type="button">About Green Room</button>
         <button class="logout-link" id="logoutBtn" type="button">Log out</button>
       </div>
     </div>`;
@@ -676,6 +717,10 @@ function renderHeaderUser() {
   trigger.onclick = () => {
     const open = menu.classList.toggle("open");
     trigger.setAttribute("aria-expanded", String(open));
+  };
+  $("#aboutBtn", el).onclick = () => {
+    S.founderNoteOpen = true;
+    renderFounderNote();
   };
   $("#logoutBtn", el).onclick = logout;
 }
@@ -743,6 +788,7 @@ function logout() {
   S.setupTemplateId = null;
   S.soundcheckMode = false;
   S.soundcheckText = "";
+  S.authOpen = false;
   renderHeaderUser();
   render();
 }
@@ -794,6 +840,7 @@ function status(msg) {
 }
 
 function render() {
+  document.body.classList.toggle("landing-page", S.screen === "gate");
   if (S.screen === "picker") renderPicker();
   else if (S.screen === "soundcheck") renderSoundcheck();
   else if (S.screen === "setup") renderSetup();
@@ -804,24 +851,63 @@ function render() {
 
 function renderGate() {
   main.innerHTML = `
-    <div class="fill-gate">
-      <div class="card">
-        <h2>${S.authMode === "register" ? "Step into the green room" : "Welcome back"}</h2>
-        <p class="sub">${S.authMode === "register"
-          ? "Warm up before you're on. Practice interviews, pitches, exam vivas and talks against a live scenario partner."
-          : "Sign back in to pick up where you left off."}</p>
+    <section class="rm-landing">
+      <div class="rm-landing-inner">
+        <img class="rm-landing-logo" src="/logo.png" alt="Green Room" />
+        <p class="rm-landing-brand">Green Room</p>
+        <div class="rm-live-stage">
+          <div class="rm-live-bubble">I'm ready to begin.</div>
+          ${sceneAuditorium()}
+        </div>
+        <h2>Practice before the room is real.</h2>
+        <p class="rm-landing-copy">A private space to rehearse speaking out loud.</p>
+        <div class="rm-landing-actions">
+          <button class="rm-landing-btn primary" id="startPractice" type="button">Start a practice</button>
+          <button class="rm-landing-btn" id="haveAccount" type="button">I have an account</button>
+        </div>
+        <p class="rm-landing-note">No grades. Just practice.</p>
+      </div>
+    </section>
+    <div id="authRoot"></div>`;
+  $("#startPractice").onclick = () => openAuth("register");
+  $("#haveAccount").onclick = () => openAuth("login");
+  if (S.authOpen) renderAuthDialog();
+}
+
+function openAuth(mode) {
+  S.authMode = mode;
+  S.authOpen = true;
+  renderGate();
+}
+
+function closeAuth() {
+  S.authOpen = false;
+  renderGate();
+}
+
+function renderAuthDialog() {
+  const root = $("#authRoot");
+  if (!root) return;
+  root.innerHTML = `
+    <div class="rm-auth-backdrop" id="authBackdrop" role="presentation">
+      <section class="rm-auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button class="rm-auth-close" id="authClose" type="button" aria-label="Close account dialog">×</button>
+        <h2 id="authTitle">${S.authMode === "register" ? "Your room is ready." : "Welcome back."}</h2>
+        <p class="sub">${S.authMode === "register" ? "Create your private Green Room account to start your first practice." : "Sign in to return to your practice path."}</p>
         ${S.authMode === "register" ? `<label>Name <div class="input-wrap"><input id="name" placeholder="Your name" autocomplete="name" /></div></label>` : ""}
         <label>Email <div class="input-wrap"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div></label>
         <label>Password <div class="input-wrap"><input id="pass" type="password" placeholder="At least 8 characters" autocomplete="current-password" /></div></label>
-        ${S.authMode === "register" ? `<label>Invite code <div class="input-wrap"><input id="inviteCode" placeholder="Only needed for private launch" autocomplete="off" /></div></label>` : ""}
+        ${S.authMode === "register" ? `<label>Invite code <div class="input-wrap"><input id="inviteCode" placeholder="Your invite code" autocomplete="off" /></div></label>` : ""}
         <div class="actions">
-          <button class="btn primary" id="go">${S.authMode === "register" ? "Check in" : "Sign in"}</button>
-          <button class="btn ghost" id="sw">${S.authMode === "register" ? "I have an account" : "Create account"}</button>
+          <button class="btn primary" id="go">${S.authMode === "register" ? "Enter Green Room" : "Sign in"}</button>
+          <button class="btn ghost" id="sw">${S.authMode === "register" ? "I have an account" : "Create an account"}</button>
         </div>
         <p class="muted" id="status" style="margin-top:12px"></p>
         <div id="err"></div>
-      </div>
+      </section>
     </div>`;
+  $("#authClose").onclick = closeAuth;
+  $("#authBackdrop").onclick = (e) => { if (e.target.id === "authBackdrop") closeAuth(); };
   $("#sw").onclick = () => { S.authMode = S.authMode === "register" ? "login" : "register"; render(); };
   $("#go").onclick = async () => {
     try {
@@ -843,6 +929,7 @@ function renderGate() {
       localStorage.setItem("greenRoomToken", j.token);
       S.student = j.student;
       S.screen = "picker";
+      S.authOpen = false;
       render();
       renderHeaderUser();
     } catch (e) { err(e); }
@@ -1479,7 +1566,8 @@ function discardPracticeSession() {
 
 function goHome() {
   if (S.screen === "practice") { discardPracticeSession(); return; }
-  if (S.screen === "picker" || S.screen === "gate") return;
+  if (S.screen === "gate") { if (S.authOpen) closeAuth(); return; }
+  if (S.screen === "picker") return;
   S.screen = S.student ? "picker" : "gate";
   render();
 }
