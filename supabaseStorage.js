@@ -47,7 +47,8 @@ async function request(path, options = {}) {
     const detail = await response.text();
     throw new Error(`Supabase request failed (${response.status}): ${detail.slice(0, 240)}`);
   }
-  return response.status === 204 ? null : response.json();
+  const body = await response.text();
+  return body ? JSON.parse(body) : null;
 }
 
 export async function getStudentByIdRemote(id) {
