@@ -26,7 +26,8 @@ Green Room is a Node.js and browser application for practicing spoken or written
 - `transcriptAsrCorrections.js` applies targeted corrections for known speech recognition failures.
 - `curtainCall.js` validates that highlighted quotes are copied from the transcript.
 - `public/sessionProgress.js` computes local trend rows and milestone progress in the browser.
-- Local demo state is stored in `data/students.json`, which is ignored by Git.
+- Supabase stores deployed student accounts, session tokens, practice state, and usage counters when `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are configured.
+- Local development falls back to `data/students.json`, which is ignored by Git.
 
 ## Evaluation and Progress
 
@@ -49,6 +50,10 @@ cp .env.example .env
 ```
 
 Edit `.env` and set `OPENAI_API_KEY`. The server also supports optional model, audio, and rate-limit environment variables.
+
+For deployed persistence, set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in Render. The `students` table is created by the `green_room_storage` migration.
+
+The public GitHub Actions workflow in `.github/workflows/supabase-keepalive.yml` sends a harmless Supabase query every four days. Add `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as repository Actions secrets before enabling it.
 
 Start the app:
 

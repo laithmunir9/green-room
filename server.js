@@ -10,6 +10,13 @@ import { buildScenarioKeywordSet, classifyStudentMessage, selectResponders, summ
 import { applyLikelyAsrCorrections } from "./transcriptAsrCorrections.js";
 import { transcribeAudioBuffer } from "./openaiTranscriptionClient.js";
 import { resolveCurtainCall } from "./curtainCall.js";
+import {
+  getStudentByEmailRemote,
+  getStudentByIdRemote,
+  getStudentBySessionTokenRemote,
+  putStudentRemote,
+  supabaseConfigured,
+} from "./supabaseStorage.js";
 
 async function aiJsonWithRetry(opts, retries = 1) {
   try {
@@ -32,6 +39,8 @@ if (existsSync(envPath)) {
   }
 }
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+
+const USE_SUPABASE = supabaseConfigured();
 
 const PORT = Number(process.env.PORT || 3848);
 const INVITE_CODE = (process.env.GREEN_ROOM_INVITE_CODE || "").trim();
@@ -149,6 +158,27 @@ function putStudent(s) {
   return s;
 }
 
+async function findStudentByEmail(email) {
+  if (USE_SUPABASE) return getStudentByEmailRemote(email);
+  const db = loadDb();
+  return Object.values(db.students).find((s) => (s.email || "").toLowerCase() === email) || null;
+}
+
+async function getStudent(id) {
+  if (USE_SUPABASE) return getStudentByIdRemote(id);
+  return getStudentById(id);
+}
+
+async function getStudentByToken(token) {
+  if (USE_SUPABASE) return getStudentBySessionTokenRemote(token);
+  return getStudentBySessionToken(token);
+}
+
+async function persistStudent(s) {
+  if (USE_SUPABASE) return putStudentRemote(s);
+  return putStudent(s);
+}
+
 function newStudent(name, email) {
   return {
     id: randomUUID(),
@@ -217,7 +247,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.post("/api/auth/register", (req, res) => {
+app.post("/api/auth/register", async (req, res) => {
   const name = String(req.body?.name || "").trim().slice(0, 48);
   const email = String(req.body?.email || "").trim().toLowerCase().slice(0, 254);
   if (!name) return res.status(400).json({ error: "Name required" });
@@ -226,38 +256,34 @@ app.post("/api/auth/register", (req, res) => {
   if (INVITE_CODE && String(req.body?.inviteCode || "").trim() !== INVITE_CODE) {
     return res.status(403).json({ error: "Invite code required" });
   }
-  const db = loadDb();
-  const exists = Object.values(db.students).some((s) => (s.email || "").toLowerCase() === email);
+  const exists = await findStudentByEmail(email);
   if (exists) return res.status(409).json({ error: "An account with that email already exists" });
   const s = newStudent(name, email);
   const pass = cleanPasswordInput(req.body?.password);
   if (pass.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters" });
   s.passwordHash = hashPassword(pass);
   const token = issueSessionToken(s);
-  putStudent(s);
+  await persistStudent(s);
   res.json({ student: publicStudent(s), token });
 });
 
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   const email = String(req.body?.email || "").trim().toLowerCase();
   const pass = cleanPasswordInput(req.body?.password);
-  const db = loadDb();
-  const found = Object.values(db.students).find(
-    (s) => (s.email || "").toLowerCase() === email && verifyPassword(s, pass)
-  );
+  const found = await findStudentByEmail(email);
+  if (found && !verifyPassword(found, pass)) return res.status(401).json({ error: "No matching account (check email/password)" });
   if (!found) return res.status(401).json({ error: "No matching account (check email/password)" });
   if (requiresPasswordMigration(found)) {
     found.passwordHash = hashPassword(pass);
     delete found.password;
   }
   const token = issueSessionToken(found);
-  db.students[found.id] = found;
-  saveDb(db);
+  await persistStudent(found);
   res.json({ student: publicStudent(found), token });
 });
 
-app.get("/api/student/:id", (req, res) => {
-  const s = getStudentBySessionToken(req.params.id);
+app.get("/api/student/:id", async (req, res) => {
+  const s = await getStudentByToken(req.params.id);
   if (!s) return res.status(404).json({ error: "not found" });
   res.json({ student: publicStudent(s) });
 });
@@ -266,12 +292,12 @@ app.get("/api/student/:id", (req, res) => {
 
 app.post("/api/practice/infer-scenario", async (req, res) => {
   try {
-    const s = getStudentBySessionToken(req.body?.studentId);
+    const s = await getStudentByToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     const description = cleanStudentText(req.body?.description || "").slice(0, 2000);
     if (!description) return res.status(400).json({ error: "Scenario description required" });
     consumeDailyUsage(s, "scenarioInference");
-    putStudent(s);
+    await persistStudent(s);
 
     const templateSummaries = TEMPLATE_IDS.map(
       (id) => `- "${id}": ${PRACTICE_TEMPLATES[id].description}`
@@ -315,9 +341,9 @@ app.post("/api/practice/infer-scenario", async (req, res) => {
   }
 });
 
-app.post("/api/practice/start", (req, res) => {
+app.post("/api/practice/start", async (req, res) => {
   try {
-    const s = getStudentBySessionToken(req.body?.studentId);
+    const s = await getStudentByToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     const { templateId } = req.body || {};
     const template = PRACTICE_TEMPLATES[templateId];
@@ -350,7 +376,7 @@ app.post("/api/practice/start", (req, res) => {
       startedAt: new Date().toISOString(),
       endedAt: null,
     };
-    putStudent(s);
+    await persistStudent(s);
 
     res.json({
       practice: {
@@ -367,7 +393,7 @@ app.post("/api/practice/start", (req, res) => {
 
 app.post("/api/practice/message", async (req, res) => {
   try {
-    const s = getStudentBySessionToken(req.body?.studentId);
+    const s = await getStudentByToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     if (!s.practice) return res.status(400).json({ error: "No active practice session - call /api/practice/start first" });
 
@@ -451,7 +477,7 @@ app.post("/api/practice/message", async (req, res) => {
     }
     practice.history = practice.history.slice(-40);
 
-    putStudent(s);
+    await persistStudent(s);
     res.json({
       responses,
       student: publicStudent(s),
@@ -461,15 +487,15 @@ app.post("/api/practice/message", async (req, res) => {
   }
 });
 
-app.post("/api/practice/polish-transcript", (req, res) => {
+app.post("/api/practice/polish-transcript", async (req, res) => {
   try {
-    const s = getStudentBySessionToken(req.body?.studentId);
+    const s = await getStudentByToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
 
     const rawTranscript = applyLikelyAsrCorrections(cleanStudentText(req.body?.text || "")).slice(0, 2000);
     if (!rawTranscript) return res.status(400).json({ error: "Transcript required" });
     consumeDailyUsage(s, "transcriptPolish");
-    putStudent(s);
+    await persistStudent(s);
     res.json({ text: rawTranscript });
   } catch (e) {
     res.status(errorStatus(e)).json({ error: String(e.message || e) });
@@ -481,7 +507,7 @@ app.post(
   express.raw({ type: ["audio/webm", "audio/mp4", "audio/wav", "application/octet-stream"], limit: AUDIO_MAX_BYTES }),
   async (req, res) => {
     try {
-      const s = getStudentBySessionToken(req.query?.studentId);
+      const s = await getStudentByToken(req.query?.studentId);
       if (!s) return res.status(404).json({ error: "Student not found" });
       if (!Buffer.isBuffer(req.body) || req.body.length < 1000) return res.status(400).json({ error: "Audio required" });
       if (req.body.length > AUDIO_MAX_BYTES) return res.status(413).json({ error: "That recording is too large. Try a shorter response." });
@@ -490,7 +516,7 @@ app.post(
         return res.status(413).json({ error: `Recordings are limited to ${AUDIO_MAX_SECONDS} seconds. Try a shorter response.` });
       }
       consumeDailyUsage(s, "transcriptions");
-      putStudent(s);
+      await persistStudent(s);
 
       const practice = s.practice;
       const prompt = [
@@ -522,7 +548,7 @@ app.post(
 
 app.post("/api/practice/end", async (req, res) => {
   try {
-    const s = getStudentBySessionToken(req.body?.studentId);
+    const s = await getStudentByToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     if (!s.practice) return res.status(400).json({ error: "No active practice session" });
 
@@ -532,7 +558,7 @@ app.post("/api/practice/end", async (req, res) => {
       return res.status(400).json({ error: "Nothing to review yet - send at least one message first" });
     }
     consumeDailyUsage(s, "sessionReviews");
-    putStudent(s);
+    await persistStudent(s);
 
     const delivery = summarizeDelivery(studentTexts, practice.voiceTurns || []);
     const engagement = summarizeEngagement(studentTexts);
@@ -581,7 +607,7 @@ app.post("/api/practice/end", async (req, res) => {
     }
 
     practice.endedAt = new Date().toISOString();
-    putStudent(s);
+    await persistStudent(s);
 
     const curtain = resolveCurtainCall({
       bestLine: parsed.bestLine,
@@ -609,12 +635,12 @@ app.post("/api/practice/end", async (req, res) => {
 
 app.post("/api/practice/speak", async (req, res) => {
   try {
-    const s = getStudentBySessionToken(req.body?.studentId);
+    const s = await getStudentByToken(req.body?.studentId);
     if (!s) return res.status(404).json({ error: "Student not found" });
     const text = cleanStudentText(req.body?.text || "").slice(0, 2000);
     if (!text) return res.status(400).json({ error: "Text required" });
     consumeDailyUsage(s, "tts");
-    putStudent(s);
+    await persistStudent(s);
     const personaId = String(req.body?.personaId || "facilitator");
     const voice = PERSONA_OPENAI_VOICES[personaId] || PERSONA_OPENAI_VOICES.facilitator;
     const audio = await synthesizeOpenAISpeech(text, { voice });
