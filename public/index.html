@@ -317,19 +317,38 @@
     .rm-quest-panel p { margin: 0; color: var(--rm-muted); font-size: 13px; line-height: 1.45; }
     .rm-quest-skill { margin-top: 9px !important; color: var(--rm-ink) !important; font-size: 11.5px !important; font-weight: 700; }
     .rm-quest-skill span { color: var(--rm-muted); font-weight: 400; }
-    .rm-modifier-section { max-width: 1240px; margin-top: 24px; }
-    .rm-section-kicker { margin: 0 0 4px; color: var(--rm-muted); font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
-    .rm-section-title { margin: 0 0 12px; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 19px; }
-    .rm-modifier-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 12px; }
-    .rm-modifier { position: relative; z-index: 0; min-height: 128px; padding: 15px; border: none; background: transparent; color: var(--rm-ink); font: inherit; text-align: left; cursor: pointer; }
-    .rm-modifier::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 14px; background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble); }
-    .rm-modifier:hover:not(:disabled) { transform: translateY(-2px); }
-    .rm-modifier:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 3px; }
-    .rm-modifier:disabled { cursor: default; opacity: .62; }
-    .rm-modifier.unlocked::before { background: linear-gradient(135deg, rgba(159,187,148,.18), transparent), var(--rm-panel); border-color: var(--rm-sage); }
-    .rm-modifier b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 15px; line-height: 1.2; }
-    .rm-modifier span { display: block; margin-top: 8px; color: var(--rm-muted); font-size: 11.5px; line-height: 1.35; }
-    .rm-modifier em { display: block; margin-top: 10px; color: var(--rm-muted); font-size: 10px; font-style: normal; text-transform: uppercase; letter-spacing: .07em; }
+    .rm-stage-map, .rm-history-shell { position: relative; z-index: 0; max-width: 1240px; padding: 26px 28px; }
+    .rm-stage-map::before, .rm-history-shell::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 20px; background: var(--rm-panel); border: 2.5px solid var(--ink); filter: url(#sketchWobbleBold); }
+    .rm-stage-head { display: flex; justify-content: space-between; gap: 28px; align-items: end; padding-bottom: 22px; border-bottom: 1px solid var(--rm-line); }
+    .rm-stage-head h3, .rm-history-shell h3 { margin: 0; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 23px; }
+    .rm-stage-head p, .rm-history-shell > p { max-width: 540px; margin: 5px 0 0; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
+    .rm-stage-count { flex-shrink: 0; color: var(--rm-muted); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .rm-path-panel { padding: 28px 0 0; }
+    .rm-path-stats { display: flex; flex-wrap: wrap; gap: 26px; margin-bottom: 30px; }
+    .rm-path-stats div { display: flex; gap: 7px; align-items: baseline; }
+    .rm-path-stats b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 25px; line-height: 1; }
+    .rm-path-stats span { color: var(--rm-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
+    .rm-path { display: grid; grid-template-columns: repeat(6, minmax(105px, 1fr)); gap: 18px; align-items: start; }
+    .rm-path-node { position: relative; min-height: 150px; padding: 54px 12px 12px; text-align: center; }
+    .rm-path-node::before { content: ""; position: absolute; inset: 23px 0 0; z-index: -1; border-radius: 15px; background: var(--rm-input-bg); border: 2px solid var(--ink); filter: url(#sketchWobble); }
+    .rm-path-node:not(:last-child)::after { content: ""; position: absolute; top: 43px; left: calc(50% + 25px); width: calc(100% + 18px); border-top: 2px solid var(--rm-line); z-index: -1; }
+    .rm-path-node .dot { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--rm-panel); border: 2px solid var(--ink); color: var(--rm-muted); font-weight: 800; box-shadow: 0 8px 20px rgba(43,74,64,.12); }
+    .rm-path-node.done .dot { background: var(--rm-sage); color: #16261d; }
+    .rm-path-node.current .dot { background: var(--rm-tan); color: #2b1f0d; }
+    .rm-path-node b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 14px; line-height: 1.2; }
+    .rm-path-node em { display: block; margin-top: 7px; color: var(--rm-muted); font-size: 11.5px; line-height: 1.35; font-style: normal; }
+    .rm-next-step { margin: 22px 0 0; color: var(--rm-muted); font-size: 13px; }
+    .rm-stage-next { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; margin-top: 28px; padding: 20px 22px; border-top: 1px solid var(--rm-line); background: rgba(159,187,148,.08); }
+    .rm-stage-next-kicker { margin: 0 0 4px; color: var(--rm-muted); font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+    .rm-stage-next h4 { margin: 0; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 20px; }
+    .rm-stage-next p { margin: 5px 0 0; color: var(--rm-muted); font-size: 13px; line-height: 1.45; }
+    .rm-stage-next .rm-btn { justify-self: end; }
+    .rm-challenge-list { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; }
+    .rm-challenge-item { color: var(--rm-muted); font-size: 12px; }
+    .rm-challenge-item.open { color: var(--rm-teal-dark); font-weight: 700; }
+    .rm-challenge-item.locked { opacity: .65; }
+    .rm-challenge-item::before { content: "○"; margin-right: 6px; }
+    .rm-challenge-item.open::before { content: "✓"; color: var(--rm-teal); }
     .rm-completion { position: relative; z-index: 0; max-width: 640px; margin: 0 0 20px; padding: 16px 18px; }
     .rm-completion::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 14px; background: rgba(159,187,148,.16); border: 2px solid var(--rm-sage); filter: url(#sketchWobble); }
     .rm-completion b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 17px; }
@@ -338,85 +357,33 @@
     .rm-quest-log-item { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-top: 1px solid var(--rm-line); padding-top: 10px; }
     .rm-quest-log-item b { color: var(--rm-ink); font-size: 13px; }
     .rm-quest-log-item span { color: var(--rm-muted); font-size: 11px; white-space: nowrap; }
-    .rm-path-panel {
-      position: relative; z-index: 0; padding: 24px;
-    }
-    .rm-path-panel::before {
-      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 18px;
-      background: var(--rm-panel); border: 2.5px solid var(--ink); filter: url(#sketchWobbleBold);
-    }
-    .rm-path-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
-    .rm-path-stats div {
-      border: 2px dashed var(--rm-line); border-radius: 12px; padding: 12px; text-align: center;
-    }
-    .rm-path-stats b { display: block; font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); font-size: 25px; line-height: 1; }
-    .rm-path-stats span { display: block; margin-top: 5px; color: var(--rm-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
-    .rm-path {
-      display: grid; grid-template-columns: repeat(6, minmax(96px, 1fr)); gap: 12px; align-items: start;
-    }
-    .rm-path-node { position: relative; min-height: 138px; padding: 46px 12px 12px; text-align: center; }
-    .rm-path-node::before {
-      content: ""; position: absolute; inset: 18px 0 0; z-index: -1; border-radius: 15px;
-      background: var(--rm-input-bg); border: 2px solid var(--ink); filter: url(#sketchWobble);
-    }
-    .rm-path-node .dot {
-      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center;
-      background: var(--rm-panel); border: 2px solid var(--ink); color: var(--rm-muted);
-      font-weight: 800; box-shadow: 0 8px 20px rgba(43,74,64,.12);
-    }
-    .rm-path-node.done .dot { background: var(--rm-sage); color: #16261d; }
-    .rm-path-node.current .dot { background: var(--rm-tan); color: #2b1f0d; }
-    .rm-path-node b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 14px; line-height: 1.2; }
-    .rm-path-node em { display: block; margin-top: 6px; color: var(--rm-muted); font-size: 11.5px; line-height: 1.35; font-style: normal; }
-    .rm-next-step { margin: 20px 0 0; color: var(--rm-muted); font-size: 13px; }
-    .rm-career-layout {
-      display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, .8fr);
-      gap: 22px; align-items: start; max-width: 1240px;
-    }
-    .rm-practice-snapshot { position: relative; z-index: 0; padding: 22px; min-height: 100%; }
-    .rm-practice-snapshot::before {
-      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 18px;
-      background: var(--rm-panel); border: 2.5px solid var(--ink); filter: url(#sketchWobbleBold);
-    }
-    .rm-practice-snapshot h3 {
-      margin: 0 0 4px; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 19px;
-    }
-    .rm-practice-snapshot > p { margin: 0 0 20px; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
-    .rm-snapshot-section { border-top: 1px solid var(--rm-line); padding-top: 14px; margin-top: 14px; }
-    .rm-snapshot-label { color: var(--rm-muted); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-    .rm-snapshot-next { margin: 6px 0 0; color: var(--rm-ink); font-size: 14px; line-height: 1.45; }
-    .rm-snapshot-next b { color: var(--rm-teal-dark); }
-    .rm-snapshot-list { display: grid; gap: 10px; margin-top: 10px; }
-    .rm-snapshot-item { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-    .rm-snapshot-item b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 14px; }
-    .rm-snapshot-item span { color: var(--rm-muted); font-size: 11px; white-space: nowrap; }
-    .rm-snapshot-empty { margin: 8px 0 0; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
-    .rm-history-list { display: grid; gap: 12px; max-width: 860px; }
-    .rm-history-layout { display: grid; grid-template-columns: minmax(0, 860px) minmax(230px, 1fr); gap: 22px; max-width: 1240px; align-items: start; }
-    .rm-history-aside { position: relative; z-index: 0; padding: 20px; }
-    .rm-history-aside::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 16px; background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble); }
-    .rm-history-aside h3 { margin: 0 0 4px; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 19px; }
-    .rm-history-aside > p { margin: 0 0 16px; color: var(--rm-muted); font-size: 13px; line-height: 1.45; }
-    .rm-history-stat { border-top: 1px solid var(--rm-line); padding-top: 12px; margin-top: 12px; }
-    .rm-history-stat span { display: block; color: var(--rm-muted); font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-    .rm-history-stat b { display: block; margin-top: 4px; color: var(--rm-ink); font-family: Fraunces, Georgia, serif; font-size: 18px; }
-    .rm-history-stat em { display: block; margin-top: 3px; color: var(--rm-muted); font-size: 12px; line-height: 1.4; font-style: normal; }
-    .rm-trends { position: relative; z-index: 0; display: grid; gap: 16px; max-width: 860px; padding: 20px; margin-bottom: 14px; }
+    .rm-history-summary { display: flex; flex-wrap: wrap; gap: 26px; margin: 22px 0 26px; padding: 16px 0; border-top: 1px solid var(--rm-line); border-bottom: 1px solid var(--rm-line); }
+    .rm-history-summary div { display: flex; gap: 7px; align-items: baseline; }
+    .rm-history-summary b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 20px; }
+    .rm-history-summary span { color: var(--rm-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
+    .rm-history-summary .focus { flex: 1 1 260px; }
+    .rm-history-summary .focus b { font-family: inherit; font-size: 13px; }
+    .rm-trends { position: relative; z-index: 0; display: grid; gap: 16px; padding: 0 0 24px; margin-bottom: 8px; border-bottom: 1px solid var(--rm-line); }
     .rm-trend-row { display: grid; grid-template-columns: 150px 1fr; gap: 18px; align-items: center; }
     .rm-trend-meta { display: grid; gap: 6px; }
     .rm-trend-label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--rm-muted); }
     .rm-trend-sentence { margin: 0; font-size: 13.5px; line-height: 1.45; color: var(--rm-ink); }
     .rm-trend-row.pending .rm-trend-sentence { color: var(--rm-muted); }
     .rm-spark { display: block; }
-    .rm-history-card { position: relative; z-index: 0; padding: 18px; }
-    .rm-history-card::before, .rm-empty-state::before, .rm-trends::before {
-      content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 16px;
-      background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble);
-    }
-    .rm-history-card-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; margin-bottom: 8px; }
+    .rm-history-list { display: grid; gap: 10px; max-width: none; }
+    .rm-history-card { position: relative; border-top: 1px solid var(--rm-line); }
+    .rm-history-card:first-child { border-top: 0; }
+    .rm-history-card summary { position: relative; display: flex; gap: 16px; align-items: center; padding: 16px 4px 16px 28px; cursor: pointer; list-style: none; }
+    .rm-history-card summary::-webkit-details-marker { display: none; }
+    .rm-history-card summary::before { content: "＋"; position: absolute; left: 4px; color: var(--rm-muted); font-size: 16px; }
+    .rm-history-card[open] summary::before { content: "−"; color: var(--rm-teal-dark); }
+    .rm-history-card-head { display: flex; flex: 1; min-width: 0; justify-content: space-between; gap: 12px; align-items: baseline; }
     .rm-history-card-head b { font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); font-size: 16px; }
     .rm-history-card-head span { color: var(--rm-muted); font-size: 11.5px; flex-shrink: 0; }
+    .rm-history-card-meta { flex-shrink: 0; color: var(--rm-muted); font-size: 11.5px; }
+    .rm-history-card-body { padding: 0 4px 18px 28px; }
+    .rm-history-transcript { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--rm-line); color: var(--rm-muted); font-size: 12.5px; line-height: 1.5; }
+    .rm-history-transcript b { display: block; margin-bottom: 4px; color: var(--rm-teal-dark); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; }
     .rm-history-card p { margin: 0 0 12px; color: var(--rm-ink); line-height: 1.5; font-size: 13.5px; }
     .rm-history-card dl { display: grid; gap: 8px; margin: 0; }
     .rm-history-card dl div { display: grid; grid-template-columns: 120px 1fr; gap: 10px; border-top: 1px solid var(--rm-line); padding-top: 8px; }
@@ -564,10 +531,18 @@
       .rm-trend-row { grid-template-columns: 1fr; gap: 8px; }
       .rm-quest-panel { grid-template-columns: 1fr; }
       .rm-quest-panel .rm-btn { justify-self: start; }
-      .rm-modifier-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 980px) {
-      .rm-career-layout, .rm-history-layout { grid-template-columns: 1fr; }
+      .rm-stage-map, .rm-history-shell { padding: 22px 18px; }
+      .rm-stage-head { display: block; }
+      .rm-stage-count { display: block; margin-top: 12px; }
+      .rm-path { grid-template-columns: 1fr; gap: 12px; }
+      .rm-path-node { min-height: 96px; padding: 26px 18px 18px 72px; text-align: left; }
+      .rm-path-node::before { inset: 0; }
+      .rm-path-node:not(:last-child)::after { top: auto; bottom: -12px; left: 22px; width: 2px; height: 12px; border-top: 0; border-left: 2px solid var(--rm-line); }
+      .rm-path-node .dot { top: 24px; left: 22px; transform: none; width: 38px; height: 38px; }
+      .rm-stage-next { grid-template-columns: 1fr; gap: 16px; }
+      .rm-stage-next .rm-btn { justify-self: start; }
+      .rm-history-card summary { display: block; padding-right: 0; }
+      .rm-history-card-meta { margin-top: 5px; }
     }
   </style>
 </head>
@@ -1136,8 +1111,14 @@ function practicePickerHtml(heroes, secondary, history) {
 }
 
 function careerPathHtml(history, progress, game) {
+  const modifiers = GreenRoomGame.modifierState(progress);
+  const featured = modifiers.find((m) => m.unlocked) || modifiers[0];
   return `
-    <div class="rm-career-layout">
+    <section class="rm-stage-map">
+      <div class="rm-stage-head">
+        <div><h3>Your practice journey</h3><p>Each room leaves a little evidence behind. Follow the next useful step, then choose the pressure that fits your day.</p></div>
+        <span class="rm-stage-count">${progress.earned} of ${progress.total} stages</span>
+      </div>
       <div class="rm-path-panel">
         <div class="rm-path-stats">
           <div><b>${progress.count}</b><span>sessions</span></div>
@@ -1158,50 +1139,16 @@ function careerPathHtml(history, progress, game) {
           ? `Not yet: ${esc(progress.next.label)} - ${esc(progress.next.desc)}`
           : "Every milestone earned. Keep practicing."}</p>
       </div>
-      ${careerSnapshotHtml(history, progress)}
-    </div>
-    ${modifierSectionHtml(progress, game)}`;
-}
-
-function modifierSectionHtml(progress, game) {
-  const modifiers = GreenRoomGame.modifierState(progress);
-  return `<section class="rm-modifier-section">
-    <p class="rm-section-kicker">More rooms to unlock</p>
-    <h3 class="rm-section-title">Change the pressure, keep the practice</h3>
-    <div class="rm-modifier-grid">
-      ${modifiers.map((m) => `<button class="rm-modifier ${m.unlocked ? "unlocked" : ""}" type="button" data-modifier="${esc(m.id)}" ${m.unlocked ? "" : "disabled"}>
-        <b>${esc(m.label)}</b>
-        <span>${esc(m.desc)}</span>
-        <em>${m.unlocked ? "Open" : `Unlocks with ${esc(m.requires.replaceAll("_", " "))}`}</em>
-      </button>`).join("")}
-    </div>
-  </section>`;
-}
-
-function careerSnapshotHtml(history, progress) {
-  const recent = history.slice(0, 3);
-  const recentNames = [...new Set(history.map((h) => h.templateName).filter(Boolean))].slice(0, 3);
-  const fmtDate = (iso) => new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  return `<aside class="rm-practice-snapshot">
-    <h3>Your practice snapshot</h3>
-    <p>A small view of the work behind your progress.</p>
-    <div class="rm-snapshot-section">
-      <div class="rm-snapshot-label">Next milestone</div>
-      <p class="rm-snapshot-next">${progress.next
-        ? `<b>${esc(progress.next.label)}</b><br>${esc(progress.next.desc)}`
-        : "You have completed every milestone."}</p>
-    </div>
-    <div class="rm-snapshot-section">
-      <div class="rm-snapshot-label">Recent rooms</div>
-      ${recent.length ? `<div class="rm-snapshot-list">${recent.map((h) => `
-        <div class="rm-snapshot-item"><b>${esc(h.templateName || "Practice session")}</b><span>${esc(fmtDate(h.date))}</span></div>
-      `).join("")}</div>` : `<p class="rm-snapshot-empty">Your first room is waiting. Choose a scenario to begin.</p>`}
-    </div>
-    <div class="rm-snapshot-section">
-      <div class="rm-snapshot-label">Modes explored</div>
-      <p class="rm-snapshot-next">${recentNames.length ? esc(recentNames.join(" · ")) : "No modes explored yet."}</p>
-    </div>
-  </aside>`;
+      <div class="rm-stage-next">
+        <div>
+          <p class="rm-stage-next-kicker">${featured.unlocked ? "A new kind of room is open" : "Your next room"}</p>
+          <h4>${esc(featured.label)}</h4>
+          <p>${esc(featured.desc)} ${featured.unlocked ? "Try it when you want a little more stretch." : `Unlock it with the ${esc(featured.requires.replaceAll("_", " "))} stage.`}</p>
+          <div class="rm-challenge-list">${modifiers.map((m) => `<span class="rm-challenge-item ${m.unlocked ? "open" : "locked"}">${esc(m.label)}${m.unlocked ? "" : ` · ${esc(m.requires.replaceAll("_", " "))}`}</span>`).join("")}</div>
+        </div>
+        ${featured.unlocked ? `<button class="rm-btn primary" type="button" data-modifier="${esc(featured.id)}">Try this room</button>` : ""}
+      </div>
+    </section>`;
 }
 
 function sparklineSvg(row) {
@@ -1249,62 +1196,39 @@ function fullHistoryHtml(history, game) {
     </div>`;
   }
   const fmtDate = (iso) => new Date(iso).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  return `<div class="rm-history-layout">
-    <div>
-      ${trendPanelHtml(history)}
-      <div class="rm-history-list">
-        ${history.map((h) => `<article class="rm-history-card">
-          <div class="rm-history-card-head">
-            <b>${esc(h.templateName || "Practice session")}</b>
-            <span>${esc(fmtDate(h.date))}</span>
-          </div>
-          <p>${esc(h.bestLine ? `“${h.bestLine}”` : (h.takeaway || "Session completed."))}</p>
-          <dl>
-            <div><dt>Articulation</dt><dd>${esc(h.rubric?.articulation || "-")}</dd></div>
-            <div><dt>Engagement</dt><dd>${esc(h.rubric?.engagement || "-")}</dd></div>
-            <div><dt>Content</dt><dd>${esc(h.rubric?.contentCorrespondence || "-")}</dd></div>
-          </dl>
-        </article>`).join("")}
-      </div>
-    </div>
-    ${historyAsideHtml(history, game)}
-  </div>`;
-}
-
-function historyAsideHtml(history, game) {
   const modes = [...new Set(history.map((h) => h.templateName).filter(Boolean))];
-  const latest = history[0];
-  const questLog = history.filter((h) => h.questId).slice(0, 4);
   const readyRows = GreenRoomProgress.trendRows(history).filter((r) => r.ready);
   const building = readyRows.length ? readyRows.map((r) => r.label.toLowerCase()).slice(0, 2).join(" and ") : "your speaking rhythm";
-  return `<aside class="rm-history-aside">
-    <h3>Your practice at a glance</h3>
-    <p>Keep the useful signal from each room in view while you build your next rep.</p>
-    <div class="rm-history-stat">
-      <span>Sessions saved</span>
-      <b>${history.length}</b>
-      <em>Every completed room stays here.</em>
+  return `<section class="rm-history-shell">
+    <h3>Practice, kept in view</h3>
+    <p>A compact record of the rooms you have visited and the skills that are starting to show up.</p>
+    <div class="rm-history-summary">
+      <div><b>${history.length}</b><span>sessions</span></div>
+      <div><b>${modes.length}</b><span>rooms tried</span></div>
+      <div class="focus"><span>You are building</span><b>${esc(building)}</b></div>
     </div>
-    <div class="rm-history-stat">
-      <span>Rooms tried</span>
-      <b>${modes.length}</b>
-      <em>${modes.length ? esc(modes.slice(0, 2).join(" and ")) : "Choose a scenario to begin."}</em>
+    ${trendPanelHtml(history)}
+    <div class="rm-history-list">
+      ${history.map((h, index) => {
+        const quest = h.questId ? GreenRoomGame.questById(h.questId) : null;
+        return `<details class="rm-history-card" ${index === 0 ? "open" : ""}>
+          <summary>
+            <div class="rm-history-card-head"><b>${esc(h.templateName || "Practice session")}</b><span>${esc(fmtDate(h.date))}</span></div>
+            <div class="rm-history-card-meta">${quest ? `${esc(quest.label)} · ${esc(quest.skill)}` : "Session notes"}</div>
+          </summary>
+          <div class="rm-history-card-body">
+            <p>${esc(h.bestLine ? `“${h.bestLine}”` : (h.takeaway || "Session completed."))}</p>
+            <dl>
+              <div><dt>Articulation</dt><dd>${esc(h.rubric?.articulation || "-")}</dd></div>
+              <div><dt>Engagement</dt><dd>${esc(h.rubric?.engagement || "-")}</dd></div>
+              <div><dt>Content</dt><dd>${esc(h.rubric?.contentCorrespondence || "-")}</dd></div>
+            </dl>
+            ${h.transcript ? `<div class="rm-history-transcript"><b>Transcript</b>${esc(h.transcript)}</div>` : ""}
+          </div>
+        </details>`;
+      }).join("")}
     </div>
-    <div class="rm-history-stat">
-      <span>Latest room</span>
-      <b>${esc(latest.templateName || "Practice session")}</b>
-      <em>Return to this kind of room when you want to notice change.</em>
-    </div>
-    <div class="rm-history-stat">
-      <span>You are building</span>
-      <b>${esc(building)}</b>
-      <em>Your patterns become clearer as you keep practicing.</em>
-    </div>
-    ${questLog.length ? `<div class="rm-history-stat"><span>Quest log</span><div class="rm-quest-log">${questLog.map((h) => {
-      const quest = GreenRoomGame.questById(h.questId);
-      return `<div class="rm-quest-log-item"><b>${esc(quest?.label || "Completed rep")}</b><span>${esc(quest?.skill || "Practice")}</span></div>`;
-    }).join("")}</div></div>` : ""}
-  </aside>`;
+  </section>`;
 }
 
 const SOUND_CHECK_KEY = "greenRoomSoundCheckDone";
@@ -1983,6 +1907,7 @@ async function endPracticeSession() {
       signals,
       viaFreeText: S.viaFreeText === true,
       bestLine: j.bestLine || null,
+      transcript: S.practiceLog.filter((m) => m.role === "student").map((m) => m.text).filter(Boolean).join(" "),
       questId: S.activeQuest?.id || null,
       challengeModifier: S.challengeModifier || null,
     };
