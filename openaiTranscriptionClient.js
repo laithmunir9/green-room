@@ -20,7 +20,7 @@ export async function transcribeAudioBuffer(buffer, { mimeType = "audio/webm", p
   form.append(
     "prompt",
     prompt ||
-      "Green Room speaking practice. Produce a verbatim transcript. Preserve filler words and disfluencies such as um, uh, like, you know, repeated words, restarts, and false starts. Public speaking, interview, pitch, exam viva, job roles, police officer, firefighter."
+      "Prelight speaking practice. Produce a verbatim transcript. Preserve filler words and disfluencies such as um, uh, like, you know, repeated words, restarts, and false starts. Public speaking, interview, pitch, exam viva, job roles, police officer, firefighter."
   );
 
   const res = await fetch(`${cfg.baseUrl}/audio/transcriptions`, {

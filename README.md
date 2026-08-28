@@ -1,10 +1,10 @@
-# Green Room
+# Prelight
 
 AI-powered public speaking practice for simulated rooms and scenario-based feedback.
 
 ## Overview
 
-Green Room is a Node.js and browser application for practicing spoken or written communication in simulated scenarios, including interviews, speeches, pitches, exam vivas, and casual speaking practice. It pairs scenario templates with role-specific personas so a learner can practice against a room that responds.
+Prelight is a Node.js and browser application for practicing spoken or written communication in simulated scenarios, including interviews, speeches, pitches, exam vivas, and casual speaking practice. It pairs scenario templates with role-specific personas so a learner can practice against a room that responds.
 
 ## How It Works
 
@@ -51,7 +51,7 @@ cp .env.example .env
 
 Edit `.env` and set `OPENAI_API_KEY`. The server also supports optional model, audio, and rate-limit environment variables.
 
-For deployed persistence, set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in Render. The `students` table is created by the `green_room_storage` migration.
+For deployed persistence, set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in Render. The existing `students` table is created by the storage migration.
 
 The public GitHub Actions workflow in `.github/workflows/supabase-keepalive.yml` sends a harmless Supabase query every four days. Add `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as repository Actions secrets before enabling it.
 
@@ -75,7 +75,7 @@ The tests cover scenario templates, classifier signals, transcript corrections, 
 
 ## Security and Limitations
 
-Green Room currently uses lightweight local/demo authentication and JSON-file persistence. New passwords are stored as salted scrypt hashes, login returns an opaque session token, and protected routes accept only that token. A temporary legacy-login path migrates old plaintext records to scrypt hashes after a successful login.
+Prelight currently uses lightweight local/demo authentication and JSON-file persistence. New passwords are stored as salted scrypt hashes, login returns an opaque session token, and protected routes accept only that token. A temporary legacy-login path migrates old plaintext records to scrypt hashes after a successful login.
 
 This is not production authentication. A deployed multi-user version should move sessions, users, and practice history to a managed database, add secure cookie-based session handling, CSRF protection where needed, password reset flows, and operational monitoring.
 
@@ -83,4 +83,4 @@ Never commit `.env` or `data/students.json`.
 
 ## Project Background
 
-Green Room originated during the MBZUAI Hybrid Intelligence Bootcamp and was continued independently afterward. Historical hackathon materials are kept in `docs/hackathon/` for provenance.
+Prelight originated during the MBZUAI Hybrid Intelligence Bootcamp and was continued independently afterward. Historical hackathon materials are kept in `docs/hackathon/` for provenance.

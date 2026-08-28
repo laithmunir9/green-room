@@ -9,10 +9,10 @@ if (existsSync(envPath)) {
   }
 }
 
-const audioPath = process.argv[2] || "/tmp/green-room-transcription-smoke.wav";
+const audioPath = process.argv[2] || "/tmp/prelight-transcription-smoke.wav";
 const text = await transcribeAudioBuffer(readFileSync(audioPath), {
   mimeType: "audio/wav",
-  prompt: "Green Room speaking practice. The speaker says: I used to be a policeman and I am very strong.",
+  prompt: "Prelight speaking practice. The speaker says: I used to be a policeman and I am very strong.",
 });
 
 console.log(text);

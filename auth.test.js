@@ -4,7 +4,7 @@ import test from "node:test";
 
 process.env.GREEN_ROOM_DATA_DIR = "/tmp/green-room-auth-unit";
 
-const { app, hashPassword, issueSessionToken, publicStudent, verifyPassword } = await import("./server.js");
+const { app, bearerToken, hashPassword, issueSessionToken, publicStudent, verifyPassword } = await import("./server.js");
 
 let server;
 let baseUrl;
@@ -57,6 +57,12 @@ test("session tokens are opaque and not the student id", () => {
   assert.equal(student.sessionToken, second);
 });
 
+test("audio authentication reads the bearer token from an authorization header", () => {
+  assert.equal(bearerToken({ get: (name) => name === "authorization" ? "Bearer session-token" : "" }), "session-token");
+  assert.equal(bearerToken({ get: () => "session-token" }), "");
+  assert.equal(bearerToken({ get: () => "" }), "");
+});
+
 test("public student responses omit password hashes and session tokens", () => {
   const student = {
     id: "student-id-123",
@@ -67,6 +73,16 @@ test("public student responses omit password hashes and session tokens", () => {
   };
 
   assert.deepEqual(publicStudent(student), { id: "student-id-123", name: "Auth Tester" });
+});
+
+test("responses include the browser hardening headers", async () => {
+  const response = await fetch(`${baseUrl}/api/health`);
+
+  assert.equal(response.headers.get("x-powered-by"), null);
+  assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(response.headers.get("x-frame-options"), "DENY");
+  assert.equal(response.headers.get("referrer-policy"), "strict-origin-when-cross-origin");
+  assert.match(response.headers.get("permissions-policy") || "", /camera=\(self\)/);
 });
 
 test("registration stores only a password hash and returns an opaque token", async () => {

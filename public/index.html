@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Green Room</title>
-  <link rel="icon" href="/logo.png" type="image/png" />
+  <title>Prelight</title>
+  <link rel="icon" href="/prelight-mark.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet" />
@@ -12,8 +12,8 @@
     :root {
       --bad: #c0453a;
       --r: 20px;
-      --shadow: 0 24px 60px rgba(43,74,64,.12);
-      --ink: rgba(43,74,64,.62);
+      --shadow: 0 24px 60px rgba(39,45,70,.12);
+      --ink: rgba(39,45,70,.56);
       --rm-header-bg: rgba(255,253,248,.9);
     }
     * { box-sizing: border-box; }
@@ -22,8 +22,8 @@
       font-family: "IBM Plex Sans", system-ui, sans-serif;
       color: var(--rm-ink);
       background:
-        radial-gradient(900px 500px at 12% -10%, rgba(159,187,148,.16), transparent 55%),
-        radial-gradient(800px 460px at 100% 10%, rgba(231,196,143,.18), transparent 50%),
+        radial-gradient(900px 500px at 12% -10%, rgba(200,213,223,.24), transparent 55%),
+        radial-gradient(800px 460px at 100% 10%, rgba(233,177,126,.18), transparent 50%),
         var(--rm-bg);
     }
     .shell { min-height: 100%; display: flex; flex-direction: column; }
@@ -90,36 +90,38 @@
     .brand-text h1 { margin: 0; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; letter-spacing: -.01em; color: var(--rm-teal-dark); }
     .brand-text p { margin: 2px 0 0; color: var(--rm-muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .09em; }
     main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-    body.landing-page { background: #102117; }
-    body.landing-page header { position: absolute; inset: 0 0 auto; min-height: 0; padding: 20px 28px; border: 0; background: transparent; backdrop-filter: none; justify-content: flex-end; }
-    body.landing-page .brand, body.landing-page .theme-toggle { display: none; }
-    body.landing-page .founder-link { position: static; transform: none; color: rgba(247, 237, 217, .62); font-size: 11px; }
-    .rm-landing { display: grid; min-height: 100vh; place-items: center; padding: 90px 24px 42px; background: #102117; color: #f7edd9; }
+    body.landing-page { background: var(--landing-bg); }
+    body.landing-page header { position: absolute; inset: 0 0 auto; min-height: 0; padding: 20px 28px; border: 0; background: transparent; backdrop-filter: none; justify-content: space-between; }
+    body.landing-page .brand { display: none; }
+    body.landing-page .theme-toggle { display: flex; }
+    body.landing-page .founder-link { position: static; transform: none; color: var(--landing-muted); font-size: 11px; }
+    .rm-landing { display: grid; min-height: 100vh; place-items: center; padding: 90px 24px 42px; background: var(--landing-bg); color: var(--landing-ink); }
     .rm-landing-inner { width: min(420px, 100%); text-align: center; }
-    .rm-landing-logo { width: 58px; height: 58px; margin: 0 auto 20px; }
-    .rm-landing-brand { margin: 0; color: #f7edd9; font: 600 25px Fraunces, Georgia, serif; }
+    .rm-landing-logo { width: 52px; height: 52px; margin: 0 auto 18px; }
+    .rm-landing-brand { margin: 0; color: var(--landing-ink); font: 600 25px Fraunces, Georgia, serif; }
     .rm-live-stage { position: relative; width: min(300px, 100%); margin: 30px auto 24px; padding: 24px 20px 12px; }
-    .rm-live-stage::before { content: ""; position: absolute; inset: 0; z-index: -1; border: 2px solid rgba(247, 237, 217, .55); border-radius: 18px; filter: url(#sketchWobble); }
+    .rm-live-stage::before { content: ""; position: absolute; inset: 0; z-index: -1; border: 2px solid var(--landing-line); border-radius: 18px; filter: url(#sketchWobble); }
     .rm-live-stage svg { width: 100%; height: auto; display: block; }
-    .rm-live-bubble { position: absolute; top: -13px; right: -18px; max-width: 132px; padding: 9px 12px; border-radius: 11px; background: #f7edd9; color: #20362a; box-shadow: 0 8px 28px rgba(0,0,0,.18); font-size: 12px; line-height: 1.3; animation: liveFloat 3s ease-in-out infinite; }
-    .rm-live-bubble::after { content: ""; position: absolute; left: 18px; bottom: -7px; border: 7px solid transparent; border-top-color: #f7edd9; border-bottom: 0; }
-    .rm-landing h2 { margin: 0; color: #f7edd9; font: 500 clamp(29px, 4.2vw, 38px)/1.12 Fraunces, Georgia, serif; }
-    .rm-landing-copy { margin: 13px auto 0; color: rgba(247, 237, 217, .72); font-size: 14px; line-height: 1.55; }
+    .rm-live-bubble { position: absolute; top: -13px; right: -18px; max-width: 132px; padding: 9px 12px; border-radius: 11px; background: var(--landing-panel); color: var(--landing-bubble-ink); box-shadow: 0 8px 28px rgba(0,0,0,.18); font-size: 12px; line-height: 1.3; animation: liveFloat 3s ease-in-out infinite; }
+    .rm-live-bubble::after { content: ""; position: absolute; left: 18px; bottom: -7px; border: 7px solid transparent; border-top-color: var(--landing-panel); border-bottom: 0; }
+    .rm-landing h2 { margin: 0; color: var(--landing-ink); font: 500 clamp(29px, 4.2vw, 38px)/1.12 Fraunces, Georgia, serif; }
+    .rm-landing-copy { margin: 13px auto 0; color: var(--landing-muted); font-size: 14px; line-height: 1.55; }
     .rm-landing-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-top: 25px; }
-    .rm-landing-btn { min-height: 46px; border: 1px solid rgba(247, 237, 217, .58); border-radius: 7px; padding: 0 16px; background: transparent; color: #f7edd9; cursor: pointer; font: 600 14px "IBM Plex Sans", sans-serif; }
-    .rm-landing-btn.primary { border-color: #f3d19c; background: #f3d19c; color: #1d2d22; }
+    .rm-landing-btn { min-height: 46px; border: 1px solid var(--landing-line-strong); border-radius: 7px; padding: 0 16px; background: transparent; color: var(--landing-ink); cursor: pointer; font: 600 14px "IBM Plex Sans", sans-serif; }
+    .rm-landing-btn.primary { border-color: var(--landing-accent); background: var(--landing-accent); color: var(--landing-accent-ink); }
     .rm-landing-btn:hover { transform: translateY(-1px); }
-    .rm-landing-note { margin: 16px 0 0; color: rgba(247, 237, 217, .45); font-size: 11px; }
-    .rm-auth-backdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(8, 20, 13, .76); backdrop-filter: blur(7px); }
-    .rm-auth-dialog { width: min(420px, 100%); position: relative; padding: 28px; background: #f7edd9; color: #20362a; border: 2px solid rgba(32, 54, 42, .75); border-radius: 12px; box-shadow: 0 28px 80px rgba(0,0,0,.36); }
-    .rm-auth-dialog h2 { margin: 0; color: #20362a; font-size: 28px; }
-    .rm-auth-dialog .sub { margin: 8px 0 20px; color: rgba(32, 54, 42, .72); line-height: 1.5; }
-    .rm-auth-dialog label { color: rgba(32, 54, 42, .78); }
-    .rm-auth-dialog .input-wrap input { background: #fffdf7; border-color: rgba(32, 54, 42, .45); }
+    .rm-landing-note { margin: 16px 0 0; color: var(--landing-note); font-size: 11px; }
+    .rm-auth-backdrop { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 24px; background: rgba(12, 15, 31, .8); backdrop-filter: blur(7px); }
+    .rm-auth-dialog { width: min(420px, 100%); position: relative; padding: 28px; background: #f8f0e5; color: #2a314f; border: 2px solid rgba(42, 49, 79, .75); border-radius: 12px; box-shadow: 0 28px 80px rgba(0,0,0,.36); }
+    .rm-auth-dialog h2 { margin: 0; color: #2a314f; font-size: 28px; }
+    .rm-auth-dialog .sub { margin: 8px 0 20px; color: rgba(42, 49, 79, .72); line-height: 1.5; }
+    .rm-auth-dialog label { color: rgba(42, 49, 79, .78); }
+    .rm-auth-dialog .input-wrap input { background: #fffdf8; border-color: rgba(42, 49, 79, .45); color: #2a314f; caret-color: #2a314f; }
+    .rm-auth-dialog .input-wrap input::placeholder { color: rgba(42, 49, 79, .48); }
     .rm-auth-dialog .actions { margin-top: 20px; }
-    .rm-auth-dialog .btn.primary { background: #20362a; color: #fff9ec; border-color: #20362a; }
-    .rm-auth-dialog .btn.ghost { color: #20362a; border-color: rgba(32, 54, 42, .55); }
-    .rm-auth-close { position: absolute; top: 10px; right: 12px; width: 34px; height: 34px; border: 0; background: transparent; color: #20362a; cursor: pointer; font-size: 22px; }
+    .rm-auth-dialog .btn.primary { background: #2a314f; color: #fff9ec; border-color: #2a314f; }
+    .rm-auth-dialog .btn.ghost { color: #2a314f; border-color: rgba(42, 49, 79, .55); }
+    .rm-auth-close { position: absolute; top: 10px; right: 12px; width: 34px; height: 34px; border: 0; background: transparent; color: #2a314f; cursor: pointer; font-size: 22px; }
     @keyframes liveFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
     .rm-modal-backdrop {
       position: fixed; inset: 0; z-index: 100; display: grid; place-items: center;
@@ -212,34 +214,54 @@
       filter: url(#sketchWobble);
     }
     :root {
-      --rm-bg: #fbf7ec;
-      --rm-panel: #ffffff;
-      --rm-line: rgba(43,74,64,.12);
-      --rm-teal: #3e7565;
-      --rm-teal-dark: #2b4a40;
-      --rm-sage: #9fbb94;
-      --rm-tan: #e7c48f;
-      --rm-ink: #24352e;
-      --rm-muted: #5f7268;
-      --rm-bubble-them-bg: #f1ead9;
+      --rm-bg: #f8f4ed;
+      --rm-panel: #fffdfa;
+      --rm-line: rgba(42,49,79,.12);
+      --rm-teal: #d57455;
+      --rm-teal-dark: #2a314f;
+      --rm-sage: #c8d5df;
+      --rm-tan: #e9b17e;
+      --rm-ink: #282e48;
+      --rm-muted: #697086;
+      --rm-bubble-them-bg: #f1e8dc;
       --rm-input-bg: #fffdf8;
+      --landing-bg: #f8f4ed;
+      --landing-panel: #fffdfa;
+      --landing-ink: #2a314f;
+      --landing-muted: rgba(42,49,79,.68);
+      --landing-note: rgba(42,49,79,.48);
+      --landing-line: rgba(42,49,79,.28);
+      --landing-line-strong: rgba(42,49,79,.5);
+      --landing-accent: #d57455;
+      --landing-accent-ink: #fffaf4;
+      --landing-bubble-ink: #2a314f;
     }
     :root[data-theme="dark"] {
-      --rm-bubble-them-bg: #33443d;
-      --rm-input-bg: #2a3a34;
-      --bad: #e2685c;
+      --rm-bubble-them-bg: #303752;
+      --rm-input-bg: #292f49;
+      --bad: #ec7867;
       --shadow: 0 24px 60px rgba(0,0,0,.55);
-      --ink: rgba(223,232,220,.55);
-      --rm-header-bg: rgba(20,28,25,.85);
-      --rm-bg: #1b2420;
-      --rm-panel: #24342f;
+      --ink: rgba(239,235,226,.55);
+      --rm-header-bg: rgba(22,26,47,.85);
+      --rm-bg: #171b31;
+      --rm-panel: #222842;
       --rm-line: rgba(255,255,255,.14);
-      --rm-teal: #5fa38c;
-      --rm-teal-dark: #bfe0cf;
-      --rm-sage: #8fb490;
-      --rm-tan: #eccb98;
-      --rm-ink: #eef2ea;
-      --rm-muted: #9fb3a8;
+      --rm-teal: #ed9a71;
+      --rm-teal-dark: #f3e4d4;
+      --rm-sage: #718a9f;
+      --rm-tan: #edbc88;
+      --rm-ink: #f4eee5;
+      --rm-muted: #b7b8c8;
+      --landing-bg: #171b31;
+      --landing-panel: #f8f0e5;
+      --landing-ink: #f8f0e5;
+      --landing-muted: rgba(248,240,229,.72);
+      --landing-note: rgba(248,240,229,.45);
+      --landing-line: rgba(248,240,229,.46);
+      --landing-line-strong: rgba(248,240,229,.58);
+      --landing-accent: #e9a47c;
+      --landing-accent-ink: #252b46;
+      --landing-bubble-ink: #2a314f;
     }
     .rm-page { background: var(--rm-bg); flex: 1; min-height: calc(100vh - 76px); padding: 32px; }
     .rm-topbar { margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
@@ -574,6 +596,7 @@
       .rm-history-card summary { display: block; padding-right: 0; }
       .rm-history-card-meta { margin-top: 5px; }
       body.landing-page header { padding: 18px 16px; }
+      body.landing-page .founder-link { max-width: none; white-space: nowrap; }
       .rm-landing { padding: 78px 20px 36px; }
       .rm-live-stage { width: min(278px, 100%); }
       .rm-live-bubble { right: -5px; }
@@ -601,9 +624,9 @@
           <path d="M28,4 C40,3 51,12 51,26 C52,40 40,51 27,51 C13,52 4,41 4,27 C3,14 15,5 28,4 Z"
                 fill="var(--rm-tan)" opacity="0.35" transform="rotate(-6 28 28)" filter="url(#sketchWobbleBold)" />
         </svg>
-        <img src="/logo.png" alt="" />
+        <img src="/prelight-mark.svg" alt="" />
         <div class="brand-text">
-          <h1>Green Room</h1>
+          <h1>Prelight</h1>
           <p>Practice space</p>
         </div>
       </button>
@@ -737,7 +760,7 @@ function renderFounderNote() {
       <section class="rm-founder-modal" role="dialog" aria-modal="true" aria-labelledby="founderTitle">
         <button class="rm-modal-close" id="founderClose" type="button" aria-label="Close founder note">×</button>
         <h2 id="founderTitle">Why I made this</h2>
-        <p>I built Green Room because I know how hard it can be to speak when the room suddenly feels bigger than you. A few years ago, I struggled with public speaking myself. I would know what I wanted to say, then lose it once people were watching.</p>
+        <p>I built Prelight because I know how hard it can be to speak when the room suddenly feels bigger than you. A few years ago, I struggled with public speaking myself. I would know what I wanted to say, then lose it once people were watching.</p>
         <p>Practicing helped, but only when it felt close to the real moment: a question after a pitch, a panel that pushes back, a quiet audience member waiting for the point. I wanted to make a space where people could rehearse those moments before they actually matter.</p>
         <p class="signoff">This is a practice room for anyone building confidence one rep at a time.</p>
       </section>
@@ -853,8 +876,8 @@ function renderGate() {
   main.innerHTML = `
     <section class="rm-landing">
       <div class="rm-landing-inner">
-        <img class="rm-landing-logo" src="/logo.png" alt="Green Room" />
-        <p class="rm-landing-brand">Green Room</p>
+        <img class="rm-landing-logo" src="/prelight-mark.svg" alt="Prelight" />
+        <p class="rm-landing-brand">Prelight</p>
         <div class="rm-live-stage">
           <div class="rm-live-bubble">Tell me what you're practicing.</div>
           ${sceneFacilitator()}
@@ -893,13 +916,13 @@ function renderAuthDialog() {
       <section class="rm-auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
         <button class="rm-auth-close" id="authClose" type="button" aria-label="Close account dialog">×</button>
         <h2 id="authTitle">${S.authMode === "register" ? "Your room is ready." : "Welcome back."}</h2>
-        <p class="sub">${S.authMode === "register" ? "Create your private Green Room account to start your first practice." : "Sign in to return to your practice path."}</p>
+        <p class="sub">${S.authMode === "register" ? "Create your private Prelight account to start your first practice." : "Sign in to return to your practice path."}</p>
         ${S.authMode === "register" ? `<label>Name <div class="input-wrap"><input id="name" placeholder="Your name" autocomplete="name" /></div></label>` : ""}
         <label>Email <div class="input-wrap"><input id="email" type="email" placeholder="you@example.com" autocomplete="email" /></div></label>
         <label>Password <div class="input-wrap"><input id="pass" type="password" placeholder="At least 8 characters" autocomplete="current-password" /></div></label>
-        ${S.authMode === "register" ? `<label>Invite code <div class="input-wrap"><input id="inviteCode" placeholder="Your invite code" autocomplete="off" /></div></label>` : ""}
+        ${S.authMode === "register" ? `<label>Invite code <div class="input-wrap"><input id="inviteCode" type="password" placeholder="Your invite code" autocomplete="off" /></div></label>` : ""}
         <div class="actions">
-          <button class="btn primary" id="go">${S.authMode === "register" ? "Enter Green Room" : "Sign in"}</button>
+          <button class="btn primary" id="go">${S.authMode === "register" ? "Enter Prelight" : "Sign in"}</button>
           <button class="btn ghost" id="sw">${S.authMode === "register" ? "I have an account" : "Create an account"}</button>
         </div>
         <p class="muted" id="status" style="margin-top:12px"></p>
@@ -985,7 +1008,7 @@ function sceneVideoCall() {
 
 function sceneClassroom() {
   const desk = (x, y) => `
-    <rect x="${x}" y="${y + 18}" width="46" height="8" rx="2" fill="#e7c48f" stroke="var(--ink)" stroke-width="2"/>
+    <rect x="${x}" y="${y + 18}" width="46" height="8" rx="2" fill="var(--rm-tan)" stroke="var(--ink)" stroke-width="2"/>
     <line x1="${x + 4}" y1="${y + 26}" x2="${x + 4}" y2="${y + 40}" stroke="var(--ink)" stroke-width="2"/>
     <line x1="${x + 42}" y1="${y + 26}" x2="${x + 42}" y2="${y + 40}" stroke="var(--ink)" stroke-width="2"/>
     <circle cx="${x + 23}" cy="${y}" r="10" fill="#fffdf8" stroke="var(--ink)" stroke-width="2"/>
@@ -1022,16 +1045,17 @@ function sceneFacilitator() {
   return `<svg viewBox="0 0 300 220" aria-hidden="true" filter="url(#sketchWobble)">
     <ellipse cx="150" cy="204" rx="72" ry="8" fill="var(--rm-sage)" opacity="0.26"/>
     <circle cx="150" cy="66" r="31" fill="#fffdf8" stroke="var(--ink)" stroke-width="2.5"/>
-    <path d="M118,62 Q150,27 182,62" fill="var(--rm-teal)" stroke="var(--ink)" stroke-width="2.5"/>
-    <circle cx="139" cy="67" r="2.5" fill="var(--ink)"/>
-    <circle cx="161" cy="67" r="2.5" fill="var(--ink)"/>
-    <path d="M140,82 Q150,89 160,82" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M122,58 Q125,30 150,30 Q175,30 178,58 Z" fill="var(--rm-teal)" stroke="var(--ink)" stroke-width="2.5" stroke-linejoin="round"/>
+    <rect x="116" y="56" width="68" height="11" rx="5.5" fill="var(--rm-teal)" stroke="var(--ink)" stroke-width="2.5"/>
+    <circle cx="139" cy="76" r="2.5" fill="#2a314f"/>
+    <circle cx="161" cy="76" r="2.5" fill="#2a314f"/>
+    <path d="M140,91 Q150,98 160,91" fill="none" stroke="#2a314f" stroke-width="2" stroke-linecap="round"/>
     <path d="M103,190 Q107,111 150,105 Q193,111 197,190 Z" fill="var(--rm-sage)" stroke="var(--ink)" stroke-width="2.5"/>
     <path d="M120,126 Q95,144 82,168" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
-    <path d="M180,126 Q206,139 224,119" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="227" cy="116" r="4" fill="#fffdf8" stroke="var(--ink)" stroke-width="1.8"/>
-    <path d="M216,92 C231,83 245,83 258,92" fill="none" stroke="var(--rm-tan)" stroke-width="3" stroke-linecap="round"/>
-    <path d="M220,102 C234,94 248,94 262,102" fill="none" stroke="var(--rm-tan)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M180,126 Q204,140 219,128" fill="none" stroke="var(--ink)" stroke-width="3" stroke-linecap="round"/>
+    <rect x="220" y="103" width="42" height="30" rx="3" fill="#fffdf8" stroke="var(--ink)" stroke-width="2.2"/>
+    <line x1="229" y1="113" x2="253" y2="113" stroke="var(--rm-tan)" stroke-width="2.5" stroke-linecap="round"/>
+    <line x1="229" y1="122" x2="247" y2="122" stroke="var(--rm-tan)" stroke-width="2.5" stroke-linecap="round"/>
   </svg>`;
 }
 
@@ -1782,12 +1806,13 @@ function recorderMimeType() {
 async function transcribeRecordedAudio(blob) {
   status("Transcribing audio...");
   const durationSec = S.lastMicDurationSec || 0;
-  const qs = new URLSearchParams({ studentId: S.token, durationSec: String(Math.round(durationSec * 10) / 10) });
+  const qs = new URLSearchParams({ durationSec: String(Math.round(durationSec * 10) / 10) });
   const res = await fetch(`/api/practice/transcribe-audio?${qs.toString()}`, {
     method: "POST",
     headers: {
+      "Authorization": `Bearer ${S.token}`,
       "Content-Type": blob.type || "audio/webm",
-      "X-Green-Room-Duration-Sec": String(durationSec),
+      "X-Prelight-Duration-Sec": String(durationSec),
     },
     body: blob,
   });

@@ -29,8 +29,6 @@ async function aiJsonWithRetry(opts, retries = 1) {
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const envPath = join(__dirname, ".env");
-const dataDir = process.env.GREEN_ROOM_DATA_DIR ? resolve(process.env.GREEN_ROOM_DATA_DIR) : join(__dirname, "data");
-const dbPath = join(dataDir, "students.json");
 
 if (existsSync(envPath)) {
   for (const line of readFileSync(envPath, "utf8").split("\n")) {
@@ -38,12 +36,17 @@ if (existsSync(envPath)) {
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
   }
 }
+const configuredDataDir = process.env.PRELIGHT_DATA_DIR || process.env.GREEN_ROOM_DATA_DIR;
+const dataDir = configuredDataDir
+  ? resolve(configuredDataDir)
+  : join(__dirname, "data");
+const dbPath = join(dataDir, "students.json");
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 
 const USE_SUPABASE = supabaseConfigured();
 
 const PORT = Number(process.env.PORT || 3848);
-const INVITE_CODE = (process.env.GREEN_ROOM_INVITE_CODE || "").trim();
+const INVITE_CODE = (process.env.PRELIGHT_INVITE_CODE || process.env.GREEN_ROOM_INVITE_CODE || "").trim();
 const CHALLENGE_MODIFIER_PROMPTS = {
   skeptical_audience: "The audience is skeptical. Ask for evidence, specifics, or a concrete example when the student's answer needs it.",
   follow_up_questions: "Ask one concise follow up question after each student answer so they practice extending an idea.",
@@ -147,6 +150,13 @@ function rateLimitFor(path) {
 function errorStatus(e, fallback = 500) {
   return Number.isInteger(e?.status) ? e.status : fallback;
 }
+
+function bearerToken(req) {
+  const value = String(req.get("authorization") || "");
+  const match = value.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : "";
+}
+
 function getStudentById(id) {
   const db = loadDb();
   return db.students[id] || null;
@@ -228,6 +238,16 @@ function localFallbackReply(persona, signals) {
 
 const app = express();
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
+app.use((_req, res, next) => {
+  res.set({
+    "Permissions-Policy": "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+  });
+  next();
+});
 app.use(express.json({ limit: "2mb" }));
 app.use((req, res, next) => {
   const rule = rateLimitFor(req.path);
@@ -523,11 +543,11 @@ app.post(
   express.raw({ type: ["audio/webm", "audio/mp4", "audio/wav", "application/octet-stream"], limit: AUDIO_MAX_BYTES }),
   async (req, res) => {
     try {
-      const s = await getStudentByToken(req.query?.studentId);
+      const s = await getStudentByToken(bearerToken(req));
       if (!s) return res.status(404).json({ error: "Student not found" });
       if (!Buffer.isBuffer(req.body) || req.body.length < 1000) return res.status(400).json({ error: "Audio required" });
       if (req.body.length > AUDIO_MAX_BYTES) return res.status(413).json({ error: "That recording is too large. Try a shorter response." });
-      const durationSec = Number(req.query?.durationSec || req.get("x-green-room-duration-sec"));
+      const durationSec = Number(req.query?.durationSec || req.get("x-prelight-duration-sec") || req.get("x-green-room-duration-sec"));
       if (Number.isFinite(durationSec) && durationSec > AUDIO_MAX_SECONDS + 2) {
         return res.status(413).json({ error: `Recordings are limited to ${AUDIO_MAX_SECONDS} seconds. Try a shorter response.` });
       }
@@ -536,7 +556,7 @@ app.post(
 
       const practice = s.practice;
       const prompt = [
-        "Green Room speaking practice transcript.",
+        "Prelight speaking practice transcript.",
         practice?.templateName ? `Scenario: ${practice.templateName}.` : "",
         practice?.description ? `Context: ${practice.description}.` : "",
         "Produce a verbatim transcript for coaching, not a polished rewrite.",
@@ -551,7 +571,7 @@ app.post(
       });
       const text = applyLikelyAsrCorrections(cleanStudentText(transcribed)).slice(0, 2000);
       if (!text) return res.status(422).json({ error: "No speech detected" });
-      console.log(`[audio] transcribed ${req.body.length} bytes -> "${text.slice(0, 90)}${text.length > 90 ? "..." : ""}"`);
+      console.log(`[audio] transcribed ${req.body.length} bytes into ${text.split(/\s+/).filter(Boolean).length} words`);
       res.json({ text });
     } catch (e) {
       console.error("[audio] transcription failed:", e.message || e);
@@ -680,11 +700,11 @@ app.use((err, _req, res, next) => {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Green Room -> http://localhost:${PORT}`);
+    console.log(`Prelight -> http://localhost:${PORT}`);
   });
 }
 
 process.on("uncaughtException", (e) => console.error("[uncaught]", e?.message || e));
 process.on("unhandledRejection", (e) => console.error("[rejection]", e?.message || e));
 
-export { app, hashPassword, issueSessionToken, publicStudent, verifyPassword };
+export { app, bearerToken, hashPassword, issueSessionToken, publicStudent, verifyPassword };

@@ -13,6 +13,6 @@ const audio = await synthesizeOpenAISpeech("Could you give me one concrete examp
   voice: "alloy",
 });
 
-const outPath = "/tmp/green-room-openai-tts-smoke.mp3";
+const outPath = "/tmp/prelight-openai-tts-smoke.mp3";
 writeFileSync(outPath, audio);
 console.log(outPath);
