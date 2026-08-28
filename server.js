@@ -44,6 +44,13 @@ const USE_SUPABASE = supabaseConfigured();
 
 const PORT = Number(process.env.PORT || 3848);
 const INVITE_CODE = (process.env.GREEN_ROOM_INVITE_CODE || "").trim();
+const CHALLENGE_MODIFIER_PROMPTS = {
+  skeptical_audience: "The audience is skeptical. Ask for evidence, specifics, or a concrete example when the student's answer needs it.",
+  follow_up_questions: "Ask one concise follow up question after each student answer so they practice extending an idea.",
+  short_answer: "Keep the exchange focused on concise answers. Prompt the student to make one clear point in no more than two sentences when appropriate.",
+  explain_beginner: "Act like an intelligent beginner. Ask the student to replace jargon with plain language or an example when useful.",
+  recover_and_continue: "Occasionally introduce a challenging question or interruption, then give the student room to recover and continue their thought.",
+};
 const AUDIO_MAX_BYTES = Number(process.env.AUDIO_MAX_BYTES || 6 * 1024 * 1024);
 const AUDIO_MAX_SECONDS = Number(process.env.AUDIO_MAX_SECONDS || 45);
 const DAILY_LIMITS = {
@@ -351,6 +358,10 @@ app.post("/api/practice/start", async (req, res) => {
     const description = cleanStudentText(req.body?.description || "").slice(0, 2000);
     if (!description) return res.status(400).json({ error: "Scenario description required" });
     const setupAnswer = cleanStudentText(req.body?.setupAnswer || "").slice(0, 300);
+    const questId = typeof req.body?.questId === "string" ? req.body.questId.slice(0, 64) : null;
+    const challengeModifier = Object.hasOwn(CHALLENGE_MODIFIER_PROMPTS, req.body?.challengeModifier)
+      ? req.body.challengeModifier
+      : null;
 
     const keywordSet = buildScenarioKeywordSet(description);
     // exam_viva and interview are AI-led: a specific setup answer (topic/role)
@@ -375,6 +386,8 @@ app.post("/api/practice/start", async (req, res) => {
       voiceTurns: [],
       startedAt: new Date().toISOString(),
       endedAt: null,
+      questId,
+      challengeModifier,
     };
     await persistStudent(s);
 
@@ -382,6 +395,8 @@ app.post("/api/practice/start", async (req, res) => {
       practice: {
         templateId: template.id,
         templateName: template.name,
+        questId,
+        challengeModifier,
         personas: template.personas.map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
       },
       opener,
@@ -429,6 +444,7 @@ app.post("/api/practice/message", async (req, res) => {
 
     const system =
       "You are running a short scenario role-play. " + template.description + " " +
+      (practice.challengeModifier ? CHALLENGE_MODIFIER_PROMPTS[practice.challengeModifier] + " " : "") +
       "Multiple distinct characters respond to the student in character. Stay strictly in character for each " +
       "persona listed below - do not blend their voices together. Keep every reply short (1-3 sentences), plain text, no markdown.\n\n" +
       (recentTurns.length ? `Recent conversation:\n${recentTurns.join("\n")}\n\n` : "\n") +

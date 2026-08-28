@@ -310,6 +310,34 @@
       background: var(--rm-panel); border: 2px solid var(--ink);
       filter: url(#sketchWobbleBold);
     }
+    .rm-quest-panel { position: relative; z-index: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: center; max-width: 860px; margin: 0 0 24px; padding: 20px 22px; }
+    .rm-quest-panel::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 16px; background: linear-gradient(135deg, rgba(159,187,148,.18), rgba(231,196,143,.16)), var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobbleBold); }
+    .rm-quest-kicker { color: var(--rm-muted); font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+    .rm-quest-panel h3 { margin: 5px 0 4px; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 21px; }
+    .rm-quest-panel p { margin: 0; color: var(--rm-muted); font-size: 13px; line-height: 1.45; }
+    .rm-quest-skill { margin-top: 9px !important; color: var(--rm-ink) !important; font-size: 11.5px !important; font-weight: 700; }
+    .rm-quest-skill span { color: var(--rm-muted); font-weight: 400; }
+    .rm-modifier-section { max-width: 1240px; margin-top: 24px; }
+    .rm-section-kicker { margin: 0 0 4px; color: var(--rm-muted); font-size: 10.5px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+    .rm-section-title { margin: 0 0 12px; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 19px; }
+    .rm-modifier-grid { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 12px; }
+    .rm-modifier { position: relative; z-index: 0; min-height: 128px; padding: 15px; border: none; background: transparent; color: var(--rm-ink); font: inherit; text-align: left; cursor: pointer; }
+    .rm-modifier::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 14px; background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble); }
+    .rm-modifier:hover:not(:disabled) { transform: translateY(-2px); }
+    .rm-modifier:focus-visible { outline: 2px solid var(--rm-teal); outline-offset: 3px; }
+    .rm-modifier:disabled { cursor: default; opacity: .62; }
+    .rm-modifier.unlocked::before { background: linear-gradient(135deg, rgba(159,187,148,.18), transparent), var(--rm-panel); border-color: var(--rm-sage); }
+    .rm-modifier b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 15px; line-height: 1.2; }
+    .rm-modifier span { display: block; margin-top: 8px; color: var(--rm-muted); font-size: 11.5px; line-height: 1.35; }
+    .rm-modifier em { display: block; margin-top: 10px; color: var(--rm-muted); font-size: 10px; font-style: normal; text-transform: uppercase; letter-spacing: .07em; }
+    .rm-completion { position: relative; z-index: 0; max-width: 640px; margin: 0 0 20px; padding: 16px 18px; }
+    .rm-completion::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 14px; background: rgba(159,187,148,.16); border: 2px solid var(--rm-sage); filter: url(#sketchWobble); }
+    .rm-completion b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 17px; }
+    .rm-completion p { margin: 4px 0 0; color: var(--rm-muted); font-size: 13px; line-height: 1.45; }
+    .rm-quest-log { display: grid; gap: 8px; margin-bottom: 18px; }
+    .rm-quest-log-item { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-top: 1px solid var(--rm-line); padding-top: 10px; }
+    .rm-quest-log-item b { color: var(--rm-ink); font-size: 13px; }
+    .rm-quest-log-item span { color: var(--rm-muted); font-size: 11px; white-space: nowrap; }
     .rm-path-panel {
       position: relative; z-index: 0; padding: 24px;
     }
@@ -534,6 +562,9 @@
       .rm-path-stats { grid-template-columns: 1fr; }
       .rm-history-card dl div { grid-template-columns: 1fr; gap: 4px; }
       .rm-trend-row { grid-template-columns: 1fr; gap: 8px; }
+      .rm-quest-panel { grid-template-columns: 1fr; }
+      .rm-quest-panel .rm-btn { justify-self: start; }
+      .rm-modifier-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 980px) {
       .rm-career-layout, .rm-history-layout { grid-template-columns: 1fr; }
@@ -578,6 +609,7 @@
 
 <script src="/micTranscriptAccumulator.js"></script>
 <script src="/sessionProgress.js"></script>
+<script src="/gameProgress.js"></script>
 <script>
 const S = {
   token: localStorage.getItem("greenRoomToken") || "",
@@ -585,6 +617,10 @@ const S = {
   screen: "gate",
   authMode: "register",
   practiceTemplate: null,
+  activeQuest: null,
+  challengeModifier: null,
+  questCompleted: false,
+  newlyUnlockedModifier: null,
   practiceLog: [],
   micOn: false,
   micStartedAt: 0,
@@ -713,6 +749,10 @@ function logout() {
   S.screen = "gate";
   S.authMode = "login";
   S.practiceTemplate = null;
+  S.activeQuest = null;
+  S.challengeModifier = null;
+  S.questCompleted = false;
+  S.newlyUnlockedModifier = null;
   S.practiceLog = [];
   S.micOn = false;
   S.sending = false;
@@ -982,6 +1022,18 @@ function careerProgress(history = getSessionHistory()) {
   };
 }
 
+function gameState(history, progress) {
+  return GreenRoomGame.syncState(history, progress);
+}
+
+function activeDailyQuest(history) {
+  return GreenRoomGame.selectDailyQuest(history, new Date());
+}
+
+function questScenarioId(quest, history) {
+  return quest.scenarioId || GreenRoomGame.firstUnusedScenario(history);
+}
+
 function tabButtonHtml(id, label) {
   return `<button class="rm-tab ${S.pickerTab === id ? "active" : ""}" data-tab="${id}" type="button">${label}</button>`;
 }
@@ -989,6 +1041,7 @@ function tabButtonHtml(id, label) {
 function renderPicker() {
   const history = getSessionHistory();
   const progress = careerProgress(history);
+  const game = gameState(history, progress);
   const heroes = HERO_TEMPLATE_IDS.map((id) => CARD_TEMPLATES.find((t) => t.id === id));
   const secondary = CARD_TEMPLATES.filter((t) => !HERO_TEMPLATE_IDS.includes(t.id));
   main.innerHTML = `
@@ -1010,10 +1063,21 @@ function renderPicker() {
         ${tabButtonHtml("career", "Career Path")}
         ${tabButtonHtml("history", "History")}
       </div>
-      ${S.pickerTab === "career" ? careerPathHtml(history, progress) : S.pickerTab === "history" ? fullHistoryHtml(history) : practicePickerHtml(heroes, secondary)}
+      ${S.pickerTab === "career" ? careerPathHtml(history, progress, game) : S.pickerTab === "history" ? fullHistoryHtml(history, game) : practicePickerHtml(heroes, secondary, history)}
     </div>`;
   $$("[data-tab]").forEach((b) => (b.onclick = () => { S.pickerTab = b.dataset.tab; render(); }));
+  $$('[data-modifier]').forEach((b) => (b.onclick = () => {
+    const modifier = GreenRoomGame.modifierById(b.dataset.modifier);
+    if (!modifier || b.disabled) return;
+    maybeSoundCheck(() => startPracticeDirect(modifier.scenarioId, undefined, undefined, modifier.id));
+  }));
   if (S.pickerTab !== "practice") return;
+  const questButton = $("[data-quest-start]");
+  if (questButton) questButton.onclick = () => {
+    const quest = GreenRoomGame.questById(questButton.dataset.questStart);
+    if (!quest) return;
+    maybeSoundCheck(() => startPracticeDirect(questScenarioId(quest, history), undefined, quest.id));
+  };
   $$("[data-tpl]").forEach((b) => (b.onclick = () => {
     const t = CARD_TEMPLATES.find((x) => x.id === b.dataset.tpl);
     maybeSoundCheck(() => {
@@ -1029,8 +1093,18 @@ function renderPicker() {
   $("#freeGo").onclick = () => maybeSoundCheck(startPracticeFromDescription);
 }
 
-function practicePickerHtml(heroes, secondary) {
+function practicePickerHtml(heroes, secondary, history) {
+  const quest = activeDailyQuest(history);
   return `
+    <section class="rm-quest-panel">
+      <div>
+        <div class="rm-quest-kicker">Today's rep</div>
+        <h3>${esc(quest.label)}</h3>
+        <p>${esc(quest.description)}</p>
+        <p class="rm-quest-skill">Skill in focus <span>${esc(quest.skill)}</span></p>
+      </div>
+      <button class="rm-btn primary" type="button" data-quest-start="${esc(quest.id)}">Take this rep</button>
+    </section>
     <div class="rm-hero-grid">
       ${heroes.map((t) => `
         <button class="rm-hero" data-tpl="${t.id}">
@@ -1061,7 +1135,7 @@ function practicePickerHtml(heroes, secondary) {
     </div>`;
 }
 
-function careerPathHtml(history, progress) {
+function careerPathHtml(history, progress, game) {
   return `
     <div class="rm-career-layout">
       <div class="rm-path-panel">
@@ -1085,7 +1159,23 @@ function careerPathHtml(history, progress) {
           : "Every milestone earned. Keep practicing."}</p>
       </div>
       ${careerSnapshotHtml(history, progress)}
-    </div>`;
+    </div>
+    ${modifierSectionHtml(progress, game)}`;
+}
+
+function modifierSectionHtml(progress, game) {
+  const modifiers = GreenRoomGame.modifierState(progress);
+  return `<section class="rm-modifier-section">
+    <p class="rm-section-kicker">More rooms to unlock</p>
+    <h3 class="rm-section-title">Change the pressure, keep the practice</h3>
+    <div class="rm-modifier-grid">
+      ${modifiers.map((m) => `<button class="rm-modifier ${m.unlocked ? "unlocked" : ""}" type="button" data-modifier="${esc(m.id)}" ${m.unlocked ? "" : "disabled"}>
+        <b>${esc(m.label)}</b>
+        <span>${esc(m.desc)}</span>
+        <em>${m.unlocked ? "Open" : `Unlocks with ${esc(m.requires.replaceAll("_", " "))}`}</em>
+      </button>`).join("")}
+    </div>
+  </section>`;
 }
 
 function careerSnapshotHtml(history, progress) {
@@ -1151,7 +1241,7 @@ function trendPanelHtml(history) {
   </div>`;
 }
 
-function fullHistoryHtml(history) {
+function fullHistoryHtml(history, game) {
   if (!history.length) {
     return `<div class="rm-empty-state">
       <b>No sessions yet</b>
@@ -1177,13 +1267,16 @@ function fullHistoryHtml(history) {
         </article>`).join("")}
       </div>
     </div>
-    ${historyAsideHtml(history)}
+    ${historyAsideHtml(history, game)}
   </div>`;
 }
 
-function historyAsideHtml(history) {
+function historyAsideHtml(history, game) {
   const modes = [...new Set(history.map((h) => h.templateName).filter(Boolean))];
   const latest = history[0];
+  const questLog = history.filter((h) => h.questId).slice(0, 4);
+  const readyRows = GreenRoomProgress.trendRows(history).filter((r) => r.ready);
+  const building = readyRows.length ? readyRows.map((r) => r.label.toLowerCase()).slice(0, 2).join(" and ") : "your speaking rhythm";
   return `<aside class="rm-history-aside">
     <h3>Your practice at a glance</h3>
     <p>Keep the useful signal from each room in view while you build your next rep.</p>
@@ -1202,6 +1295,15 @@ function historyAsideHtml(history) {
       <b>${esc(latest.templateName || "Practice session")}</b>
       <em>Return to this kind of room when you want to notice change.</em>
     </div>
+    <div class="rm-history-stat">
+      <span>You are building</span>
+      <b>${esc(building)}</b>
+      <em>Your patterns become clearer as you keep practicing.</em>
+    </div>
+    ${questLog.length ? `<div class="rm-history-stat"><span>Quest log</span><div class="rm-quest-log">${questLog.map((h) => {
+      const quest = GreenRoomGame.questById(h.questId);
+      return `<div class="rm-quest-log-item"><b>${esc(quest?.label || "Completed rep")}</b><span>${esc(quest?.skill || "Practice")}</span></div>`;
+    }).join("")}</div></div>` : ""}
   </aside>`;
 }
 
@@ -1282,13 +1384,13 @@ function renderSetup() {
   inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
 }
 
-async function startPracticeDirect(templateId, setupAnswer) {
+async function startPracticeDirect(templateId, setupAnswer, questId, challengeModifier) {
   try {
     status("Setting the scene…");
     const t = CARD_TEMPLATES.find((x) => x.id === templateId);
     const description = setupAnswer ? `${t.defaultDescription} Specifically: ${setupAnswer}` : t.defaultDescription;
-    const started = await api("/api/practice/start", { studentId: S.token, templateId, description, setupAnswer });
-    beginPracticeSession(started, false);
+    const started = await api("/api/practice/start", { studentId: S.token, templateId, description, setupAnswer, questId, challengeModifier });
+    beginPracticeSession(started, false, questId, challengeModifier);
   } catch (e) { err(e); }
 }
 
@@ -1299,12 +1401,16 @@ async function startPracticeFromDescription() {
     status("Figuring out the best fit…");
     const inferred = await api("/api/practice/infer-scenario", { studentId: S.token, description });
     const started = await api("/api/practice/start", { studentId: S.token, templateId: inferred.templateId, description });
-    beginPracticeSession(started, true);
+    beginPracticeSession(started, true, null, null);
   } catch (e) { err(e); }
 }
 
-function beginPracticeSession(started, viaFreeText) {
+function beginPracticeSession(started, viaFreeText, questId, challengeModifier) {
   S.practiceTemplate = started.practice;
+  S.activeQuest = GreenRoomGame.questById(questId);
+  S.challengeModifier = challengeModifier || null;
+  S.questCompleted = false;
+  S.newlyUnlockedModifier = null;
   S.practiceLog = [{ role: "agent", name: "Facilitator", text: started.opener }];
   S.sending = false;
   S.viaFreeText = !!viaFreeText;
@@ -1864,16 +1970,27 @@ async function endPracticeSession() {
     S.whyItLanded = j.whyItLanded || null;
     S.screen = "practiceEnd";
     incrementSessionCount();
-    pushSessionHistory({
+    const beforeHistory = getSessionHistory();
+    const beforeProgress = careerProgress(beforeHistory);
+    const beforeGame = gameState(beforeHistory, beforeProgress);
+    const signals = GreenRoomProgress.extractSignals(j.raw);
+    const historyEntry = {
       templateId: S.practiceTemplate?.templateId || "",
       templateName: S.practiceTemplate?.templateName || "Practice session",
       date: new Date().toISOString(),
       takeaway: firstSentence(j.rubric?.contentCorrespondence || j.rubric?.articulation || "", 90),
       rubric: j.rubric,
-      signals: GreenRoomProgress.extractSignals(j.raw),
+      signals,
       viaFreeText: S.viaFreeText === true,
       bestLine: j.bestLine || null,
-    });
+      questId: S.activeQuest?.id || null,
+      challengeModifier: S.challengeModifier || null,
+    };
+    pushSessionHistory(historyEntry);
+    S.questCompleted = S.activeQuest ? GreenRoomGame.isQuestComplete(S.activeQuest, [historyEntry]) : false;
+    const afterHistory = getSessionHistory();
+    const afterGame = gameState(afterHistory, careerProgress(afterHistory));
+    S.newlyUnlockedModifier = afterGame.unlockedModifierIds.find((id) => !beforeGame.unlockedModifierIds.includes(id)) || null;
     render();
     renderHeaderUser();
   } catch (e) { err(e); }
@@ -1892,6 +2009,16 @@ function curtainCallHtml() {
   </div>`;
 }
 
+function completionNoteHtml() {
+  if (!S.questCompleted && !S.newlyUnlockedModifier) return "";
+  const quest = S.activeQuest;
+  const modifier = S.newlyUnlockedModifier ? GreenRoomGame.modifierById(S.newlyUnlockedModifier) : null;
+  return `<div class="rm-completion">
+    ${S.questCompleted ? `<b>Rep complete${quest ? `: ${esc(quest.label)}` : ""}</b><p>You gave that skill a real turn. It is now part of your practice history.</p>` : ""}
+    ${modifier ? `<b>${esc(modifier.label)} is open</b><p>${esc(modifier.desc)} Find it on your Career Path.</p>` : ""}
+  </div>`;
+}
+
 function renderPracticeEnd() {
   const r = S.rubric || {};
   const progressNote = improvementNote(getSessionHistory());
@@ -1900,6 +2027,7 @@ function renderPracticeEnd() {
       <div class="rm-topbar"><b>How it went</b></div>
       <h2 class="rm-h2">Nice work, ${esc(S.student?.name || "")}</h2>
       <p class="rm-sub">Here's how your practice session went - no scores, just notes to build on.</p>
+      ${completionNoteHtml()}
       ${curtainCallHtml()}
       <div class="rm-rubric">
         ${progressNote ? `<div class="blk progress"><h4>Progress over time</h4><p>${esc(progressNote)}</p></div>` : ""}
