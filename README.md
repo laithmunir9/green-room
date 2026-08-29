@@ -26,8 +26,8 @@ Prelight is a Node.js and browser application for practicing spoken or written c
 - `transcriptAsrCorrections.js` applies targeted corrections for known speech recognition failures.
 - `curtainCall.js` validates that highlighted quotes are copied from the transcript.
 - `public/sessionProgress.js` computes local trend rows and milestone progress in the browser.
-- Supabase stores deployed student accounts, session tokens, practice state, and usage counters when `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are configured.
-- Local development falls back to `data/students.json`, which is ignored by Git.
+- Supabase stores deployed student accounts, session tokens, practice state, usage counters, and bounded practice-session records when `SUPABASE_URL` and `SUPABASE_SECRET_KEY` are configured.
+- Local development falls back to `data/students.json` and `data/practice-sessions.json`, which are ignored by Git.
 
 ## Evaluation and Progress
 
@@ -53,6 +53,8 @@ Edit `.env` and set `OPENAI_API_KEY`. The server also supports optional model, a
 
 For deployed persistence, set `SUPABASE_URL` and `SUPABASE_SECRET_KEY` in Render. The existing `students` table is created by the storage migration.
 
+Apply `supabase/migrations/20260829000001_create_practice_sessions.sql` manually before enabling deployed session history. The Express server uses the server-only Supabase key and still checks the authenticated student's ownership on every session request.
+
 The public GitHub Actions workflow in `.github/workflows/supabase-keepalive.yml` sends a harmless Supabase query every four days. Add `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` as repository Actions secrets before enabling it.
 
 Start the app:
@@ -71,7 +73,7 @@ Run the full test suite:
 npm test
 ```
 
-The tests cover scenario templates, classifier signals, transcript corrections, microphone transcript accumulation, curtain call validation, session progress milestones, and local authentication behavior, including route-level session-token checks.
+The tests cover scenario templates, classifier signals, transcript corrections, microphone transcript accumulation, curtain call validation, session progress milestones, local authentication behavior, and bounded local session persistence, including route-level session-token checks.
 
 ## Security and Limitations
 

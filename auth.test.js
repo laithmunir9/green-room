@@ -5,6 +5,7 @@ import test from "node:test";
 process.env.GREEN_ROOM_DATA_DIR = "/tmp/green-room-auth-unit";
 
 const { app, bearerToken, hashPassword, issueSessionToken, publicStudent, verifyPassword } = await import("./server.js");
+const { putPracticeSessionLocal } = await import("./sessionStorage.js");
 
 let server;
 let baseUrl;
@@ -132,6 +133,10 @@ test("protected routes reject UUIDs, accept session tokens, and isolate students
     body: JSON.stringify({ studentId: first.token, templateId: "casual", description: "A practice scenario" }),
   });
   assert.equal(tokenStart.response.status, 200);
+  assert.match(tokenStart.body.practice.sessionId, /^[0-9a-f-]{36}$/i);
+  const activeSession = (await import("./sessionStorage.js")).getPracticeSessionLocal(first.student.id, tokenStart.body.practice.sessionId);
+  assert.equal(activeSession.status, "active");
+  assert.equal(activeSession.events[0].type, "facilitator");
 
   const secondStart = await request("/api/practice/start", {
     method: "POST",
@@ -183,6 +188,52 @@ test("login rotates the session token and invalidates the old token", async () =
   assert.notEqual(loggedIn.body.token, registered.token);
   assert.equal((await request("/api/student/me", { headers: { authorization: `Bearer ${registered.token}` } })).response.status, 401);
   assert.equal((await request("/api/student/me", { headers: { authorization: `Bearer ${loggedIn.body.token}` } })).response.status, 200);
+});
+
+test("session APIs persist completed sessions and enforce ownership", async () => {
+  const register = async (label) => request("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({
+      name: label,
+      email: `session-${label}-${Date.now()}-${Math.random().toString(16).slice(2)}@example.com`,
+      password: "route-password",
+    }),
+  });
+  const first = (await register("owner")).body;
+  const second = (await register("other")).body;
+  const session = putPracticeSessionLocal({
+    id: "session-owner-1",
+    studentId: first.student.id,
+    templateId: "pitch",
+    templateName: "Investor pitch",
+    scenarioDescription: "A climate startup pitch",
+    status: "completed",
+    startedAt: "2026-08-29T11:00:00.000Z",
+    endedAt: "2026-08-29T11:05:00.000Z",
+    events: [
+      { type: "facilitator", sequence: 1, personaId: "facilitator", text: "Make your opening." },
+      { type: "turn", sequence: 2, studentText: "We reduce waste.", facilitator: [{ personaId: "skeptical", text: "How do you know?" }] },
+    ],
+    review: { rubric: { articulation: "Clear" }, bestLine: "We reduce waste." },
+  });
+
+  const missingAuth = await request("/api/sessions");
+  assert.equal(missingAuth.response.status, 401);
+  assert.equal((await request("/api/sessions", { headers: { authorization: "Bearer invalid" } })).response.status, 401);
+
+  const list = await request("/api/sessions", { headers: { authorization: `Bearer ${first.token}` } });
+  assert.equal(list.response.status, 200);
+  assert.deepEqual(list.body.sessions.map((item) => item.id), [session.id]);
+  assert.deepEqual(list.body.sessions[0].events.map((event) => event.sequence), [1, 2]);
+  assert.equal("studentId" in list.body.sessions[0], false);
+  assert.equal(JSON.stringify(list.body.sessions[0]).includes(first.token), false);
+
+  const own = await request(`/api/sessions/${session.id}`, { headers: { authorization: `Bearer ${first.token}` } });
+  assert.equal(own.response.status, 200);
+  assert.equal(own.body.session.review.bestLine, "We reduce waste.");
+
+  const other = await request(`/api/sessions/${session.id}`, { headers: { authorization: `Bearer ${second.token}` } });
+  assert.equal(other.response.status, 404);
 });
 
 test("legacy plaintext login migrates the password immediately", async () => {

@@ -12,9 +12,19 @@ import { transcribeAudioBuffer } from "./openaiTranscriptionClient.js";
 import { resolveCurtainCall } from "./curtainCall.js";
 import { normalizeTurnAnalysis } from "./turnAnalysis.js";
 import {
+  MAX_SESSION_EVENTS,
+  normalizePracticeSession,
+  putPracticeSessionLocal,
+  getPracticeSessionLocal,
+  listPracticeSessionsLocal,
+} from "./sessionStorage.js";
+import {
   getStudentByEmailRemote,
   getStudentByIdRemote,
   getStudentBySessionTokenRemote,
+  getPracticeSessionRemote,
+  listPracticeSessionsRemote,
+  putPracticeSessionRemote,
   putStudentRemote,
   supabaseConfigured,
 } from "./supabaseStorage.js";
@@ -197,6 +207,63 @@ async function persistStudent(s) {
   return putStudent(s);
 }
 
+function practiceSessionRecord(studentId, practice, status = "active", review = practice.review) {
+  return normalizePracticeSession({
+    id: practice.sessionId,
+    studentId,
+    templateId: practice.templateId,
+    templateName: practice.templateName,
+    scenarioDescription: practice.description,
+    scenarioContext: {
+      setupAnswer: practice.setupAnswer,
+      questId: practice.questId,
+      challengeModifier: practice.challengeModifier,
+    },
+    status,
+    startedAt: practice.startedAt,
+    endedAt: practice.endedAt,
+    events: practice.events,
+    review,
+    createdAt: practice.startedAt,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+async function persistPracticeSession(studentId, practice, status = "active", review = practice.review) {
+  const session = practiceSessionRecord(studentId, practice, status, review);
+  if (!session.id) return null;
+  try {
+    if (USE_SUPABASE) await putPracticeSessionRemote(session);
+    else putPracticeSessionLocal(session);
+    return session;
+  } catch (e) {
+    // Session persistence is additive during migration. Keep the active
+    // student record and browser history working if the new table is absent
+    // or temporarily unavailable.
+    console.error("[session] persistence failed:", e.message || e);
+    return null;
+  }
+}
+
+async function listPracticeSessions(studentId, limit) {
+  if (USE_SUPABASE) return (await listPracticeSessionsRemote(studentId, limit)).map(normalizePracticeSession);
+  return listPracticeSessionsLocal(studentId, limit);
+}
+
+async function getPracticeSession(studentId, id) {
+  if (USE_SUPABASE) {
+    const session = await getPracticeSessionRemote(studentId, id);
+    return session ? normalizePracticeSession(session) : null;
+  }
+  return getPracticeSessionLocal(studentId, id);
+}
+
+function publicPracticeSession(session) {
+  if (!session) return null;
+  const { studentId, ...publicSession } = normalizePracticeSession(session);
+  return publicSession;
+}
+
 function newStudent(name, email) {
   return {
     id: randomUUID(),
@@ -321,6 +388,41 @@ app.get("/api/student/me", async (req, res) => {
   res.json({ student: publicStudent(s) });
 });
 
+app.get("/api/sessions", async (req, res) => {
+  try {
+    const token = bearerToken(req);
+    if (!token) {
+      res.set("WWW-Authenticate", "Bearer");
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    const s = await getStudentByToken(token);
+    if (!s) return res.status(401).json({ error: "Invalid session" });
+    const sessions = await listPracticeSessions(s.id, req.query?.limit);
+    res.json({ sessions: sessions.map(publicPracticeSession) });
+  } catch (e) {
+    res.status(errorStatus(e)).json({ error: String(e.message || e) });
+  }
+});
+
+app.get("/api/sessions/:id", async (req, res) => {
+  try {
+    const token = bearerToken(req);
+    if (!token) {
+      res.set("WWW-Authenticate", "Bearer");
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    const s = await getStudentByToken(token);
+    if (!s) return res.status(401).json({ error: "Invalid session" });
+    const session = await getPracticeSession(s.id, String(req.params.id || "").slice(0, 80));
+    // Return 404 for another student's session too, so IDs cannot be used to
+    // probe whether private practice content exists.
+    if (!session) return res.status(404).json({ error: "Session not found" });
+    res.json({ session: publicPracticeSession(session) });
+  } catch (e) {
+    res.status(errorStatus(e)).json({ error: String(e.message || e) });
+  }
+});
+
 // ── Scenario practice sessions ──
 
 app.post("/api/practice/infer-scenario", async (req, res) => {
@@ -402,25 +504,32 @@ app.post("/api/practice/start", async (req, res) => {
       opener = `Alright ${s.name}, whenever you're ready - go ahead.`;
     }
 
+    const startedAt = new Date().toISOString();
+    const sessionId = randomUUID();
     s.practice = {
+      sessionId,
       templateId: template.id,
       templateName: template.name,
       description,
+      setupAnswer,
       keywords: [...keywordSet],
       history: [{ role: "agent", personaId: "facilitator", text: opener }],
       studentTurns: [],
       voiceTurns: [],
-      startedAt: new Date().toISOString(),
+      events: [{ type: "facilitator", sequence: 1, occurredAt: startedAt, personaId: "facilitator", text: opener }],
+      startedAt,
       endedAt: null,
       questId,
       challengeModifier,
     };
     await persistStudent(s);
+    await persistPracticeSession(s.id, s.practice);
 
     res.json({
       practice: {
         templateId: template.id,
         templateName: template.name,
+        sessionId,
         questId,
         challengeModifier,
         personas: template.personas.map((p) => ({ id: p.id, name: p.name, trait: p.trait })),
@@ -528,7 +637,7 @@ app.post("/api/practice/message", async (req, res) => {
     practice.studentTurns.push(text);
     practice.turnEvents = practice.turnEvents || [];
     practice.turnEvents.push({
-      sequence: practice.turnEvents.length + 1,
+      sequence: (practice.turnEvents.at(-1)?.sequence || 0) + 1,
       occurredAt: new Date().toISOString(),
       studentText: text,
       signals,
@@ -545,8 +654,21 @@ app.post("/api/practice/message", async (req, res) => {
       practice.history.push({ role: "agent", personaId: r.personaId, text: r.reply });
     }
     practice.history = practice.history.slice(-40);
+    const priorEvent = practice.events?.at(-1);
+    practice.events = Array.isArray(practice.events) ? practice.events : [];
+    practice.events.push({
+      type: "turn",
+      sequence: (priorEvent?.sequence || 0) + 1,
+      occurredAt: new Date().toISOString(),
+      studentText: text,
+      facilitator: responses.map((r) => ({ personaId: r.personaId, text: r.reply })),
+      signals,
+      turnAnalysis,
+    });
+    practice.events = practice.events.slice(-MAX_SESSION_EVENTS);
 
     await persistStudent(s);
+    await persistPracticeSession(s.id, practice);
     res.json({
       responses,
       turnAnalysis,
@@ -623,6 +745,17 @@ app.post("/api/practice/end", async (req, res) => {
     if (!s.practice) return res.status(400).json({ error: "No active practice session" });
 
     const practice = s.practice;
+    if (practice.status === "completed" && practice.review) {
+      const review = practice.review;
+      return res.json({
+        rubric: review.rubric,
+        bestLine: review.bestLine,
+        whyItLanded: review.whyItLanded,
+        raw: { delivery: review.delivery, engagement: review.engagement },
+        sessionId: practice.sessionId,
+        session: publicPracticeSession(practiceSessionRecord(s.id, practice, "completed", review)),
+      });
+    }
     const studentTexts = practice.studentTurns || [];
     if (!studentTexts.length) {
       return res.status(400).json({ error: "Nothing to review yet - send at least one message first" });
@@ -688,7 +821,7 @@ app.post("/api/practice/end", async (req, res) => {
       console.warn("[ai] curtain call dropped: bestLine was not verbatim from the transcript");
     }
 
-    res.json({
+    practice.review = {
       rubric: {
         articulation: cleanStudentText(parsed.articulation || ""),
         engagement: cleanStudentText(parsed.engagement || ""),
@@ -696,7 +829,20 @@ app.post("/api/practice/end", async (req, res) => {
       },
       bestLine: curtain.bestLine,
       whyItLanded: curtain.whyItLanded,
+      delivery,
+      engagement,
+    };
+    practice.status = "completed";
+    await persistStudent(s);
+    const persistedSession = await persistPracticeSession(s.id, practice, "completed", practice.review);
+
+    res.json({
+      rubric: practice.review.rubric,
+      bestLine: curtain.bestLine,
+      whyItLanded: curtain.whyItLanded,
       raw: { delivery, engagement },
+      sessionId: practice.sessionId,
+      session: persistedSession ? publicPracticeSession(persistedSession) : null,
     });
   } catch (e) {
     res.status(errorStatus(e)).json({ error: String(e.message || e) });

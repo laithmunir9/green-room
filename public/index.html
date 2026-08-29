@@ -643,6 +643,7 @@
 <script src="/micTranscriptAccumulator.js"></script>
 <script src="/sessionProgress.js"></script>
 <script src="/gameProgress.js"></script>
+<script src="/sessionHistory.js"></script>
 <script>
 const S = {
   token: localStorage.getItem("greenRoomToken") || "",
@@ -650,6 +651,7 @@ const S = {
   screen: "gate",
   authMode: "register",
   practiceTemplate: null,
+  practiceSessionId: null,
   activeQuest: null,
   challengeModifier: null,
   questCompleted: false,
@@ -792,6 +794,7 @@ function logout() {
   S.screen = "gate";
   S.authMode = "login";
   S.practiceTemplate = null;
+  S.practiceSessionId = null;
   S.activeQuest = null;
   S.challengeModifier = null;
   S.questCompleted = false;
@@ -822,8 +825,23 @@ function getSessionHistory() {
 }
 function pushSessionHistory(entry) {
   const list = getSessionHistory();
-  list.unshift(entry);
-  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(list.slice(0, 20)));
+  const withoutDuplicate = entry?.sessionId ? list.filter((item) => item?.sessionId !== entry.sessionId) : list;
+  withoutDuplicate.unshift(entry);
+  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(withoutDuplicate.slice(0, 20)));
+}
+function mergeServerHistory(serverSessions) {
+  const list = PrelightSessionHistory.mergeSessionHistory(getSessionHistory(), serverSessions, 20);
+  localStorage.setItem(SESSION_HISTORY_KEY, JSON.stringify(list));
+  return list;
+}
+async function loadServerHistory() {
+  if (!S.token) return;
+  try {
+    const result = await api("/api/sessions?limit=20");
+    mergeServerHistory(result.sessions);
+  } catch (e) {
+    console.warn("server session history unavailable; using local history", e.message || e);
+  }
 }
 function firstSentence(s, maxLen) {
   const trimmed = String(s || "").trim();
@@ -1461,6 +1479,7 @@ async function startPracticeFromDescription() {
 
 function beginPracticeSession(started, viaFreeText, questId, challengeModifier) {
   S.practiceTemplate = started.practice;
+  S.practiceSessionId = started.practice.sessionId || null;
   S.activeQuest = GreenRoomGame.questById(questId);
   S.challengeModifier = challengeModifier || null;
   S.questCompleted = false;
@@ -2031,6 +2050,7 @@ async function endPracticeSession() {
     const beforeGame = gameState(beforeHistory, beforeProgress);
     const signals = GreenRoomProgress.extractSignals(j.raw);
     const historyEntry = {
+      sessionId: j.sessionId || S.practiceSessionId || null,
       templateId: S.practiceTemplate?.templateId || "",
       templateName: S.practiceTemplate?.templateName || "Practice session",
       date: new Date().toISOString(),
@@ -2131,6 +2151,7 @@ function improvementNote(history) {
       const j = await api("/api/student/me");
       S.student = j.student;
       S.screen = "picker";
+      await loadServerHistory();
     } catch {
       localStorage.removeItem("greenRoomToken");
       S.token = "";

@@ -37,6 +37,25 @@ function rowToStudent(row) {
   };
 }
 
+function rowToPracticeSession(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    templateId: row.template_id,
+    templateName: row.template_name,
+    scenarioDescription: row.scenario_description,
+    scenarioContext: row.scenario_context || {},
+    status: row.status,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+    events: row.events || [],
+    review: row.review || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 async function request(path, options = {}) {
   const { url } = config();
   const response = await fetch(`${url}${path}`, {
@@ -83,4 +102,43 @@ export async function putStudentRemote(student) {
     body: JSON.stringify(row),
   });
   return student;
+}
+
+export async function putPracticeSessionRemote(session) {
+  const row = {
+    id: session.id,
+    student_id: session.studentId,
+    template_id: session.templateId,
+    template_name: session.templateName,
+    scenario_description: session.scenarioDescription,
+    scenario_context: session.scenarioContext || {},
+    status: session.status,
+    started_at: session.startedAt,
+    ended_at: session.endedAt,
+    events: session.events || [],
+    review: session.review || null,
+    created_at: session.createdAt,
+    updated_at: session.updatedAt,
+  };
+  await request("/rest/v1/practice_sessions?on_conflict=id", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify(row),
+  });
+  return session;
+}
+
+export async function listPracticeSessionsRemote(studentId, limit = 20) {
+  const boundedLimit = Math.max(1, Math.min(50, Number(limit) || 20));
+  const rows = await request(
+    `/rest/v1/practice_sessions?select=*&student_id=eq.${encodeURIComponent(studentId)}&status=eq.completed&order=started_at.desc&limit=${boundedLimit}`
+  );
+  return rows.map(rowToPracticeSession);
+}
+
+export async function getPracticeSessionRemote(studentId, id) {
+  const rows = await request(
+    `/rest/v1/practice_sessions?select=*&student_id=eq.${encodeURIComponent(studentId)}&id=eq.${encodeURIComponent(id)}&limit=1`
+  );
+  return rowToPracticeSession(rows[0]);
 }
