@@ -464,6 +464,8 @@
     .rm-profile-card-status { color: var(--rm-muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
     .rm-profile-card p { margin: 8px 0 0; color: var(--rm-ink); line-height: 1.5; font-size: 13.5px; }
     .rm-profile-evidence { margin-top: 9px !important; color: var(--rm-muted) !important; font-size: 11px !important; }
+    .rm-context-label { display: grid; gap: 6px; margin-top: 12px; color: var(--rm-muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .rm-context-label textarea { width: 100%; min-height: 82px; resize: vertical; font: inherit; font-size: 13px; line-height: 1.45; letter-spacing: normal; text-transform: none; }
     .rm-empty-state { position: relative; z-index: 0; max-width: 520px; padding: 24px; }
     .rm-empty-state b { font-family: Fraunces, Georgia, serif; color: var(--rm-teal-dark); font-size: 18px; }
     .rm-empty-state p { margin: 8px 0 0; color: var(--rm-muted); line-height: 1.5; }
@@ -1156,10 +1158,10 @@ function sceneCasual() {
 
 const CARD_TEMPLATES = [
   { id: "exam_viva", icon: "🎓", label: "Exam viva", desc: "Defend an answer to an examiner panel.", defaultDescription: "Practicing an oral exam viva.", listener: "examiner",
-    setupQuestion: "What's the exam subject/topic?", setupPlaceholder: "e.g. Cell biology - mitosis and meiosis" },
+    setupQuestion: "What's the exam subject/topic?", setupPlaceholder: "e.g. Cell biology - mitosis and meiosis", contextPlaceholder: "e.g. Concepts likely to be examined" },
   { id: "pitch", icon: "💡", label: "Investor Pitch", desc: "Sell your idea, whiteboard and all.", defaultDescription: "Practicing pitching an idea to investors.", listener: "investor" },
   { id: "interview", icon: "💼", label: "Job Interview", desc: "Answer questions, one on one.", defaultDescription: "Practicing for a job interview.", listener: "hiring manager",
-    setupQuestion: "What role are you interviewing for?", setupPlaceholder: "e.g. Senior frontend engineer at a startup" },
+    setupQuestion: "What role are you interviewing for?", setupPlaceholder: "e.g. Senior frontend engineer at a startup", contextPlaceholder: "e.g. Key requirements or job description notes" },
   { id: "public_speech", icon: "🎤", label: "Public Speech", desc: "Present to a room, out loud.", defaultDescription: "Practicing a public speech or presentation.", listener: "room" },
   { id: "casual", icon: "💬", label: "Casual chat", desc: "Low-stakes conversation practice.", defaultDescription: "Practicing casual conversation.", listener: "person across from you" },
 ];
@@ -1295,13 +1297,9 @@ function renderPicker() {
   $$("[data-tpl]").forEach((b) => (b.onclick = () => {
     const t = CARD_TEMPLATES.find((x) => x.id === b.dataset.tpl);
     maybeSoundCheck(() => {
-      if (t.setupQuestion) {
-        S.setupTemplateId = t.id;
-        S.screen = "setup";
-        render();
-      } else {
-        startPracticeDirect(t.id);
-      }
+      S.setupTemplateId = t.id;
+      S.screen = "setup";
+      render();
     });
   }));
   $("#freeGo").onclick = () => maybeSoundCheck(startPracticeFromDescription);
@@ -1522,13 +1520,17 @@ function renderSoundcheck() {
 
 function renderSetup() {
   const t = CARD_TEMPLATES.find((x) => x.id === S.setupTemplateId);
+  const hasRequiredAnswer = Boolean(t.setupQuestion);
   main.innerHTML = `
     <div class="rm-page">
       <div class="rm-topbar"><button class="rm-exit-btn" id="setupBack">← Back</button><b>${esc(t.label)}</b></div>
-      <h2 class="rm-h2">${esc(t.setupQuestion)}</h2>
-      <p class="rm-sub">This grounds the opening question so it's specific to you, not generic.</p>
+      <h2 class="rm-h2">${esc(t.setupQuestion || "Add context (optional)")}</h2>
+      <p class="rm-sub">${hasRequiredAnswer ? "This grounds the opening question so it's specific to you, not generic." : "Give the room a little context, or start without it."}</p>
       <div class="rm-freeform">
-        <div class="input-wrap"><input id="setupAnswer" placeholder="${esc(t.setupPlaceholder || "")}" /></div>
+        ${hasRequiredAnswer ? `<div class="input-wrap"><input id="setupAnswer" placeholder="${esc(t.setupPlaceholder || "")}" /></div>` : ""}
+        <label class="rm-context-label">${hasRequiredAnswer ? "Extra context (optional)" : "What are you preparing for? (optional)"}
+          <textarea id="practiceContext" rows="3" maxlength="1200" placeholder="${esc(t.contextPlaceholder || "e.g. Audience, purpose, or what you want to be challenged on")}"></textarea>
+        </label>
         <div class="actions" style="margin-top:10px">
           <button class="rm-btn primary" id="setupGo">Start practicing</button>
         </div>
@@ -1538,22 +1540,23 @@ function renderSetup() {
     </div>`;
   $("#setupBack").onclick = () => { S.screen = "picker"; render(); };
   const inputEl = $("#setupAnswer");
-  inputEl.focus();
+  const contextEl = $("#practiceContext");
+  (inputEl || contextEl).focus();
   const go = () => {
-    const answer = inputEl.value.trim();
-    if (!answer) { err(new Error("This helps the session ask something specific - give it a quick answer.")); return; }
-    startPracticeDirect(t.id, answer);
+    const answer = inputEl?.value.trim() || "";
+    if (hasRequiredAnswer && !answer) { err(new Error("This helps the session ask something specific - give it a quick answer.")); return; }
+    startPracticeDirect(t.id, answer, undefined, undefined, { title: answer, contextText: contextEl?.value.trim() || "" });
   };
   $("#setupGo").onclick = go;
-  inputEl.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  inputEl?.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
 }
 
-async function startPracticeDirect(templateId, setupAnswer, questId, challengeModifier) {
+async function startPracticeDirect(templateId, setupAnswer, questId, challengeModifier, context = {}) {
   try {
     status("Setting the scene…");
     const t = CARD_TEMPLATES.find((x) => x.id === templateId);
     const description = setupAnswer ? `${t.defaultDescription} Specifically: ${setupAnswer}` : t.defaultDescription;
-    const started = await api("/api/practice/start", { studentId: S.token, templateId, description, setupAnswer, questId, challengeModifier });
+    const started = await api("/api/practice/start", { studentId: S.token, templateId, description, setupAnswer, context, questId, challengeModifier });
     beginPracticeSession(started, false, questId, challengeModifier);
   } catch (e) { err(e); }
 }
@@ -2214,6 +2217,7 @@ function renderReplay() {
       <div class="rm-replay-intro">
         <b>What happened in the room</b>
         <p>${esc(replay.scenario || "A saved Prelight practice session.")}</p>
+        ${replay.context?.title || replay.context?.audience ? `<p class="rm-replay-context"><b>Prepared for:</b> ${esc([replay.context.title, replay.context.audience].filter(Boolean).join(" · "))}</p>` : ""}
       </div>
       ${replay.keyMoments.length ? `<div class="rm-replay-moments">
         ${replay.keyMoments.map((moment) => `<article class="rm-replay-moment">

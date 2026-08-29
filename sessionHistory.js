@@ -26,6 +26,7 @@ function serverSessionToHistory(session) {
     transcript: studentTurns.join(" "),
     questId: session.scenarioContext?.questId || null,
     challengeModifier: session.scenarioContext?.challengeModifier || null,
+    contextTitle: session.scenarioContext?.title || null,
   };
 }
 

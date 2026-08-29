@@ -13,6 +13,7 @@ import { resolveCurtainCall } from "./curtainCall.js";
 import { normalizeTurnAnalysis } from "./turnAnalysis.js";
 import { aggregateSpeakingProfile } from "./speakingProfile.js";
 import { buildPracticeMemory, practiceMemoryPrompt } from "./practiceMemory.js";
+import { normalizePracticeContext, contextPrompt } from "./practiceContext.js";
 import {
   MAX_SESSION_EVENTS,
   normalizePracticeSession,
@@ -220,6 +221,7 @@ function practiceSessionRecord(studentId, practice, status = "active", review = 
       setupAnswer: practice.setupAnswer,
       questId: practice.questId,
       challengeModifier: practice.challengeModifier,
+      ...practice.context,
     },
     status,
     startedAt: practice.startedAt,
@@ -506,6 +508,7 @@ app.post("/api/practice/start", async (req, res) => {
     const description = cleanStudentText(req.body?.description || "").slice(0, 2000);
     if (!description) return res.status(400).json({ error: "Scenario description required" });
     const setupAnswer = cleanStudentText(req.body?.setupAnswer || "").slice(0, 300);
+    const context = normalizePracticeContext(req.body?.context, template.id);
     const questId = typeof req.body?.questId === "string" ? req.body.questId.slice(0, 64) : null;
     const challengeModifier = Object.hasOwn(CHALLENGE_MODIFIER_PROMPTS, req.body?.challengeModifier)
       ? req.body.challengeModifier
@@ -551,6 +554,7 @@ app.post("/api/practice/start", async (req, res) => {
       questId,
       challengeModifier,
       memory: practiceMemory,
+      context,
     };
     await persistStudent(s);
     await persistPracticeSession(s.id, s.practice);
@@ -612,6 +616,7 @@ app.post("/api/practice/message", async (req, res) => {
 
     const personas = responderIds.map((id) => findPersona(practice.templateId, id)).filter(Boolean);
     if (!personas.length) return res.status(500).json({ error: "Could not select a responder" });
+    const preparationContextPrompt = contextPrompt(practice.context);
     const memoryPrompt = practiceMemoryPrompt(practice.memory);
 
     const recentTurns = practice.history.slice(-8).map((m) => {
@@ -628,6 +633,7 @@ app.post("/api/practice/message", async (req, res) => {
       `Scenario follow-up policy: ${JSON.stringify(followUpPolicy)}\n` +
       "Use these as hints, not commands. Consider asking for evidence, specificity, clarification, or recovery when it fits " +
       "the scenario and conversation. Do not interrogate a clear answer, and keep casual conversation natural.\n\n" +
+      (preparationContextPrompt ? `${preparationContextPrompt}\n\n` : "") +
       (memoryPrompt ? `${memoryPrompt}\n\n` : "") +
       (recentTurns.length ? `Recent conversation:\n${recentTurns.join("\n")}\n\n` : "\n") +
       "Characters responding this turn:\n" +

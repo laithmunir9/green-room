@@ -126,6 +126,10 @@ function buildReplayViewModel(session) {
     sessionId: cleanText(session.id, 80) || null,
     title: cleanText(session.templateName, 120) || "Practice session",
     scenario: cleanText(session.scenarioDescription) || "",
+    context: {
+      title: cleanText(session.scenarioContext?.title, 120) || null,
+      audience: cleanText(session.scenarioContext?.audience, 160) || null,
+    },
     startedAt: cleanText(session.startedAt, 64) || null,
     completedAt: cleanText(session.endedAt || session.startedAt, 64) || null,
     summary: cleanText(session.review?.rubric?.contentCorrespondence || session.review?.rubric?.articulation, 1000) || "",

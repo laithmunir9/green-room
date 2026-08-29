@@ -115,6 +115,11 @@ export function normalizePracticeSession(session) {
         setupAnswer: nullableText(session.scenarioContext.setupAnswer, 300),
         questId: nullableText(session.scenarioContext.questId, 64),
         challengeModifier: nullableText(session.scenarioContext.challengeModifier, 64),
+        scenarioType: nullableText(session.scenarioContext.scenarioType, 40),
+        title: nullableText(session.scenarioContext.title, 120),
+        audience: nullableText(session.scenarioContext.audience, 160),
+        objective: nullableText(session.scenarioContext.objective, 220),
+        contextText: nullableText(session.scenarioContext.contextText, 1200),
       }
       : {},
     status: ["active", "completed", "abandoned"].includes(session?.status) ? session.status : "active",
