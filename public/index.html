@@ -394,10 +394,10 @@
     .rm-path-stats b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 25px; line-height: 1; }
     .rm-path-stats span { color: var(--rm-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
     .rm-path { position: relative; display: grid; grid-template-columns: repeat(6, minmax(105px, 1fr)); gap: 18px; align-items: start; }
-    .rm-path::before { content: ""; position: absolute; top: 23px; left: calc((100% - 90px) / 12); right: calc((100% - 90px) / 12); border-top: 3px solid var(--rm-line); z-index: 0; }
+    .rm-path::before { display: none; }
     .rm-path-node { position: relative; z-index: 1; min-height: 150px; padding: 54px 12px 12px; text-align: center; }
     .rm-path-node::before { content: ""; position: absolute; inset: 23px 0 0; z-index: -1; border-radius: 15px; background: var(--rm-input-bg); border: 2px solid var(--ink); filter: url(#sketchWobble); }
-    .rm-path-node:not(:last-child)::after { display: none; }
+    .rm-path-node:not(:last-child)::after { content: ""; position: absolute; top: 23px; left: 100%; width: 18px; border-top: 3px solid var(--rm-line); z-index: 0; }
     .rm-path-node .dot { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--rm-panel); border: 2px solid var(--ink); color: var(--rm-muted); font-weight: 800; box-shadow: 0 8px 20px rgba(43,74,64,.12); }
     .rm-path-node.done .dot { background: var(--rm-sage); color: #16261d; }
     .rm-path-node.current .dot { background: var(--rm-tan); color: #2b1f0d; }
@@ -1461,7 +1461,6 @@ function fullHistoryHtml(history, game) {
               <div><dt>Content</dt><dd>${esc(h.rubric?.contentCorrespondence || "-")}</dd></div>
             </dl>
             ${h.replayAvailable ? `<button class="rm-btn ghost rm-replay-btn" type="button" data-replay-session="${esc(h.sessionId)}">Review key moments</button>` : ""}
-            ${h.transcript ? `<div class="rm-history-transcript"><b>Transcript</b>${esc(h.transcript)}</div>` : ""}
           </div>
         </details>`;
       }).join("")}
@@ -1473,7 +1472,7 @@ const SOUND_CHECK_KEY = "greenRoomSoundCheckDone";
 let pendingIntent = null;
 
 function maybeSoundCheck(intentFn) {
-  if (localStorage.getItem(SOUND_CHECK_KEY)) { intentFn(); return; }
+  if (localStorage.getItem(SOUND_CHECK_KEY)) { unlockSpeechAudio(); intentFn(); return; }
   pendingIntent = intentFn;
   S.soundcheckMode = true;
   S.soundcheckText = "";
@@ -1483,6 +1482,7 @@ function maybeSoundCheck(intentFn) {
 }
 
 function finishSoundcheck() {
+  unlockSpeechAudio();
   localStorage.setItem(SOUND_CHECK_KEY, "1");
   S.soundcheckMode = false;
   S.soundcheckText = "";
@@ -2099,11 +2099,41 @@ function startRecognition({ backupOnly = false } = {}) {
   try { recognition.start(); } catch (e) { console.error(e); }
 }
 
+const SILENT_AUDIO_DATA = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIABAAgAZGF0YQAAAAA=";
+let speechAudio = null;
+
+function getSpeechAudio() {
+  if (speechAudio) return speechAudio;
+  speechAudio = document.createElement("audio");
+  speechAudio.preload = "auto";
+  speechAudio.setAttribute("playsinline", "");
+  speechAudio.setAttribute("aria-hidden", "true");
+  speechAudio.style.display = "none";
+  document.body.appendChild(speechAudio);
+  return speechAudio;
+}
+
+function unlockSpeechAudio() {
+  const audio = getSpeechAudio();
+  if (audio.src === SILENT_AUDIO_DATA) return;
+  audio.src = SILENT_AUDIO_DATA;
+  audio.volume = 0.01;
+  audio.play().catch(() => {});
+}
+
 function playAudioBlob(blob) {
   return new Promise((resolve) => {
     const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    const done = () => { URL.revokeObjectURL(url); resolve(); };
+    const audio = getSpeechAudio();
+    audio.pause();
+    audio.src = url;
+    audio.volume = 1;
+    const done = () => {
+      audio.removeEventListener("ended", done);
+      audio.removeEventListener("error", done);
+      URL.revokeObjectURL(url);
+      resolve();
+    };
     audio.addEventListener("ended", done);
     audio.addEventListener("error", done);
     audio.play().catch(done);
