@@ -277,6 +277,7 @@
     }
     .rm-page { background: var(--rm-bg); flex: 1; min-height: calc(100vh - 76px); padding: 32px; }
     .rm-topbar { margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+    .rm-replay-topbar { justify-content: space-between; }
     .rm-topbar b { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--rm-muted); }
     .rm-picker-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px; }
     .rm-level-card {
@@ -2193,18 +2194,18 @@ function replayLineHtml(entry) {
 
 function renderReplay() {
   if (S.replayLoading) {
-    main.innerHTML = `<div class="rm-page"><div class="rm-topbar"><b>Replay</b></div><p class="rm-sub">Opening your session…</p></div>`;
+    main.innerHTML = `<div class="rm-page"><div class="rm-topbar rm-replay-topbar"><b>Replay</b></div><p class="rm-sub">Opening your session…</p></div>`;
     return;
   }
   const replay = PrelightSessionReplay.buildReplayViewModel(S.replaySession);
   if (!replay) {
-    main.innerHTML = `<div class="rm-page"><div class="rm-topbar"><button class="rm-exit-btn" id="replayBack">← Back</button><b>Replay</b></div><p class="rm-sub">This session does not have replay data yet.</p></div>`;
+    main.innerHTML = `<div class="rm-page"><div class="rm-topbar rm-replay-topbar"><button class="rm-exit-btn" id="replayBack">← Back</button><b>Replay</b></div><p class="rm-sub">This session does not have replay data yet.</p></div>`;
     $("#replayBack").onclick = () => { S.screen = S.replayReturnScreen || "picker"; render(); };
     return;
   }
   main.innerHTML = `
     <div class="rm-page rm-replay-shell">
-      <div class="rm-topbar"><button class="rm-exit-btn" id="replayBack">← Back</button><b>Session replay</b></div>
+      <div class="rm-topbar rm-replay-topbar"><button class="rm-exit-btn" id="replayBack">← Back</button><b>Session replay</b></div>
       <h2 class="rm-h2">${esc(replay.title)}</h2>
       <div class="rm-replay-intro">
         <b>What happened in the room</b>
