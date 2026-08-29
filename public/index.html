@@ -1271,10 +1271,14 @@ function renderPicker() {
         ${tabButtonHtml("practice", "Practice")}
         ${tabButtonHtml("career", "Career Path")}
         ${tabButtonHtml("history", "History")}
+        ${tabButtonHtml("profile", "Profile")}
       </div>
-      ${S.pickerTab === "career" ? careerPathHtml(history, progress, game) : S.pickerTab === "history" ? fullHistoryHtml(history, game) : practicePickerHtml(heroes, secondary, history)}
+      ${S.pickerTab === "career" ? careerPathHtml(history, progress, game) : S.pickerTab === "history" ? fullHistoryHtml(history, game) : S.pickerTab === "profile" ? speakingProfileHtml() : practicePickerHtml(heroes, secondary, history)}
     </div>`;
-  $$("[data-tab]").forEach((b) => (b.onclick = () => { S.pickerTab = b.dataset.tab; render(); }));
+  $$('[data-tab]').forEach((b) => (b.onclick = () => { S.pickerTab = b.dataset.tab; if (S.pickerTab === "profile") loadSpeakingProfile(); else render(); }));
+  if (S.pickerTab === "profile" && !S.profile && !S.profileLoading && !S.profileError) loadSpeakingProfile();
+  const profileRetry = $("#profileRetry");
+  if (profileRetry) profileRetry.onclick = loadSpeakingProfile;
   $$('[data-modifier]').forEach((b) => (b.onclick = () => {
     const modifier = GreenRoomGame.modifierById(b.dataset.modifier);
     if (!modifier || b.disabled) return;
