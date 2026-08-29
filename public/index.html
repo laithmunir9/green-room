@@ -558,6 +558,28 @@
       line-height: 1.35; color: var(--rm-teal-dark); border-left: 3px solid var(--rm-tan); padding-left: 16px;
     }
     .rm-curtain-why { margin: 14px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--rm-muted); }
+    .rm-replay-shell { max-width: 760px; margin: 0 auto; }
+    .rm-replay-intro { margin-bottom: 24px; }
+    .rm-replay-intro b { display: block; color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 19px; }
+    .rm-replay-intro p { margin: 5px 0 0; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
+    .rm-replay-moments { display: grid; gap: 14px; }
+    .rm-replay-moment { position: relative; z-index: 0; padding: 18px 20px; }
+    .rm-replay-moment::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: 16px; background: var(--rm-panel); border: 2px solid var(--ink); filter: url(#sketchWobble); }
+    .rm-replay-moment-head { display: flex; justify-content: space-between; gap: 14px; align-items: baseline; margin-bottom: 14px; }
+    .rm-replay-moment-head b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 17px; }
+    .rm-replay-moment-head span { color: var(--rm-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
+    .rm-replay-label { margin: 10px 0 4px; color: var(--rm-muted); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+    .rm-replay-moment blockquote { margin: 0; color: var(--rm-ink); font-size: 13.5px; line-height: 1.5; }
+    .rm-replay-note { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--rm-line); color: var(--rm-ink); font-size: 13px; line-height: 1.5; }
+    .rm-replay-note b { color: var(--rm-teal-dark); }
+    .rm-replay-transcript { margin-top: 24px; border-top: 1px solid var(--rm-line); }
+    .rm-replay-transcript summary { padding: 15px 0; cursor: pointer; color: var(--rm-teal-dark); font-size: 13px; font-weight: 700; }
+    .rm-replay-transcript-list { display: grid; gap: 10px; padding-bottom: 8px; }
+    .rm-replay-line { padding: 11px 13px; border-left: 3px solid var(--rm-line); background: rgba(159,187,148,.08); }
+    .rm-replay-line.student { border-left-color: var(--rm-tan); background: rgba(231,196,143,.12); }
+    .rm-replay-line b { display: block; margin-bottom: 4px; color: var(--rm-muted); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    .rm-replay-line p { margin: 0; color: var(--rm-ink); font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+    .rm-replay-empty { padding: 18px 0; color: var(--rm-muted); font-size: 13px; line-height: 1.5; }
     @media (max-width: 640px) { .rm-curtain-quote { font-size: 19px; } }
     .rm-cam { position: fixed; width: 160px; border-radius: 14px; overflow: hidden; border: 2px solid var(--rm-teal); box-shadow: 0 10px 30px rgba(0,0,0,.3); background:#000; z-index: 50; }
     .rm-cam.pos-br { right: 18px; bottom: 18px; }
@@ -609,6 +631,8 @@
       .rm-stage-next .rm-btn { justify-self: start; }
       .rm-history-card summary { display: block; padding-right: 0; }
       .rm-history-card-meta { margin-top: 5px; }
+      .rm-replay-moment-head { display: block; }
+      .rm-replay-moment-head span { display: block; margin-top: 5px; }
       body.landing-page header { padding: 18px 16px; }
       body.landing-page .founder-link { max-width: none; white-space: nowrap; }
       .rm-landing { padding: 78px 20px 36px; }
@@ -658,6 +682,7 @@
 <script src="/sessionProgress.js"></script>
 <script src="/gameProgress.js"></script>
 <script src="/sessionHistory.js"></script>
+<script src="/sessionReplay.js"></script>
 <script>
 const S = {
   token: localStorage.getItem("greenRoomToken") || "",
@@ -666,6 +691,9 @@ const S = {
   authMode: "register",
   practiceTemplate: null,
   practiceSessionId: null,
+  replaySession: null,
+  replayLoading: false,
+  replayReturnScreen: "picker",
   activeQuest: null,
   challengeModifier: null,
   questCompleted: false,
@@ -809,6 +837,9 @@ function logout() {
   S.authMode = "login";
   S.practiceTemplate = null;
   S.practiceSessionId = null;
+  S.replaySession = null;
+  S.replayLoading = false;
+  S.replayReturnScreen = "picker";
   S.activeQuest = null;
   S.challengeModifier = null;
   S.questCompleted = false;
@@ -903,6 +934,7 @@ function render() {
   else if (S.screen === "setup") renderSetup();
   else if (S.screen === "practice") (S.viaFreeText ? renderPracticeChat() : renderPracticeStaged());
   else if (S.screen === "practiceEnd") renderPracticeEnd();
+  else if (S.screen === "replay") renderReplay();
   else renderGate();
 }
 
@@ -1208,6 +1240,7 @@ function renderPicker() {
     if (!modifier || b.disabled) return;
     maybeSoundCheck(() => startPracticeDirect(modifier.scenarioId, undefined, undefined, modifier.id));
   }));
+  $$('[data-replay-session]').forEach((b) => (b.onclick = () => openReplayForSession(b.dataset.replaySession)));
   if (S.pickerTab !== "practice") return;
   const questButton = $("[data-quest-start]");
   if (questButton) questButton.onclick = () => {
@@ -1385,6 +1418,7 @@ function fullHistoryHtml(history, game) {
               <div><dt>Engagement</dt><dd>${esc(h.rubric?.engagement || "-")}</dd></div>
               <div><dt>Content</dt><dd>${esc(h.rubric?.contentCorrespondence || "-")}</dd></div>
             </dl>
+            ${h.replayAvailable ? `<button class="rm-btn ghost rm-replay-btn" type="button" data-replay-session="${esc(h.sessionId)}">Review key moments</button>` : ""}
             ${h.transcript ? `<div class="rm-history-transcript"><b>Transcript</b>${esc(h.transcript)}</div>` : ""}
           </div>
         </details>`;
@@ -2057,6 +2091,7 @@ async function endPracticeSession() {
     S.rubric = j.rubric;
     S.bestLine = j.bestLine || null;
     S.whyItLanded = j.whyItLanded || null;
+    S.replaySession = j.session || null;
     S.screen = "practiceEnd";
     incrementSessionCount();
     const beforeHistory = getSessionHistory();
@@ -2073,6 +2108,7 @@ async function endPracticeSession() {
       signals,
       viaFreeText: S.viaFreeText === true,
       bestLine: j.bestLine || null,
+      replayAvailable: Boolean(j.session?.events?.some((event) => event?.type === "turn" && event.studentText)),
       transcript: S.practiceLog.filter((m) => m.role === "student").map((m) => m.text).filter(Boolean).join(" "),
       questId: S.activeQuest?.id || null,
       challengeModifier: S.challengeModifier || null,
@@ -2098,6 +2134,70 @@ function curtainCallHtml() {
     <blockquote class="rm-curtain-quote">“${esc(line)}”</blockquote>
     ${why ? `<p class="rm-curtain-why">${esc(why)}</p>` : ""}
   </div>`;
+}
+
+function replayTimeLabel(moment, startedAt) {
+  const start = Date.parse(startedAt || "");
+  const occurred = Date.parse(moment.occurredAt || "");
+  if (!Number.isFinite(start) || !Number.isFinite(occurred) || occurred < start) return `Turn ${moment.sequence}`;
+  const seconds = Math.max(0, Math.round((occurred - start) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function replayLineHtml(entry) {
+  const label = entry.role === "student" ? "You" : "Facilitator";
+  return `<div class="rm-replay-line ${entry.role === "student" ? "student" : ""}">
+    <b>${label}</b>
+    <p>${esc(entry.text)}</p>
+  </div>`;
+}
+
+function renderReplay() {
+  if (S.replayLoading) {
+    main.innerHTML = `<div class="rm-page"><div class="rm-topbar"><b>Replay</b></div><p class="rm-sub">Opening your session…</p></div>`;
+    return;
+  }
+  const replay = PrelightSessionReplay.buildReplayViewModel(S.replaySession);
+  if (!replay) {
+    main.innerHTML = `<div class="rm-page"><div class="rm-topbar"><button class="rm-exit-btn" id="replayBack">← Back</button><b>Replay</b></div><p class="rm-sub">This session does not have replay data yet.</p></div>`;
+    $("#replayBack").onclick = () => { S.screen = S.replayReturnScreen || "picker"; render(); };
+    return;
+  }
+  main.innerHTML = `
+    <div class="rm-page rm-replay-shell">
+      <div class="rm-topbar"><button class="rm-exit-btn" id="replayBack">← Back</button><b>Session replay</b></div>
+      <h2 class="rm-h2">${esc(replay.title)}</h2>
+      <div class="rm-replay-intro">
+        <b>What happened in the room</b>
+        <p>${esc(replay.scenario || "A saved Prelight practice session.")}</p>
+      </div>
+      ${replay.keyMoments.length ? `<div class="rm-replay-moments">
+        ${replay.keyMoments.map((moment) => `<article class="rm-replay-moment">
+          <div class="rm-replay-moment-head"><b>${esc(moment.label)}</b><span>${esc(replayTimeLabel(moment, replay.startedAt))}</span></div>
+          <div class="rm-replay-label">Facilitator</div>
+          <blockquote>${esc(moment.facilitatorText)}</blockquote>
+          <div class="rm-replay-label">Your response</div>
+          <blockquote>${esc(moment.userText)}</blockquote>
+          <p class="rm-replay-note"><b>Prelight noticed:</b> ${esc(moment.observation)}<br><b>Try next time:</b> ${esc(moment.suggestion)}</p>
+        </article>`).join("")}
+      </div>` : `<p class="rm-replay-empty">No standout moments were marked in this session. The full conversation is still here if you want to revisit it.</p>`}
+      <details class="rm-replay-transcript">
+        <summary>View full conversation</summary>
+        <div class="rm-replay-transcript-list">${replay.transcript.map(replayLineHtml).join("") || `<p class="rm-replay-empty">No conversation was saved for this session.</p>`}</div>
+      </details>
+    </div>`;
+  $("#replayBack").onclick = () => { S.screen = S.replayReturnScreen || "picker"; render(); };
+}
+
+function openReplayForSession(sessionId) {
+  if (!sessionId) return;
+  S.replayReturnScreen = "picker";
+  S.replayLoading = true;
+  S.screen = "replay";
+  render();
+  api(`/api/sessions/${encodeURIComponent(sessionId)}`)
+    .then((result) => { S.replaySession = result.session; S.replayLoading = false; render(); })
+    .catch((e) => { S.replayLoading = false; S.screen = "picker"; S.pickerTab = "history"; render(); err(e); });
 }
 
 function completionNoteHtml() {
@@ -2126,6 +2226,7 @@ function renderPracticeEnd() {
         <div class="blk"><h4>Engagement</h4><p>${esc(r.engagement || "-")}</p></div>
         <div class="blk"><h4>Content correspondence</h4><p>${esc(r.contentCorrespondence || "-")}</p></div>
       </div>
+      ${S.replaySession ? `<div class="actions" style="justify-content:center;margin-top:18px"><button class="rm-btn ghost" id="reviewMoments">Review key moments</button></div>` : ""}
       <div class="actions" style="justify-content:center;margin-top:20px">
         <button class="rm-btn primary" id="again">Practice again</button>
       </div>
@@ -2136,8 +2237,15 @@ function renderPracticeEnd() {
     S.rubric = null;
     S.bestLine = null;
     S.whyItLanded = null;
+    S.replaySession = null;
     render();
   };
+  $("#reviewMoments")?.addEventListener("click", () => {
+    S.replayReturnScreen = "practiceEnd";
+    S.replayLoading = false;
+    S.screen = "replay";
+    render();
+  });
 }
 
 function improvementNote(history) {

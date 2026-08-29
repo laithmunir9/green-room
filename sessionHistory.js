@@ -22,6 +22,7 @@ function serverSessionToHistory(session) {
     signals: { ...(review.delivery || {}), ...(review.engagement || {}) },
     viaFreeText: false,
     bestLine: review.bestLine || null,
+    replayAvailable: events.some((event) => event?.type === "turn" && event.studentText),
     transcript: studentTurns.join(" "),
     questId: session.scenarioContext?.questId || null,
     challengeModifier: session.scenarioContext?.challengeModifier || null,
