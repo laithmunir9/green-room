@@ -149,6 +149,15 @@ test("protected routes reject UUIDs, accept session tokens, and isolate students
   assert.equal(firstProfile.body.student.id, first.student.id);
   assert.deepEqual(Object.keys(firstProfile.body.student).sort(), ["id", "name"]);
 
+  const profileMissingAuth = await request("/api/profile");
+  assert.equal(profileMissingAuth.response.status, 401);
+  const profileInvalidAuth = await request("/api/profile", { headers: { authorization: "Bearer invalid" } });
+  assert.equal(profileInvalidAuth.response.status, 401);
+  const profile = await request("/api/profile", { headers: { authorization: `Bearer ${first.token}` } });
+  assert.equal(profile.response.status, 200);
+  assert.deepEqual(profile.body.profile.observations, []);
+  assert.equal(profile.body.profile.sessionsAnalyzed, 0);
+
   const secondProfile = await request("/api/student/me", { headers: { authorization: `Bearer ${second.token}` } });
   assert.equal(secondProfile.response.status, 200);
   assert.equal(secondProfile.body.student.id, second.student.id);

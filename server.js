@@ -11,6 +11,7 @@ import { applyLikelyAsrCorrections } from "./transcriptAsrCorrections.js";
 import { transcribeAudioBuffer } from "./openaiTranscriptionClient.js";
 import { resolveCurtainCall } from "./curtainCall.js";
 import { normalizeTurnAnalysis } from "./turnAnalysis.js";
+import { aggregateSpeakingProfile } from "./speakingProfile.js";
 import {
   MAX_SESSION_EVENTS,
   normalizePracticeSession,
@@ -401,6 +402,22 @@ app.get("/api/sessions", async (req, res) => {
     if (!s) return res.status(401).json({ error: "Invalid session" });
     const sessions = await listPracticeSessions(s.id, req.query?.limit);
     res.json({ sessions: sessions.map(publicPracticeSession) });
+  } catch (e) {
+    res.status(errorStatus(e)).json({ error: String(e.message || e) });
+  }
+});
+
+app.get("/api/profile", async (req, res) => {
+  try {
+    const token = bearerToken(req);
+    if (!token) {
+      res.set("WWW-Authenticate", "Bearer");
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    const s = await getStudentByToken(token);
+    if (!s) return res.status(401).json({ error: "Invalid session" });
+    const sessions = await listPracticeSessions(s.id, 50);
+    res.json({ profile: aggregateSpeakingProfile(sessions, { maxSessions: 50 }) });
   } catch (e) {
     res.status(errorStatus(e)).json({ error: String(e.message || e) });
   }
