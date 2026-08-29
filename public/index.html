@@ -3,7 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Prelight</title>
+  <title>Prelight | Practice before the room is real</title>
+  <meta name="description" content="Private speaking practice for vivas, pitches, interviews, and public speaking." />
+  <link rel="canonical" href="https://prelightspeak.com/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://prelightspeak.com/" />
+  <meta property="og:title" content="Prelight | Practice before the room is real" />
+  <meta property="og:description" content="Private speaking practice for vivas, pitches, interviews, and public speaking." />
+  <meta property="og:site_name" content="Prelight" />
+  <meta property="og:image" content="https://prelightspeak.com/logo.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Prelight | Practice before the room is real" />
+  <meta name="twitter:description" content="Private speaking practice for vivas, pitches, interviews, and public speaking." />
+  <meta name="twitter:image" content="https://prelightspeak.com/logo.png" />
   <link rel="icon" href="/prelight-mark.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -380,10 +392,11 @@
     .rm-path-stats div { display: flex; gap: 7px; align-items: baseline; }
     .rm-path-stats b { color: var(--rm-teal-dark); font-family: Fraunces, Georgia, serif; font-size: 25px; line-height: 1; }
     .rm-path-stats span { color: var(--rm-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; }
-    .rm-path { display: grid; grid-template-columns: repeat(6, minmax(105px, 1fr)); gap: 18px; align-items: start; }
-    .rm-path-node { position: relative; min-height: 150px; padding: 54px 12px 12px; text-align: center; }
+    .rm-path { position: relative; display: grid; grid-template-columns: repeat(6, minmax(105px, 1fr)); gap: 18px; align-items: start; }
+    .rm-path::before { content: ""; position: absolute; top: 23px; left: calc((100% - 90px) / 12); right: calc((100% - 90px) / 12); border-top: 3px solid var(--rm-line); z-index: 0; }
+    .rm-path-node { position: relative; z-index: 1; min-height: 150px; padding: 54px 12px 12px; text-align: center; }
     .rm-path-node::before { content: ""; position: absolute; inset: 23px 0 0; z-index: -1; border-radius: 15px; background: var(--rm-input-bg); border: 2px solid var(--ink); filter: url(#sketchWobble); }
-    .rm-path-node:not(:last-child)::after { content: ""; position: absolute; top: 43px; left: calc(50% + 25px); width: calc(100% + 18px); border-top: 2px solid var(--rm-line); z-index: -1; }
+    .rm-path-node:not(:last-child)::after { display: none; }
     .rm-path-node .dot { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: var(--rm-panel); border: 2px solid var(--ink); color: var(--rm-muted); font-weight: 800; box-shadow: 0 8px 20px rgba(43,74,64,.12); }
     .rm-path-node.done .dot { background: var(--rm-sage); color: #16261d; }
     .rm-path-node.current .dot { background: var(--rm-tan); color: #2b1f0d; }
@@ -589,7 +602,8 @@
       .rm-path { grid-template-columns: 1fr; gap: 12px; }
       .rm-path-node { min-height: 96px; padding: 26px 18px 18px 72px; text-align: left; }
       .rm-path-node::before { inset: 0; }
-      .rm-path-node:not(:last-child)::after { top: auto; bottom: -12px; left: 22px; width: 2px; height: 12px; border-top: 0; border-left: 2px solid var(--rm-line); }
+      .rm-path::before { display: none; }
+      .rm-path-node:not(:last-child)::after { display: block; top: auto; bottom: -12px; left: 22px; width: 3px; height: 12px; border-top: 0; border-left: 3px solid var(--rm-line); }
       .rm-path-node .dot { top: 24px; left: 22px; transform: none; width: 38px; height: 38px; }
       .rm-stage-next { grid-template-columns: 1fr; gap: 16px; }
       .rm-stage-next .rm-btn { justify-self: start; }
